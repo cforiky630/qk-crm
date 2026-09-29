@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.BusinessTrackRecordMapper">
+
+    <!-- 某条商机的跟进记录：附带跟进人姓名 -->
+    <select id="listTrackRecords" resultType="com.qk.vo.BusinessTrackRecordVO">
+        SELECT
+            tr.*,
+            u.name AS assign_name
+        FROM business_track_record tr
+        LEFT JOIN `user` u ON tr.user_id = u.id
+        WHERE tr.business_id = #{businessId}
+        ORDER BY tr.create_time DESC, tr.id DESC
+    </select>
+
+</mapper>

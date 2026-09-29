@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/sql/activity.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/business.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/clue.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/course.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/customer.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/dept.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/operate_log.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/role.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+    <file url="file://$PROJECT_DIR$/sql/user.sql" value="8b769474-bcf4-4f8d-850e-6ad8cd516285" />
+  </component>
+</project>

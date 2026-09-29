@@ -1,0 +1,37 @@
+package com.qk.controller;
+
+import com.qk.Result;
+import com.qk.service.ReportService;
+import com.qk.vo.OverviewVO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 数据统计控制器
+ * 对应接口文档：9. 接口文档-其他接口 中的首页概览
+ */
+@Slf4j
+@RestController
+@RequestMapping("/report")
+public class ReportController {
+
+    private final ReportService reportService;
+
+    @Autowired
+    public ReportController(ReportService reportService) {
+        this.reportService = reportService;
+    }
+
+    /**
+     * 获取首页概览数据
+     */
+    @GetMapping("/overview")
+    public Result getOverview() {
+        log.info("获取首页概览数据");
+        OverviewVO overview = reportService.getOverview();
+        return Result.success(overview);
+    }
+}

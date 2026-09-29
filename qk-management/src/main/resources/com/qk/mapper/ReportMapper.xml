@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.ReportMapper">
+
+    <!--
+      首页概览：一次查询返回 12 个统计值。
+      count(if(status = n, 1, null)) 表示「只有状态匹配的行才计数」（count 会忽略 null），
+      相当于按状态分组统计后合并成一行，比 12 次独立查询少 11 次数据库往返。
+      注意：这里的状态编码与 ClueStatus / BusinessStatus 必须保持一致，
+      由 OtherControllerTest#getOverview（每种状态各插一条 + 求和等于总数）守卫。
+    -->
+    <select id="getOverview" resultType="com.qk.vo.OverviewVO">
+        SELECT (SELECT COUNT(1) FROM clue)                                 AS clue_total,
+               (SELECT COUNT(IF(status = 1, 1, NULL)) FROM clue)           AS clue_wait_allot,
+               (SELECT COUNT(IF(status = 2, 1, NULL)) FROM clue)           AS clue_wait_follow,
+               (SELECT COUNT(IF(status = 3, 1, NULL)) FROM clue)           AS clue_following,
+               (SELECT COUNT(IF(status = 4, 1, NULL)) FROM clue)           AS clue_false,
+               (SELECT COUNT(IF(status = 5, 1, NULL)) FROM clue)           AS clue_convert_business,
+               (SELECT COUNT(1) FROM business)                             AS business_total,
+               (SELECT COUNT(IF(status = 1, 1, NULL)) FROM business)       AS business_wait_allot,
+               (SELECT COUNT(IF(status = 2, 1, NULL)) FROM business)       AS business_wait_follow,
+               (SELECT COUNT(IF(status = 3, 1, NULL)) FROM business)       AS business_following,
+               (SELECT COUNT(IF(status = 4, 1, NULL)) FROM business)       AS business_false,
+               (SELECT COUNT(IF(status = 5, 1, NULL)) FROM business)       AS business_convert_customer
+    </select>
+
+</mapper>

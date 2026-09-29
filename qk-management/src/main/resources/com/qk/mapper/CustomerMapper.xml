@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.CustomerMapper">
+
+    <!-- 客户视图：附带意向课程名称 -->
+    <sql id="viewSelect">
+        SELECT cu.*, c.name AS course_name
+        FROM customer cu
+        LEFT JOIN course c ON cu.course_id = c.id
+    </sql>
+
+    <select id="listCustomers" resultType="com.qk.vo.CustomerVO">
+        <include refid="viewSelect"/>
+        <where>
+            <if test="customerQueryDto.phone != null and customerQueryDto.phone != ''">
+                AND cu.phone LIKE CONCAT('%', #{customerQueryDto.phone}, '%')
+            </if>
+            <if test="customerQueryDto.name != null and customerQueryDto.name != ''">
+                AND cu.name LIKE CONCAT('%', #{customerQueryDto.name}, '%')
+            </if>
+            <if test="customerQueryDto.channel != null">
+                AND cu.channel = #{customerQueryDto.channel}
+            </if>
+            <if test="customerQueryDto.subject != null">
+                AND cu.subject = #{customerQueryDto.subject}
+            </if>
+        </where>
+        ORDER BY cu.create_time DESC, cu.id DESC
+    </select>
+
+    <select id="getCustomerById" resultType="com.qk.vo.CustomerVO">
+        <include refid="viewSelect"/>
+        WHERE cu.id = #{id}
+    </select>
+
+</mapper>

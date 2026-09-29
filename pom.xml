@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.qk</groupId>
+    <artifactId>qk-parent</artifactId>
+    <version>1.1.12</version>
+    <packaging>pom</packaging>
+    <modules>
+        <module>qk-common</module>
+        <module>qk-entity</module>
+        <module>qk-management</module>
+    </modules>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.8</version>
+        <relativePath/>
+    </parent>
+    <developers>
+        <developer>
+            <id>1001</id>
+            <name>wuyanzu</name>
+            <email>@</email>
+        </developer>
+    </developers>
+
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.48</lombok.version>
+        <hutool.version>5.8.47</hutool.version>
+        <mybatisplus.version>3.5.17</mybatisplus.version>
+        <aliyun-oss-v2.version>0.6.0</aliyun-oss-v2.version>
+    </properties>
+
+    <dependencies>
+        <!--lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+        </dependency>
+
+        <!--hutool工具包 如jwt-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--子模块-->
+            <dependency>
+                <groupId>com.qk</groupId>
+                <artifactId>qk-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!--子模块-->
+            <dependency>
+                <groupId>com.qk</groupId>
+                <artifactId>qk-entity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!--MyBatis Plus-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <version>${mybatisplus.version}</version>
+            </dependency>
+            <!-- 阿里云 OSS SDK V2 -->
+            <dependency>
+                <groupId>com.aliyun</groupId>
+                <artifactId>alibabacloud-oss-v2</artifactId>
+                <version>${aliyun-oss-v2.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
+</project>

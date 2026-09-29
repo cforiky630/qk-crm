@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  与接口同包同名，namespace 为接口全限定名（MyBatis 官方约定），无需配置 mapper-locations。
+  公共查询写成一条「完整的 SELECT 片段」（列 + 表连接），而不是把裸列清单塞进 <sql>：
+  片段本身就是完整语句时，IDE 的 SQL 校验也不会误报缺少语句分隔符。
+-->
+<mapper namespace="com.qk.mapper.UserMapper">
+
+    <!-- 用户视图：密码摘要 password 不参与查询，避免敏感字段进入内存 -->
+    <sql id="viewSelect">
+        SELECT
+            u.id, u.username, u.name, u.phone, u.email, u.gender, u.status,
+            u.dept_id, u.role_id, u.image, u.remark, u.create_time, u.update_time,
+            d.name AS dept_name, r.name AS role_name
+        FROM `user` u
+        LEFT JOIN dept d ON u.dept_id = d.id
+        LEFT JOIN `role` r ON u.role_id = r.id
+    </sql>
+
+    <!-- 动态条件分页：Page 参数由 MyBatis-Plus 分页插件自动追加 limit 并回填 total -->
+    <select id="getUsers" resultType="com.qk.vo.UserVO">
+        <include refid="viewSelect"/>
+        <where>
+            <if test="userDto.name != null and userDto.name != ''">
+                AND u.name LIKE CONCAT('%', #{userDto.name}, '%')
+            </if>
+            <if test="userDto.status != null">
+                AND u.status = #{userDto.status}
+            </if>
+            <if test="userDto.phone != null and userDto.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{userDto.phone}, '%')
+            </if>
+            <if test="userDto.deptId != null">
+                AND u.dept_id = #{userDto.deptId}
+            </if>
+        </where>
+        ORDER BY u.create_time DESC, u.id DESC
+    </select>
+
+    <select id="getUserById" resultType="com.qk.vo.UserVO">
+        <include refid="viewSelect"/>
+        WHERE u.id = #{id}
+    </select>
+
+    <select id="listAll" resultType="com.qk.vo.UserVO">
+        <include refid="viewSelect"/>
+        ORDER BY u.id
+    </select>
+
+    <select id="findByRoleLabel" resultType="com.qk.vo.UserVO">
+        <include refid="viewSelect"/>
+        WHERE r.label = #{roleLabel}
+        ORDER BY u.id
+    </select>
+
+    <select id="findByDeptId" resultType="com.qk.vo.UserVO">
+        <include refid="viewSelect"/>
+        WHERE u.dept_id = #{deptId}
+        ORDER BY u.id
+    </select>
+
+</mapper>

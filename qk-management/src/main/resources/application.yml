@@ -1,0 +1,53 @@
+#数据库连接信息
+spring:
+  # 本地私有配置：存在就加载，不存在也不会启动失败。
+  # 数据库密码、OSS AccessKey、JWT 密钥等敏感信息写在这里指向的文件里，
+  # 该文件已被 .gitignore 排除，不会进入 Git 仓库。
+  # 这里的配置优先级高于本文件，所以可以覆盖下面任何同名的值。
+  config:
+    import:
+      - optional:file:./config/application-local.yml
+      - optional:file:../config/application-local.yml
+      - optional:file:${user.home}/.qk/application-local.yml
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/qk
+    username: ${QK_DB_USERNAME:root}
+    password: ${QK_DB_PASSWORD:123456}
+  application:
+    name: qk-management  # 你的项目名，会拼接到日志文件名中
+  servlet:
+    multipart:
+      max-file-size: 5MB       # 单个上传文件大小上限
+      max-request-size: 6MB    # 整个请求大小上限
+
+#mybatis-plus配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true  # 开启驼峰命名
+    # SLF4J：SQL 日志受 logging.level 控制（生产环境把 logging.level.com.qk 调成 info 即可关闭 SQL 打印），
+    # StdOutImpl，会绕过日志框架直接打到标准输出
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      id-type: auto  # 全局主键策略 数据库自增
+
+logging:
+  file:
+    path: ./logs  # 日志输出目录，相对路径
+  level:
+    root: info  # 全局默认日志级别
+    com.qk: debug  # 指定包路径下为 debug 级别，方便开发调试
+
+qk:
+  oss:
+    region: ${QK_OSS_REGION:cn-beijing}   # 只需填 Region，不用填完整 Endpoint（qk-bucket-oss 位于华北2-北京）
+    bucketName: qk-bucket-oss
+    # 真实密钥写在 config/application-local.yml（已被 .gitignore 排除）里，
+    # 或用环境变量 QK_OSS_ACCESS_KEY_ID / QK_OSS_ACCESS_KEY_SECRET 注入。
+    accessKeyId: ${QK_OSS_ACCESS_KEY_ID:}
+    accessKeySecret: ${QK_OSS_ACCESS_KEY_SECRET:}
+  jwt:
+    # 真实密钥写在 config/application-local.yml 里，或用环境变量 QK_JWT_SECRET 注入
+    secret: ${QK_JWT_SECRET:qk-management-jwt-secret-change-me-in-production}
+    ttlHours: 24                 # 令牌有效期（小时）

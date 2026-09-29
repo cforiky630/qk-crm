@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.ClueTrackRecordMapper">
+
+    <!-- 某条线索的跟进记录：附带跟进人姓名 -->
+    <select id="listTrackRecords" resultType="com.qk.vo.ClueTrackRecordVO">
+        SELECT
+            tr.*,
+            u.name AS assign_name
+        FROM clue_track_record tr
+        LEFT JOIN `user` u ON tr.user_id = u.id
+        WHERE tr.clue_id = #{clueId}
+        ORDER BY tr.create_time DESC, tr.id DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.ClueMapper">
+
+    <!-- 线索列表视图：附带归属人姓名 -->
+    <sql id="listSelect">
+        SELECT c.*, u.name AS assign_name
+        FROM clue c
+        LEFT JOIN `user` u ON c.user_id = u.id
+    </sql>
+
+    <!-- 线索池视图：附带活动名称 -->
+    <sql id="poolSelect">
+        SELECT c.*, a.name AS activity_name
+        FROM clue c
+        LEFT JOIN activity a ON c.activity_id = a.id
+    </sql>
+
+    <select id="listClues" resultType="com.qk.vo.ClueVO">
+        <include refid="listSelect"/>
+        <where>
+            <!-- 已关闭的线索不出现在列表：4 伪线索、5 转为商机（对应 ClueStatus.CLOSED_CODES） -->
+            AND c.status NOT IN (4, 5)
+            <if test="clueQueryDto.clueId != null">
+                AND c.id = #{clueQueryDto.clueId}
+            </if>
+            <if test="clueQueryDto.phone != null and clueQueryDto.phone != ''">
+                AND c.phone LIKE CONCAT('%', #{clueQueryDto.phone}, '%')
+            </if>
+            <if test="clueQueryDto.status != null">
+                AND c.status = #{clueQueryDto.status}
+            </if>
+            <if test="clueQueryDto.channel != null">
+                AND c.channel = #{clueQueryDto.channel}
+            </if>
+            <if test="clueQueryDto.assignName != null and clueQueryDto.assignName != ''">
+                AND u.name LIKE CONCAT('%', #{clueQueryDto.assignName}, '%')
+            </if>
+        </where>
+        ORDER BY c.update_time DESC, c.id DESC
+    </select>
+
+    <!-- 线索详情：跟进记录由 ClueTrackRecordMapper 单独查询后在 Service 组装 -->
+    <select id="getClueById" resultType="com.qk.vo.ClueVO">
+        <include refid="listSelect"/>
+        WHERE c.id = #{id}
+    </select>
+
+    <!-- 线索池：含伪线索，用于重新分配 -->
+    <select id="getPoolClues" resultType="com.qk.vo.ClueVO">
+        <include refid="poolSelect"/>
+        <where>
+            <if test="cluePoolDto.clueId != null">
+                AND c.id = #{cluePoolDto.clueId}
+            </if>
+            <if test="cluePoolDto.phone != null and cluePoolDto.phone != ''">
+                AND c.phone LIKE CONCAT('%', #{cluePoolDto.phone}, '%')
+            </if>
+            <if test="cluePoolDto.channel != null">
+                AND c.channel = #{cluePoolDto.channel}
+            </if>
+        </where>
+        ORDER BY c.update_time DESC, c.id DESC
+    </select>
+
+</mapper>

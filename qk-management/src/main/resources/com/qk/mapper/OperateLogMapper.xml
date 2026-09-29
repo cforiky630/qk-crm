@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qk.mapper.OperateLogMapper">
+
+    <!-- 操作日志列表：附带操作人姓名，支持按操作人姓名模糊查询 -->
+    <select id="listLogs" resultType="com.qk.vo.OperateLogVO">
+        SELECT
+            l.id,
+            l.operate_user_id,
+            l.operate_time,
+            l.class_name,
+            l.method_name,
+            l.method_params,
+            l.return_value,
+            l.cost_time,
+            u.name AS operate_user_name
+        FROM operate_log l
+        LEFT JOIN `user` u ON l.operate_user_id = u.id
+        <where>
+            <if test="logQueryDto.operateUserName != null and logQueryDto.operateUserName != ''">
+                AND u.name LIKE CONCAT('%', #{logQueryDto.operateUserName}, '%')
+            </if>
+        </where>
+        ORDER BY l.operate_time DESC, l.id DESC
+    </select>
+
+</mapper>

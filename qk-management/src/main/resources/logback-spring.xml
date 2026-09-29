@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 1. 从 application.yml 中读取日志路径，默认值为 ./logs -->
+    <springProperty scope="context" name="LOG_PATH" source="logging.file.path" defaultValue="./logs"/>
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="app"/>
+
+    <!-- 2. 控制台输出配置 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %magenta(%msg) %n
+            </pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 3. 文件输出配置 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+
+        <!-- 日志输出路径：基于 yml 配置和项目名动态生成，跨平台兼容 -->
+        <file>${LOG_PATH}/${APP_NAME}.log</file>
+
+        <!-- 指定日志文件拆分和压缩规则 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 归档路径：按日期和序号拆分 -->
+            <fileNamePattern>${LOG_PATH}/history/${APP_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <!-- 单个文件最大大小 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 保留历史日志天数 -->
+            <maxHistory>30</maxHistory>
+            <!-- 所有归档日志的总大小上限（防止磁盘打满） -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- 4. 根日志级别控制 -->
+    <!-- 级别顺序：off > error > warn > info > debug > trace > all -->
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

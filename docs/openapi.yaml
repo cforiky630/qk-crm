@@ -1,0 +1,2569 @@
+openapi: 3.1.0
+
+info:
+  title: QK 教培 CRM 管理系统 API
+  version: 1.1.12
+  summary: 线索、商机、客户全流程管理接口
+  description: |
+    面向教培行业销售团队的后台管理接口，覆盖线索录入、分配、跟进、转商机、再分配、
+    再跟进、转客户的全流程，以及部门、角色、用户、课程、活动等基础数据维护。
+
+    ## 通用约定
+
+    ### 统一响应结构
+    所有接口返回 `Result` 对象：`code` 为 `1` 表示成功、`0` 表示失败。
+    **业务失败同样返回 HTTP 200**，由调用方依据 `code` 判断；`msg` 为可直接展示给用户的中文提示。
+    无业务数据时 `data` 为 `null`。
+
+    ### 认证
+    除 `POST /login` 外，所有接口都要求在请求头 `token` 中携带登录接口签发的 JWT 令牌。
+    令牌缺失、被篡改或已过期时，接口直接返回 **HTTP 401 且响应体为空**，不返回 `Result` 结构。
+    令牌默认有效期 24 小时。
+
+    ### 分页
+    分页接口的查询参数为 `page`（页码，从 1 开始，默认 1）与 `pageSize`（每页条数，默认 10，**单页最大 200**），
+    响应数据统一为 `{ "total": 总记录数, "rows": [...] }`。
+
+    ### 错误语义（HTTP 状态码）
+    | 状态码 | 触发场景 | 响应体 |
+    | --- | --- | --- |
+    | `200` | 成功；以及**业务失败**（数据不存在、唯一键冲突、文件类型不合法、状态不允许等） | `Result`，失败时 `code = 0`，按 `msg` 提示 |
+    | `400` | 请求体不是合法 JSON、日期格式不合法、路径参数类型不匹配、上传文件超过大小限制 | `Result`，`code = 0`，`msg` 形如「请求参数格式不正确」 |
+    | `401` | 未携带 `token`、令牌被篡改或已过期 | 空响应体 |
+    | `500` | 服务端异常（代码缺陷） | `Result`，`code = 0`，`msg` 为「系统繁忙,请稍后重试」，堆栈只进服务端日志 |
+
+    ### 时间格式
+    输出固定为 `yyyy-MM-dd HH:mm:ss`；输入额外兼容 `yyyy-MM-dd HH:mm`、`yyyy-MM-dd`
+    （按当天 00:00:00 处理）与 ISO 格式 `yyyy-MM-ddTHH:mm:ss`。
+    `createTime`、`updateTime` 由服务端自动填充为服务器时间，请求中传入的值会被忽略。
+
+    ### 主键与数据不存在
+    新增接口的 `id` 由数据库自增生成，请求体中传入的 `id` 会被服务端忽略；
+    修改、删除接口操作不存在的数据时返回 `code = 0`，`msg` 形如「用户不存在」「线索不存在」。
+
+    ### 字段可空性
+    响应模型中标注为 `null` 联合类型的字段在数据库中可为 NULL，未赋值时返回 `null`。
+
+    ### 唯一性约束
+    用户名、手机号、邮箱、角色标识、部门名称，以及线索/商机/客户的手机号均受唯一索引保护。
+    冲突时返回 `code = 0`，`msg` 为「用户名已存在」「该手机号已录入线索」等具体提示。
+
+servers:
+  - url: /
+    description: 当前服务。未配置 server.port，本地启动时监听 http://localhost:8080
+
+security:
+  - token: []
+
+tags:
+  - name: 认证
+    description: 登录与令牌签发
+  - name: 用户管理
+    description: 用户增删改查、下拉列表、按角色或部门筛选
+  - name: 部门管理
+    description: 部门增删改查与下拉列表
+  - name: 角色管理
+    description: 角色增删改查与下拉列表
+  - name: 课程管理
+    description: 课程增删改查、按学科筛选
+  - name: 活动管理
+    description: 活动增删改查、按渠道或类型筛选
+  - name: 线索管理
+    description: 线索列表、线索池、跟进、分配、伪线索与转商机
+  - name: 商机管理
+    description: 商机列表、公海池、跟进、分配、回收与转客户
+  - name: 客户管理
+    description: 客户列表、详情、新增与修改
+  - name: 操作日志
+    description: 由 AOP 切面自动记录的增删改操作日志
+  - name: 数据统计
+    description: 首页数据概览
+  - name: 文件上传
+    description: 图片上传至阿里云 OSS
+
+paths:
+  /login:
+    post:
+      tags: [认证]
+      summary: 用户登录
+      description: 校验账号密码并签发 JWT 令牌。用户名或密码错误、或用户已被停用时返回 `code = 0`。
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: zhangsan
+              password: '123'
+      responses:
+        '200':
+          description: 登录成功返回用户信息与令牌；失败时 `code = 0`、`msg = 用户名或密码错误`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultLogin'
+
+  /users:
+    get:
+      tags: [用户管理]
+      summary: 条件分页查询用户列表
+      operationId: listUsers
+      parameters:
+        - name: name
+          in: query
+          description: 姓名，模糊匹配
+          schema: { type: string }
+        - name: status
+          in: query
+          description: 状态，1:正常, 0:停用
+          schema: { type: integer, format: int32, enum: [0, 1] }
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: deptId
+          in: query
+          description: 部门ID，精确匹配
+          schema: { type: integer, format: int32 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按创建时间倒序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserPage'
+    post:
+      tags: [用户管理]
+      summary: 新增用户
+      description: |
+        请求体不包含密码时，使用默认密码 `123`；包含密码时按 `md5(用户名 + 明文密码)` 存储。
+        该接口会写入一条操作日志。
+      operationId: addUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBody'
+            example:
+              username: lisi
+              name: 李四
+              phone: '13800138002'
+              email: lisi@example.com
+              gender: 1
+              status: 1
+              deptId: 4
+              roleId: 2
+              remark: 内容编辑
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [用户管理]
+      summary: 修改用户信息
+      description: |
+        请求体中的 `password` 会被服务端忽略并置空，密码修改需走单独的重置流程。
+        该接口会写入一条操作日志。
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /users/list:
+    get:
+      tags: [用户管理]
+      summary: 查询所有用户（下拉框）
+      operationId: listAllUsers
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 全量用户列表，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserList'
+
+  /users/role/{roleLabel}:
+    get:
+      tags: [用户管理]
+      summary: 根据角色标识查询用户
+      operationId: listUsersByRole
+      parameters:
+        - name: roleLabel
+          in: path
+          required: true
+          description: 角色标识，如 `clue_operator`、`business_operator`
+          schema: { type: string }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 用户列表，角色标识不存在时返回空数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserList'
+
+  /users/dept/{deptId}:
+    get:
+      tags: [用户管理]
+      summary: 根据部门ID查询用户
+      operationId: listUsersByDept
+      parameters:
+        - name: deptId
+          in: path
+          required: true
+          schema: { type: integer, format: int32 }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 用户列表，部门下无用户时返回空数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserList'
+
+  /users/{ids}:
+    get:
+      tags: [用户管理]
+      summary: 根据ID查询用户（回显）
+      description: 路径参数为单个用户ID。
+      operationId: getUserById
+      parameters:
+        - $ref: '#/components/parameters/UserIds'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 用户信息；不存在时 `code = 0`、`msg = 用户不存在`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUser'
+    delete:
+      tags: [用户管理]
+      summary: 批量删除用户
+      description: 支持单个与批量删除，路径参数可传多个ID。该接口会写入一条操作日志。
+      operationId: deleteUsers
+      parameters:
+        - $ref: '#/components/parameters/UserIds'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /depts:
+    get:
+      tags: [部门管理]
+      summary: 条件分页查询部门
+      operationId: listDepts
+      parameters:
+        - name: name
+          in: query
+          description: 部门名称，模糊匹配
+          schema: { type: string }
+        - name: status
+          in: query
+          description: 状态，1:正常, 0:停用
+          schema: { type: integer, format: int32, enum: [0, 1] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultDeptPage'
+    post:
+      tags: [部门管理]
+      summary: 新增部门
+      description: 部门名称唯一，重复时返回 `msg = 部门名称已存在`。该接口会写入一条操作日志。
+      operationId: addDept
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeptBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [部门管理]
+      summary: 修改部门
+      description: 该接口会写入一条操作日志。
+      operationId: updateDept
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeptBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /depts/list:
+    get:
+      tags: [部门管理]
+      summary: 查询所有正常状态的部门（下拉框）
+      operationId: listAllDepts
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 仅返回 `status = 1` 的部门，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultDeptList'
+
+  /depts/{id}:
+    get:
+      tags: [部门管理]
+      summary: 根据ID查询部门
+      operationId: getDeptById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 部门信息，不存在时 `data` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultDept'
+    delete:
+      tags: [部门管理]
+      summary: 删除部门
+      description: 该接口会写入一条操作日志。
+      operationId: deleteDept
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /roles:
+    get:
+      tags: [角色管理]
+      summary: 条件分页查询角色
+      operationId: listRoles
+      parameters:
+        - name: name
+          in: query
+          description: 角色名称，模糊匹配
+          schema: { type: string }
+        - name: label
+          in: query
+          description: 角色标识，模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRolePage'
+    post:
+      tags: [角色管理]
+      summary: 新增角色
+      description: 角色标识全局唯一，重复时返回 `msg = 角色标识已存在`。该接口会写入一条操作日志。
+      operationId: addRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [角色管理]
+      summary: 修改角色
+      description: 该接口会写入一条操作日志。
+      operationId: updateRole
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /roles/list:
+    get:
+      tags: [角色管理]
+      summary: 查询所有角色（下拉框）
+      operationId: listAllRoles
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 全量角色列表，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRoleList'
+
+  /roles/{id}:
+    get:
+      tags: [角色管理]
+      summary: 根据ID查询角色
+      operationId: getRoleById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 角色信息，不存在时 `data` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRole'
+    delete:
+      tags: [角色管理]
+      summary: 删除角色
+      description: 该接口会写入一条操作日志。
+      operationId: deleteRole
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /courses:
+    get:
+      tags: [课程管理]
+      summary: 条件分页查询课程
+      operationId: listCourses
+      parameters:
+        - name: name
+          in: query
+          description: 课程名称，模糊匹配
+          schema: { type: string }
+        - name: subject
+          in: query
+          description: 学科
+          schema: { $ref: '#/components/schemas/Subject' }
+        - name: target
+          in: query
+          description: 适用人群
+          schema: { $ref: '#/components/schemas/CourseTarget' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCoursePage'
+    post:
+      tags: [课程管理]
+      summary: 新增课程
+      description: 该接口会写入一条操作日志。
+      operationId: addCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [课程管理]
+      summary: 修改课程
+      description: 该接口会写入一条操作日志。
+      operationId: updateCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /courses/list:
+    get:
+      tags: [课程管理]
+      summary: 查询所有课程（下拉框）
+      operationId: listAllCourses
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 全量课程列表，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCourseList'
+
+  /courses/subject/{subject}:
+    get:
+      tags: [课程管理]
+      summary: 根据学科查询课程
+      operationId: listCoursesBySubject
+      parameters:
+        - name: subject
+          in: path
+          required: true
+          description: 学科
+          schema: { $ref: '#/components/schemas/Subject' }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 课程列表，无匹配时返回空数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCourseList'
+
+  /courses/{id}:
+    get:
+      tags: [课程管理]
+      summary: 根据ID查询课程
+      operationId: getCourseById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 课程信息，不存在时 `data` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCourse'
+    delete:
+      tags: [课程管理]
+      summary: 删除课程
+      description: 该接口会写入一条操作日志。
+      operationId: deleteCourse
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /activities:
+    get:
+      tags: [活动管理]
+      summary: 条件分页查询活动
+      operationId: listActivities
+      parameters:
+        - name: channel
+          in: query
+          description: 渠道来源
+          schema: { $ref: '#/components/schemas/Channel' }
+        - name: type
+          in: query
+          description: 活动类型
+          schema: { $ref: '#/components/schemas/ActivityType' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按ID升序
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultActivityPage'
+    post:
+      tags: [活动管理]
+      summary: 新增活动
+      description: 该接口会写入一条操作日志。
+      operationId: addActivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityBody'
+            example:
+              channel: 1
+              name: 暑期 Java 就业班折扣
+              startTime: '2025-06-01 00:00:00'
+              endTime: '2025-06-30 23:59:59'
+              description: 暑期报名享 8 折
+              type: 1
+              discount: 8.0
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [活动管理]
+      summary: 修改活动
+      description: 该接口会写入一条操作日志。
+      operationId: updateActivity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /activities/type/{type}:
+    get:
+      tags: [活动管理]
+      summary: 根据活动类型查询活动
+      operationId: listActivitiesByType
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: 活动类型
+          schema: { $ref: '#/components/schemas/ActivityType' }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 活动列表，无匹配时返回空数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultActivityList'
+
+  /activities/{id}:
+    get:
+      tags: [活动管理]
+      summary: 根据ID查询活动
+      operationId: getActivityById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 活动信息，不存在时 `data` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultActivity'
+    delete:
+      tags: [活动管理]
+      summary: 删除活动
+      description: 该接口会写入一条操作日志。
+      operationId: deleteActivity
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /clues:
+    get:
+      tags: [线索管理]
+      summary: 线索列表查询
+      description: 只返回仍在跟进的线索，`status` 为 `4 伪线索` 与 `5 转为商机` 的线索不出现在此列表。按修改时间倒序。
+      operationId: listClues
+      parameters:
+        - name: clueId
+          in: query
+          description: 线索ID，精确匹配
+          schema: { type: integer, format: int32 }
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: status
+          in: query
+          description: 线索状态
+          schema: { $ref: '#/components/schemas/ClueStatus' }
+        - name: channel
+          in: query
+          description: 线索来源
+          schema: { $ref: '#/components/schemas/Channel' }
+        - name: assignName
+          in: query
+          description: 归属人姓名，模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，`rows` 中 `trackRecords` 与 `record` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCluePage'
+    post:
+      tags: [线索管理]
+      summary: 新增线索
+      description: |
+        新增的线索一律置为 `1 待分配` 且归属人清空，请求体中的 `status`、`userId` 不生效。
+        手机号唯一，重复时返回 `msg = 该手机号已录入线索`。该接口会写入一条操作日志。
+      operationId: addClue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClueBody'
+            example:
+              phone: '15100000001'
+              channel: 1
+              name: 卫丹
+              gender: 2
+              age: 24
+              wechat: wxweidan
+              qq: '8450313640'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [线索管理]
+      summary: 跟进线索
+      description: |
+        将线索状态置为 `3 跟进中`，并新增一条 `type = 1` 的正常跟进记录。
+        请求体中除 `id` 外的字段为可选，未传字段保持原值；`record` 为本次跟进内容，写入跟进记录。
+        该接口会写入一条操作日志。
+      operationId: trackClue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClueTrackBody'
+            example:
+              id: 55
+              subject: 1
+              level: 3
+              nextTime: '2025-05-22 12:00:00'
+              record: 了解一下目前 java 方向的就业前景
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /clues/pool:
+    get:
+      tags: [线索管理]
+      summary: 线索池列表查询
+      description: 查询全量线索（含伪线索），并关联带出活动名称。按修改时间倒序。
+      operationId: listPoolClues
+      parameters:
+        - name: clueId
+          in: query
+          description: 线索ID，精确匹配
+          schema: { type: integer, format: int32 }
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: channel
+          in: query
+          description: 线索来源
+          schema: { $ref: '#/components/schemas/Channel' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，`rows` 中 `activityName` 为活动名称
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCluePage'
+
+  /clues/assign/{clueId}/{userId}:
+    put:
+      tags: [线索管理]
+      summary: 分配线索给指定用户
+      description: 将线索归属人设为指定用户并置为 `2 待跟进`。该接口会写入一条操作日志。
+      operationId: assignClue
+      parameters:
+        - name: clueId
+          in: path
+          required: true
+          description: 线索ID
+          schema: { type: integer, format: int32 }
+        - name: userId
+          in: path
+          required: true
+          description: 被分配的用户ID
+          schema: { type: integer, format: int32 }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /clues/false/{id}:
+    put:
+      tags: [线索管理]
+      summary: 将线索标记为伪线索
+      description: |
+        将线索置为 `4 伪线索`，并新增一条 `type = 0` 的跟进记录，记录伪线索原因与备注。
+        该接口会写入一条操作日志。
+      operationId: markFalseClue
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkFalseClueBody'
+            example:
+              reason: 2
+              remark: 电话停机了
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /clues/toBusiness/{id}:
+    put:
+      tags: [线索管理]
+      summary: 将线索转为商机
+      description: |
+        将线索置为 `5 转为商机`，并按线索信息复制生成一条商机：
+        商机重新走分配流程，因此归属人与下次跟进时间被清空，状态为 `1 待分配`，同时记录来源线索ID。
+        该接口会写入一条操作日志。
+      operationId: convertClueToBusiness
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /clues/{id}:
+    get:
+      tags: [线索管理]
+      summary: 根据ID查询线索详细信息
+      operationId: getClueById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: |
+            线索详细信息，`trackRecords` 为该线索的全部跟进记录（按创建时间倒序），
+            每条记录带出跟进人姓名。线索不存在时 `code = 0`、`msg = 线索不存在`。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultClue'
+
+  /businesses:
+    get:
+      tags: [商机管理]
+      summary: 商机列表查询
+      description: 只返回仍在跟进的商机，`status` 为 `4 回收` 与 `5 转客户` 的商机不出现在此列表。按修改时间倒序。
+      operationId: listBusinesses
+      parameters:
+        - name: businessId
+          in: query
+          description: 商机ID，精确匹配
+          schema: { type: integer, format: int32 }
+        - name: name
+          in: query
+          description: 客户姓名，模糊匹配
+          schema: { type: string }
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: status
+          in: query
+          description: 商机状态
+          schema: { $ref: '#/components/schemas/BusinessStatus' }
+        - name: assignName
+          in: query
+          description: 归属人姓名，模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，`rows` 中 `trackRecords`、`trackStatus`、`keyItems`、`record` 为 `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBusinessPage'
+    post:
+      tags: [商机管理]
+      summary: 新增商机
+      description: |
+        新增的商机一律置为 `1 待分配` 且归属人清空，请求体中的 `status`、`userId` 不生效。
+        手机号唯一，重复时返回 `msg = 该手机号已录入商机`。该接口会写入一条操作日志。
+      operationId: addBusiness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessBody'
+            example:
+              phone: '15300000001'
+              channel: 2
+              name: 承娟
+              gender: 2
+              age: 19
+              wechat: cj2839
+              qq: '2595964758'
+              subject: 1
+              degree: 4
+              jobStatus: 1
+              courseId: 1
+              remark: 无
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [商机管理]
+      summary: 跟进商机
+      description: |
+        将商机状态置为 `3 跟进中`，并新增一条商机跟进记录。
+        请求体中除 `id` 外的字段为可选，未传字段保持原值。
+        `keyItems` 为沟通重点数组，落库时序列化为字符串。该接口会写入一条操作日志。
+      operationId: trackBusiness
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BusinessTrackBody'
+            example:
+              id: 21
+              trackStatus: 1
+              keyItems: [课程, 时间]
+              nextTime: '2025-06-23 10:00:00'
+              record: 了解了课程及上课时间
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /businesses/pool:
+    get:
+      tags: [商机管理]
+      summary: 公海池列表查询
+      description: 只返回被踢回公海（`status = 4`）的商机。按修改时间倒序。
+      operationId: listPoolBusinesses
+      parameters:
+        - name: businessId
+          in: query
+          description: 商机ID，精确匹配
+          schema: { type: integer, format: int32 }
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: name
+          in: query
+          description: 客户姓名，模糊匹配
+          schema: { type: string }
+        - name: subject
+          in: query
+          description: 意向学科
+          schema: { $ref: '#/components/schemas/Subject' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBusinessPage'
+
+  /businesses/assign/{businessId}/{userId}:
+    put:
+      tags: [商机管理]
+      summary: 分配商机给指定用户
+      description: 将商机归属人设为指定用户并置为 `2 待跟进`。该接口会写入一条操作日志。
+      operationId: assignBusiness
+      parameters:
+        - name: businessId
+          in: path
+          required: true
+          description: 商机ID
+          schema: { type: integer, format: int32 }
+        - name: userId
+          in: path
+          required: true
+          description: 被分配的用户ID
+          schema: { type: integer, format: int32 }
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /businesses/back/{id}:
+    put:
+      tags: [商机管理]
+      summary: 将商机踢回公海
+      description: 将商机置为 `4 回收` 并清空归属人。该接口会写入一条操作日志。
+      operationId: backBusinessToPool
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /businesses/toCustomer/{id}:
+    post:
+      tags: [商机管理]
+      summary: 将商机转为客户
+      description: |
+        将商机置为 `5 转客户`，并按商机信息复制生成一条客户，同时记录来源商机ID。
+        该接口会写入一条操作日志。
+      operationId: convertBusinessToCustomer
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /businesses/{id}:
+    get:
+      tags: [商机管理]
+      summary: 根据ID查询商机详细信息
+      operationId: getBusinessById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: |
+            商机详细信息，`trackRecords` 为该商机的全部跟进记录（按创建时间倒序），
+            每条记录带出跟进人姓名；`courseName` 为意向课程名称。
+            商机不存在时 `code = 0`、`msg = 商机不存在`。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBusiness'
+
+  /customers:
+    get:
+      tags: [客户管理]
+      summary: 客户列表查询
+      operationId: listCustomers
+      parameters:
+        - name: phone
+          in: query
+          description: 手机号，模糊匹配
+          schema: { type: string }
+        - name: name
+          in: query
+          description: 客户姓名，模糊匹配
+          schema: { type: string }
+        - name: channel
+          in: query
+          description: 渠道来源
+          schema: { $ref: '#/components/schemas/Channel' }
+        - name: subject
+          in: query
+          description: 意向学科
+          schema: { $ref: '#/components/schemas/Subject' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果，按创建时间倒序，`rows` 中 `courseName` 为意向课程名称
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCustomerPage'
+    post:
+      tags: [客户管理]
+      summary: 新增客户
+      description: |
+        手工新增的客户没有来源商机，`businessId` 为空。
+        手机号唯一，重复时返回 `msg = 该手机号已录入客户`。该接口会写入一条操作日志。
+      operationId: addCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerBody'
+            example:
+              phone: '15600000001'
+              channel: 1
+              name: 库家明
+              gender: 1
+              age: 22
+              wechat: kujiaming
+              qq: '3353439142'
+              degree: 4
+              jobStatus: 1
+              subject: 1
+              courseId: 1
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+    put:
+      tags: [客户管理]
+      summary: 修改客户
+      description: 请求体中的 `businessId` 会被服务端忽略并置空，不允许通过修改接口篡改来源商机。该接口会写入一条操作日志。
+      operationId: updateCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerBody'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          $ref: '#/components/responses/Ok'
+
+  /customers/{id}:
+    get:
+      tags: [客户管理]
+      summary: 根据ID查询客户
+      operationId: getCustomerById
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 客户信息；不存在时 `code = 0`、`msg = 客户不存在`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCustomer'
+
+  /logs:
+    get:
+      tags: [操作日志]
+      summary: 操作日志列表查询
+      description: 日志由切面在增删改接口执行成功后自动写入，带出操作人姓名。按操作时间倒序。
+      operationId: listLogs
+      parameters:
+        - name: operateUserName
+          in: query
+          description: 操作人姓名，模糊匹配
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 分页结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOperateLogPage'
+
+  /report/overview:
+    get:
+      tags: [数据统计]
+      summary: 获取首页概览数据
+      description: 返回线索与商机各状态的数量统计，共 12 项。
+      operationId: getOverview
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 概览统计结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOverview'
+
+  /upload:
+    post:
+      tags: [文件上传]
+      summary: 上传图片到阿里云 OSS
+      description: |
+        对象按 `images/{上传人ID}/yyyy/MM/dd/{uuid}{后缀}` 命名（按用户隔离，便于后续追溯与清理），返回可公开访问的 URL。
+        只接受 jpg、jpeg、png、gif、bmp、webp 六种后缀；其他后缀返回 `code = 0`，
+        `msg` 为「只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片」。
+        单个文件最大 5MB、整个请求最大 6MB，超出时返回 HTTP 400 且 `msg` 为「上传文件过大」。
+      operationId: uploadImage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: 待上传的图片文件
+              required: [image]
+      responses:
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '200':
+          description: 上传成功，`data` 为图片访问 URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUrl'
+
+components:
+
+  securitySchemes:
+    token:
+      type: apiKey
+      in: header
+      name: token
+      description: |
+        登录接口返回的 JWT 令牌。缺失、被篡改或已过期时接口返回 HTTP 401 且响应体为空。
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: 主键ID
+      schema: { type: integer, format: int32 }
+    UserIds:
+      name: ids
+      in: path
+      required: true
+      description: |
+        用户ID。查询回显时传单个ID，如 `5`；批量删除时可传多个ID，用英文逗号分隔，如 `1,2,3`。
+      schema: { type: string }
+      example: '1,2,3'
+    Page:
+      name: page
+      in: query
+      description: 页码，从 1 开始
+      schema: { type: integer, format: int32, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      description: 每页记录数
+      schema: { type: integer, format: int32, minimum: 1, default: 10 }
+
+  responses:
+    Ok:
+      description: 操作成功，`code = 1`、`data` 为 `null`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Result'
+    Unauthorized:
+      description: 令牌缺失、被篡改或已过期。响应体为空，不返回 `Result` 结构。
+
+    BadRequest:
+      description: 请求参数不合法（请求体格式错误、参数类型不匹配、上传文件过大等），返回 HTTP 400。
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Result'
+
+  schemas:
+
+    # ---------- 通用 ----------
+
+    Result:
+      type: object
+      description: 统一响应结构。业务失败同样返回 HTTP 200，由 `code` 区分。
+      properties:
+        code:
+          type: integer
+          description: 1:成功, 0:失败
+          enum: [1, 0]
+        msg:
+          type: string
+          description: 提示信息，成功时固定为 `success`
+        data:
+          description: 业务数据，无数据时为 `null`
+      required: [code, msg]
+
+    DateTime:
+      type: string
+      description: 时间，输出格式 `yyyy-MM-dd HH:mm:ss`
+      example: '2025-06-01 00:00:00'
+
+    # ---------- 枚举 ----------
+
+    Channel:
+      type: integer
+      format: int32
+      description: 渠道来源，1:线上活动, 2:推广介绍
+      enum: [1, 2]
+
+    Subject:
+      type: integer
+      format: int32
+      description: 意向学科，1:AI智能应用开发(Java), 2:AI大模型开发(Python), 3:AI鸿蒙开发, 4:AI大数据, 5:AI嵌入式, 6:AI测试, 7:AI运维
+      enum: [1, 2, 3, 4, 5, 6, 7]
+
+    Gender:
+      type: integer
+      format: int32
+      description: 性别，1:男, 2:女
+      enum: [1, 2]
+
+    Degree:
+      type: integer
+      format: int32
+      description: 学历，1:高中, 2:中专, 3:大专, 4:本科, 5:硕士, 6:博士, 7:其他
+      enum: [1, 2, 3, 4, 5, 6, 7]
+
+    JobStatus:
+      type: integer
+      format: int32
+      description: 在职情况，1:在职, 0:离职
+      enum: [0, 1]
+
+    ClueStatus:
+      type: integer
+      format: int32
+      description: 线索状态，1:待分配, 2:待跟进, 3:跟进中, 4:伪线索, 5:转为商机
+      enum: [1, 2, 3, 4, 5]
+
+    ClueLevel:
+      type: integer
+      format: int32
+      description: 意向等级，1:近期学习, 2:打算学习(考虑中), 3:进行了解, 4:打酱油
+      enum: [1, 2, 3, 4]
+
+    ClueTrackType:
+      type: integer
+      format: int32
+      description: 跟进类型，1:正常跟进, 0:伪线索
+      enum: [0, 1]
+
+    FalseReason:
+      type: integer
+      format: int32
+      description: 伪线索原因，1:空号, 2:停机, 3:竞品, 4:无法联系, 5:其他
+      enum: [1, 2, 3, 4, 5]
+
+    BusinessStatus:
+      type: integer
+      format: int32
+      description: 商机状态，1:待分配, 2:待跟进, 3:跟进中, 4:回收, 5:转客户
+      enum: [1, 2, 3, 4, 5]
+
+    BusinessTrackStatus:
+      type: integer
+      format: int32
+      description: 跟进状态，1:接通, 2:拒绝, 3:无人接听
+      enum: [1, 2, 3]
+
+    ActivityType:
+      type: integer
+      format: int32
+      description: 活动类型，1:课程折扣, 2:代金券
+      enum: [1, 2]
+
+    CourseTarget:
+      type: integer
+      format: int32
+      description: 适用人群，1:小白学员, 2:中级程序员
+      enum: [1, 2]
+
+    EnableStatus:
+      type: integer
+      format: int32
+      description: 状态，1:正常, 0:停用
+      enum: [0, 1]
+
+    # ---------- 认证 ----------
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          description: 用户名
+        password:
+          type: string
+          description: 明文密码
+      required: [username, password]
+
+    LoginResultVo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 用户ID
+        username:
+          type: string
+          description: 用户名
+        name:
+          type: string
+          description: 姓名
+        image:
+          type: [string, 'null']
+          description: 头像访问路径
+        roleLabel:
+          type: [string, 'null']
+          description: 角色标识，前端据此控制菜单与按钮权限
+        token:
+          type: string
+          description: JWT 令牌，后续请求需放入请求头 `token`
+
+    # ---------- 用户 ----------
+
+    UserVO:
+      type: object
+      description: 用户视图对象，不含密码字段
+      properties:
+        id: { type: integer, format: int32, description: 用户ID }
+        username: { type: string, description: 用户名 }
+        name: { type: string, description: 姓名 }
+        phone: { type: string, description: 手机号 }
+        email: { type: string, description: 邮箱 }
+        gender: { $ref: '#/components/schemas/Gender' }
+        status: { $ref: '#/components/schemas/EnableStatus' }
+        deptId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 部门ID
+        roleId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 角色ID
+        image:
+          type: [string, 'null']
+          description: 头像访问路径
+        remark:
+          type: [string, 'null']
+          description: 备注
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+        deptName:
+          type: [string, 'null']
+          description: 部门名称，由部门表关联查询得到
+        roleName:
+          type: [string, 'null']
+          description: 角色名称，由角色表关联查询得到
+
+    UserBody:
+      type: object
+      description: 新增或修改用户的请求体
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 用户ID，修改时必填
+        username: { type: string, description: 用户名，唯一 }
+        password:
+          type: string
+          description: |
+            明文密码。新增时留空则使用默认密码 `123`，否则按 `md5(用户名 + 明文密码)` 存储；
+            修改时该字段被服务端忽略。
+        name: { type: string, description: 姓名 }
+        phone: { type: string, description: 手机号，唯一 }
+        email: { type: string, description: 邮箱，唯一 }
+        gender: { $ref: '#/components/schemas/Gender' }
+        status: { $ref: '#/components/schemas/EnableStatus' }
+        deptId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 部门ID
+        roleId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 角色ID
+        image:
+          type: [string, 'null']
+          description: 头像访问路径
+        remark:
+          type: [string, 'null']
+          description: 备注
+      required: [username, name, phone, email, gender, status]
+
+    # ---------- 部门 ----------
+
+    Dept:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 部门ID }
+        name: { type: string, description: 部门名称，唯一 }
+        status: { $ref: '#/components/schemas/EnableStatus' }
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+
+    DeptBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 部门ID，修改时必填
+        name: { type: string, description: 部门名称，唯一 }
+        status: { $ref: '#/components/schemas/EnableStatus' }
+      required: [name, status]
+
+    # ---------- 角色 ----------
+
+    Role:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 角色ID }
+        name: { type: string, description: 角色名称 }
+        label: { type: string, description: 角色标识，全局唯一，权限判断用 }
+        remark:
+          type: [string, 'null']
+          description: 备注说明
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+
+    RoleBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 角色ID，修改时必填
+        name: { type: string, description: 角色名称 }
+        label: { type: string, description: 角色标识，全局唯一 }
+        remark:
+          type: [string, 'null']
+          description: 备注说明
+      required: [name, label]
+
+    # ---------- 课程 ----------
+
+    Course:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 课程ID }
+        subject: { $ref: '#/components/schemas/Subject' }
+        name: { type: string, description: 课程名称 }
+        price: { type: integer, format: int32, description: 价格，单位：元 }
+        target: { $ref: '#/components/schemas/CourseTarget' }
+        description:
+          type: [string, 'null']
+          description: 课程介绍
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+
+    CourseBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 课程ID，修改时必填
+        subject: { $ref: '#/components/schemas/Subject' }
+        name: { type: string, description: 课程名称 }
+        price: { type: integer, format: int32, description: 价格，单位：元 }
+        target: { $ref: '#/components/schemas/CourseTarget' }
+        description:
+          type: [string, 'null']
+          description: 课程介绍
+      required: [subject, name, price, target]
+
+    # ---------- 活动 ----------
+
+    Activity:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 活动ID }
+        channel: { $ref: '#/components/schemas/Channel' }
+        name: { type: string, description: 活动名称 }
+        startTime: { $ref: '#/components/schemas/DateTime' }
+        endTime: { $ref: '#/components/schemas/DateTime' }
+        description:
+          type: [string, 'null']
+          description: 活动简介
+        type: { $ref: '#/components/schemas/ActivityType' }
+        discount:
+          anyOf:
+            - type: number
+            - type: 'null'
+          description: 课程折扣，例如 `8.0` 表示 8 折。与 `voucher` 二选一
+          example: 8.0
+        voucher:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 课程代金券，单位：元。与 `discount` 二选一
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+
+    ActivityBody:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 活动ID，修改时必填
+        channel: { $ref: '#/components/schemas/Channel' }
+        name: { type: string, description: 活动名称 }
+        startTime: { $ref: '#/components/schemas/DateTime' }
+        endTime: { $ref: '#/components/schemas/DateTime' }
+        description:
+          type: [string, 'null']
+          description: 活动简介
+        type: { $ref: '#/components/schemas/ActivityType' }
+        discount:
+          anyOf:
+            - type: number
+            - type: 'null'
+          description: 课程折扣。`type = 1` 时填写
+        voucher:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 课程代金券，单位：元。`type = 2` 时填写
+      required: [channel, name, startTime, endTime, type]
+
+    # ---------- 线索 ----------
+
+    Clue:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 线索ID }
+        phone: { type: string, description: 手机号，唯一 }
+        channel: { $ref: '#/components/schemas/Channel' }
+        activityId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 关联活动的ID
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        userId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 归属人ID
+        status: { $ref: '#/components/schemas/ClueStatus' }
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        level:
+          anyOf:
+            - $ref: '#/components/schemas/ClueLevel'
+            - type: 'null'
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+          description: 下次跟进时间
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+        assignName:
+          type: [string, 'null']
+          description: 归属人姓名，由用户表关联查询得到
+        activityName:
+          type: [string, 'null']
+          description: 活动名称，线索池查询时由活动表关联得到
+        trackRecords:
+          anyOf:
+            - type: array
+              items: { $ref: '#/components/schemas/ClueTrackRecord' }
+            - type: 'null'
+          description: 跟进记录列表，仅线索详情接口返回
+        record:
+          type: [string, 'null']
+          description: 本次跟进内容，仅用于接收 `PUT /clues` 的请求参数，查询接口中为 `null`
+
+    ClueTrackRecord:
+      type: object
+      description: 线索跟进记录
+      properties:
+        id: { type: integer, format: int32, description: 跟进记录ID }
+        clueId: { type: integer, format: int32, description: 线索ID }
+        userId: { type: integer, format: int32, description: 跟进人ID }
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        level:
+          anyOf:
+            - $ref: '#/components/schemas/ClueLevel'
+            - type: 'null'
+        record:
+          type: [string, 'null']
+          description: 跟进记录内容
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+        type: { $ref: '#/components/schemas/ClueTrackType' }
+        falseReason:
+          anyOf:
+            - $ref: '#/components/schemas/FalseReason'
+            - type: 'null'
+          description: 伪线索原因，`type = 0` 时有值
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        assignName:
+          type: [string, 'null']
+          description: 跟进人姓名
+
+    ClueBody:
+      type: object
+      description: 新增线索的请求体，`status` 与 `userId` 由服务端强制设置，传入不生效
+      properties:
+        phone: { type: string, description: 手机号，唯一 }
+        channel: { $ref: '#/components/schemas/Channel' }
+        activityId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 关联活动的ID
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        level:
+          anyOf:
+            - $ref: '#/components/schemas/ClueLevel'
+            - type: 'null'
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+      required: [phone, channel]
+
+    ClueTrackBody:
+      type: object
+      description: 跟进线索的请求体，未传字段保持原值
+      properties:
+        id: { type: integer, format: int32, description: 线索ID }
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        phone:
+          type: [string, 'null']
+          description: 手机号
+        channel:
+          anyOf:
+            - $ref: '#/components/schemas/Channel'
+            - type: 'null'
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        level:
+          anyOf:
+            - $ref: '#/components/schemas/ClueLevel'
+            - type: 'null'
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+        record:
+          type: [string, 'null']
+          description: 本次跟进内容，写入跟进记录
+      required: [id]
+
+    MarkFalseClueBody:
+      type: object
+      properties:
+        reason: { $ref: '#/components/schemas/FalseReason' }
+        remark:
+          type: [string, 'null']
+          description: 备注信息，写入跟进记录的 `record`
+      required: [reason]
+
+    # ---------- 商机 ----------
+
+    Business:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 商机ID }
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        phone: { type: string, description: 手机号，唯一 }
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        courseId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 意向课程ID
+        degree:
+          anyOf:
+            - $ref: '#/components/schemas/Degree'
+            - type: 'null'
+        jobStatus:
+          anyOf:
+            - $ref: '#/components/schemas/JobStatus'
+            - type: 'null'
+        channel: { $ref: '#/components/schemas/Channel' }
+        remark:
+          type: [string, 'null']
+          description: 备注
+        status: { $ref: '#/components/schemas/BusinessStatus' }
+        userId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 归属人ID
+        clueId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 来源线索ID
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+          description: 下次跟进时间
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+        assignName:
+          type: [string, 'null']
+          description: 归属人姓名
+        courseName:
+          type: [string, 'null']
+          description: 意向课程名称，仅商机详情接口返回
+        trackRecords:
+          anyOf:
+            - type: array
+              items: { $ref: '#/components/schemas/BusinessTrackRecord' }
+            - type: 'null'
+          description: 跟进记录列表，仅商机详情接口返回
+        trackStatus:
+          anyOf:
+            - $ref: '#/components/schemas/BusinessTrackStatus'
+            - type: 'null'
+          description: 本次跟进状态，仅用于接收 `PUT /businesses` 的请求参数，查询接口中为 `null`
+        keyItems:
+          anyOf:
+            - type: array
+              items: { type: string }
+            - type: 'null'
+          description: 本次沟通重点，仅用于接收 `PUT /businesses` 的请求参数，查询接口中为 `null`
+        record:
+          type: [string, 'null']
+          description: 本次沟通纪要，仅用于接收 `PUT /businesses` 的请求参数，查询接口中为 `null`
+
+    BusinessTrackRecord:
+      type: object
+      description: 商机跟进记录
+      properties:
+        id: { type: integer, format: int32, description: 跟进记录ID }
+        businessId: { type: integer, format: int32, description: 商机ID }
+        userId: { type: integer, format: int32, description: 跟进人ID }
+        trackStatus: { $ref: '#/components/schemas/BusinessTrackStatus' }
+        keyItems:
+          type: [string, 'null']
+          description: 沟通重点，落库时由数组序列化为字符串，例如 `[课程, 时间]`
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+        record:
+          type: [string, 'null']
+          description: 沟通纪要
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        assignName:
+          type: [string, 'null']
+          description: 跟进人姓名
+
+    BusinessBody:
+      type: object
+      description: 新增商机的请求体，`status` 与 `userId` 由服务端强制设置，传入不生效
+      properties:
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        phone: { type: string, description: 手机号，唯一 }
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        courseId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 意向课程ID
+        degree:
+          anyOf:
+            - $ref: '#/components/schemas/Degree'
+            - type: 'null'
+        jobStatus:
+          anyOf:
+            - $ref: '#/components/schemas/JobStatus'
+            - type: 'null'
+        channel: { $ref: '#/components/schemas/Channel' }
+        remark:
+          type: [string, 'null']
+          description: 备注
+      required: [phone, channel]
+
+    BusinessTrackBody:
+      type: object
+      description: 跟进商机的请求体，未传字段保持原值
+      properties:
+        id: { type: integer, format: int32, description: 商机ID }
+        trackStatus: { $ref: '#/components/schemas/BusinessTrackStatus' }
+        keyItems:
+          anyOf:
+            - type: array
+              items: { type: string }
+            - type: 'null'
+          description: 沟通重点
+        nextTime:
+          anyOf:
+            - $ref: '#/components/schemas/DateTime'
+            - type: 'null'
+          description: 下次跟进时间
+        record:
+          type: [string, 'null']
+          description: 沟通纪要
+      required: [id]
+
+    # ---------- 客户 ----------
+
+    Customer:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 客户ID }
+        phone: { type: string, description: 手机号，唯一 }
+        channel: { $ref: '#/components/schemas/Channel' }
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        degree:
+          anyOf:
+            - $ref: '#/components/schemas/Degree'
+            - type: 'null'
+        jobStatus:
+          anyOf:
+            - $ref: '#/components/schemas/JobStatus'
+            - type: 'null'
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        courseId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 意向课程ID
+        businessId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 来源商机ID，手工新增的客户为 `null`
+        createTime: { $ref: '#/components/schemas/DateTime' }
+        updateTime: { $ref: '#/components/schemas/DateTime' }
+        courseName:
+          type: [string, 'null']
+          description: 意向课程名称，由课程表关联查询得到
+
+    CustomerBody:
+      type: object
+      description: 新增或修改客户的请求体
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: 客户ID，修改时必填
+        phone: { type: string, description: 手机号，唯一 }
+        channel: { $ref: '#/components/schemas/Channel' }
+        name:
+          type: [string, 'null']
+          description: 客户姓名
+        gender:
+          anyOf:
+            - $ref: '#/components/schemas/Gender'
+            - type: 'null'
+        age:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 年龄
+        wechat:
+          type: [string, 'null']
+          description: 微信号
+        qq:
+          type: [string, 'null']
+          description: QQ号
+        degree:
+          anyOf:
+            - $ref: '#/components/schemas/Degree'
+            - type: 'null'
+        jobStatus:
+          anyOf:
+            - $ref: '#/components/schemas/JobStatus'
+            - type: 'null'
+        subject:
+          anyOf:
+            - $ref: '#/components/schemas/Subject'
+            - type: 'null'
+        courseId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 意向课程ID
+      required: [phone, channel]
+
+    # ---------- 操作日志 ----------
+
+    OperateLogVO:
+      type: object
+      properties:
+        id: { type: integer, format: int32, description: 日志ID }
+        operateUserId:
+          anyOf:
+            - type: integer
+              format: int32
+            - type: 'null'
+          description: 操作用户ID
+        operateTime: { $ref: '#/components/schemas/DateTime' }
+        className:
+          type: [string, 'null']
+          description: 操作的类名
+        methodName:
+          type: [string, 'null']
+          description: 操作的方法名
+        methodParams:
+          type: [string, 'null']
+          description: 方法参数，超过 1000 字被截断
+        returnValue:
+          type: [string, 'null']
+          description: 返回值，超过 2000 字被截断
+        costTime:
+          anyOf:
+            - type: integer
+              format: int64
+            - type: 'null'
+          description: 方法执行耗时，单位：ms
+        operateUserName:
+          type: [string, 'null']
+          description: 操作用户姓名
+
+    # ---------- 数据统计 ----------
+
+    OverviewVO:
+      type: object
+      description: 首页概览统计，共 12 项
+      properties:
+        clueTotal: { type: integer, format: int32, description: 总线索数 }
+        clueWaitAllot: { type: integer, format: int32, description: 待分配线索数 }
+        clueWaitFollow: { type: integer, format: int32, description: 待跟进线索数 }
+        clueFollowing: { type: integer, format: int32, description: 跟进中线索数 }
+        clueFalse: { type: integer, format: int32, description: 伪线索数 }
+        clueConvertBusiness: { type: integer, format: int32, description: 转商机线索数 }
+        businessTotal: { type: integer, format: int32, description: 总商机数 }
+        businessWaitAllot: { type: integer, format: int32, description: 待分配商机数 }
+        businessWaitFollow: { type: integer, format: int32, description: 待跟进商机数 }
+        businessFollowing: { type: integer, format: int32, description: 跟进中商机数 }
+        businessFalse: { type: integer, format: int32, description: 回收商机数 }
+        businessConvertCustomer: { type: integer, format: int32, description: 转客户商机数 }
+
+    # ---------- 分页结果 ----------
+
+    UserPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/UserVO' }
+      required: [total, rows]
+
+    DeptPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Dept' }
+      required: [total, rows]
+
+    RolePage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+      required: [total, rows]
+
+    CoursePage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Course' }
+      required: [total, rows]
+
+    ActivityPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Activity' }
+      required: [total, rows]
+
+    CluePage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Clue' }
+      required: [total, rows]
+
+    BusinessPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Business' }
+      required: [total, rows]
+
+    CustomerPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/Customer' }
+      required: [total, rows]
+
+    OperateLogPage:
+      type: object
+      properties:
+        total: { type: integer, format: int64, description: 总记录数 }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/OperateLogVO' }
+      required: [total, rows]
+
+    # ---------- 响应包装 ----------
+
+    ResultLogin:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/LoginResultVo'
+                - type: 'null'
+
+    ResultUserPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/UserPage' }
+
+    ResultUserList:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/UserVO' }
+
+    ResultUser:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/UserVO'
+                - type: 'null'
+
+    ResultDeptPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/DeptPage' }
+
+    ResultDeptList:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/Dept' }
+
+    ResultDept:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Dept'
+                - type: 'null'
+
+    ResultRolePage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/RolePage' }
+
+    ResultRoleList:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/Role' }
+
+    ResultRole:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Role'
+                - type: 'null'
+
+    ResultCoursePage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CoursePage' }
+
+    ResultCourseList:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/Course' }
+
+    ResultCourse:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Course'
+                - type: 'null'
+
+    ResultActivityPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/ActivityPage' }
+
+    ResultActivityList:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/Activity' }
+
+    ResultActivity:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Activity'
+                - type: 'null'
+
+    ResultCluePage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CluePage' }
+
+    ResultClue:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Clue'
+                - type: 'null'
+
+    ResultBusinessPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/BusinessPage' }
+
+    ResultBusiness:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Business'
+                - type: 'null'
+
+    ResultCustomerPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/CustomerPage' }
+
+    ResultCustomer:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              anyOf:
+                - $ref: '#/components/schemas/Customer'
+                - type: 'null'
+
+    ResultOperateLogPage:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/OperateLogPage' }
+
+    ResultOverview:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data: { $ref: '#/components/schemas/OverviewVO' }
+
+    ResultUrl:
+      allOf:
+        - $ref: '#/components/schemas/Result'
+        - type: object
+          properties:
+            data:
+              type: string
+              description: 图片访问 URL
+              example: https://qk-bucket-oss.oss-cn-beijing.aliyuncs.com/images/2025/06/01/a1b2c3d4e5f6.png
