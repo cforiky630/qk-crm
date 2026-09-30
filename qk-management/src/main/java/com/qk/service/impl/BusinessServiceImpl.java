@@ -59,7 +59,16 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
 
     @Override
     public void assignBusiness(Integer businessId, Integer userId) {
-        requireBusiness(businessId);
+        Business existing = requireBusiness(businessId);
+
+        // 守卫：只有「待分配」或「已回收（回公海后重新分配）」的商机才能分配
+        Integer status = existing.getStatus();
+        boolean assignable = BusinessStatus.WAIT_ALLOT.getCode().equals(status)
+                || BusinessStatus.RECYCLED.getCode().equals(status);
+        if (!assignable) {
+            throw new BusinessException("该商机当前状态不允许分配");
+        }
+
         Business business = new Business();
         business.setId(businessId);
         business.setUserId(userId);
@@ -69,7 +78,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
 
     @Override
     public void backToPool(Integer id) {
-        requireBusiness(id);
+        requireActiveBusiness(id, "踢回公海");
         Business business = new Business();
         business.setId(id);
         business.setStatus(BusinessStatus.RECYCLED.getCode());
@@ -83,7 +92,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Transactional(rollbackFor = Exception.class)
     public void convertToCustomer(Integer id) {
         // 1. 更新商机：状态置为转客户
-        Business business = requireBusiness(id);
+        Business business = requireActiveBusiness(id, "转客户");
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
         updateById(business);
 
@@ -108,7 +117,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void trackBusiness(BusinessTrackDto businessTrackDto) {
-        requireBusiness(businessTrackDto.getId());
+        requireActiveBusiness(businessTrackDto.getId(), "跟进");
         // 1. 更新商机：状态由服务端固定置为跟进中
         Business business = BeanUtil.copyProperties(businessTrackDto, Business.class);
         business.setStatus(BusinessStatus.FOLLOWING.getCode());
@@ -143,6 +152,23 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         Business business = getById(id);
         if (business == null) {
             throw new BusinessException("商机不存在");
+        }
+        return business;
+    }
+
+    /**
+     * 守卫：只有「待跟进」或「跟进中」的商机才能继续流转（跟进 / 踢回公海 / 转客户）。
+     * <p>
+     * 与线索同样的思路：这是重复提交的第二道防线，避免重复生成跟进记录，
+     * 或把同一条商机重复转成客户（后者原先只能靠客户手机号唯一索引挡下）。
+     */
+    private Business requireActiveBusiness(Integer id, String action) {
+        Business business = requireBusiness(id);
+        Integer status = business.getStatus();
+        boolean active = BusinessStatus.WAIT_FOLLOW.getCode().equals(status)
+                || BusinessStatus.FOLLOWING.getCode().equals(status);
+        if (!active) {
+            throw new BusinessException("该商机当前状态不允许" + action);
         }
         return business;
     }

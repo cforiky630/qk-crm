@@ -62,7 +62,17 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
 
     @Override
     public void assignClue(Integer clueId, Integer userId) {
-        requireClue(clueId);
+        Clue existing = requireClue(clueId);
+
+        // 守卫：只有「待分配」或「伪线索（已回到线索池）」的线索才能分配，
+        // 防止对跟进中、已转商机的线索重复分配。
+        Integer status = existing.getStatus();
+        boolean assignable = ClueStatus.WAIT_ALLOT.getCode().equals(status)
+                || ClueStatus.FALSE_CLUE.getCode().equals(status);
+        if (!assignable) {
+            throw new BusinessException("该线索当前状态不允许分配");
+        }
+
         Clue clue = new Clue();
         clue.setId(clueId);
         clue.setUserId(userId);
@@ -84,7 +94,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void trackClue(ClueTrackDto clueTrackDto) {
-        requireClue(clueTrackDto.getId());
+        requireActiveClue(clueTrackDto.getId(), "跟进");
         // 1. 更新线索：状态由服务端固定置为跟进中（前端即使传了 status 也不生效）
         Clue clue = BeanUtil.copyProperties(clueTrackDto, Clue.class);
         clue.setStatus(ClueStatus.FOLLOWING.getCode());
@@ -105,7 +115,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markFalseClue(Integer id, MarkFalseClueDto markFalseClueDto) {
-        requireClue(id);
+        requireActiveClue(id, "标记为伪线索");
         // 1. 更新线索：状态置为伪线索
         Clue clue = new Clue();
         clue.setId(id);
@@ -126,7 +136,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     @Transactional(rollbackFor = Exception.class)
     public void convertToBusiness(Integer id) {
         // 1. 更新线索：状态置为转为商机
-        Clue clue = requireClue(id);
+        Clue clue = requireActiveClue(id, "转商机");
         clue.setStatus(ClueStatus.CONVERT_BUSINESS.getCode());
         updateById(clue);
 
@@ -157,6 +167,24 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         Clue clue = getById(id);
         if (clue == null) {
             throw new BusinessException("线索不存在");
+        }
+        return clue;
+    }
+
+    /**
+     * 守卫：只有「待跟进」或「跟进中」的线索才能继续流转（跟进 / 标伪线索 / 转商机）。
+     * <p>
+     * 这是重复提交的第二道防线：网络重试或双击产生的第二次请求会被拒绝，
+     * 避免重复生成跟进记录、或把同一条线索重复转成商机（后者原先只能靠
+     * 商机手机号唯一索引挡下，报错还误导成「该手机号已录入商机」）。
+     */
+    private Clue requireActiveClue(Integer id, String action) {
+        Clue clue = requireClue(id);
+        Integer status = clue.getStatus();
+        boolean active = ClueStatus.WAIT_FOLLOW.getCode().equals(status)
+                || ClueStatus.FOLLOWING.getCode().equals(status);
+        if (!active) {
+            throw new BusinessException("该线索当前状态不允许" + action);
         }
         return clue;
     }
