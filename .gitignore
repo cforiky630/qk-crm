@@ -10,15 +10,6 @@ target/
 *.iml
 *.ipr
 
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
@@ -48,3 +39,6 @@ logs/
 /.qk/
 *.local.yml
 *.local.properties
+
+### claude本地配置 ###
+.claude/
