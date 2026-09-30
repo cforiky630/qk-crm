@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -130,6 +131,17 @@ class RoleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.rows").isArray());
+    }
+
+    @Test
+    void blankFilterIsTreatedAsNoFilter() throws Exception {
+        insertRole("空白筛选角色", "ut_blank_filter", "用于测试空白筛选");
+
+        // 纯空白等同于「不筛选」：底层判断从 Hutool isNotBlank 换成 Spring hasText 后语义必须保持一致
+        mockMvc.perform(get("/roles").param("name", "   ").param("label", "  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.rows[*].label", hasItem("ut_blank_filter")));
     }
 
     @Test

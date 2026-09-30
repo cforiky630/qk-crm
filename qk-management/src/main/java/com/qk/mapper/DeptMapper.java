@@ -1,6 +1,5 @@
 package com.qk.mapper;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -8,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Dept;
 import com.qk.entity.enums.EnableStatus;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ public interface DeptMapper extends BaseMapper<Dept> {
      */
     default IPage<Dept> pageDepts(Page<Dept> page, String name, Integer status) {
         LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Dept::getName, name)
+        wrapper.like(StringUtils.hasText(name), Dept::getName, name)
                 .eq(status != null, Dept::getStatus, status)
                 .orderByAsc(Dept::getId);
         return selectPage(page, wrapper);

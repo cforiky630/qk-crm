@@ -1,12 +1,12 @@
 package com.qk.mapper;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Course;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public interface CourseMapper extends BaseMapper<Course> {
      */
     default IPage<Course> pageCourses(Page<Course> page, String name, Integer subject, Integer target) {
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Course::getName, name)
+        wrapper.like(StringUtils.hasText(name), Course::getName, name)
                 .eq(subject != null, Course::getSubject, subject)
                 .eq(target != null, Course::getTarget, target)
                 .orderByAsc(Course::getId);

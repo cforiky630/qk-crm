@@ -1,12 +1,12 @@
 package com.qk.mapper;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Role;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -23,8 +23,8 @@ public interface RoleMapper extends BaseMapper<Role> {
      */
     default IPage<Role> pageRoles(Page<Role> page, String name, String label) {
         LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Role::getName, name)
-                .like(StrUtil.isNotBlank(label), Role::getLabel, label)
+        wrapper.like(StringUtils.hasText(name), Role::getName, name)
+                .like(StringUtils.hasText(label), Role::getLabel, label)
                 .orderByAsc(Role::getId);
         return selectPage(page, wrapper);
     }
