@@ -9,7 +9,7 @@ import lombok.Getter;
  * 像 falseReason、trackStatus 这类只是原样透传给前端的编码，枚举化只会多一层包装，就不做了。
  */
 @Getter
-public enum ClueTrackType {
+public enum ClueTrackType implements CodeEnum<Integer> {
 
     /** 伪线索：跟进过程中判定线索无效 */
     FALSE_CLUE(0),
@@ -17,9 +17,10 @@ public enum ClueTrackType {
     /** 正常跟进 */
     NORMAL(1);
 
-    private final int code;
+    /** 码值：数据库与接口对外都用这个数字 */
+    private final Integer value;
 
-    ClueTrackType(int code) {
-        this.code = code;
+    ClueTrackType(Integer value) {
+        this.value = value;
     }
 }

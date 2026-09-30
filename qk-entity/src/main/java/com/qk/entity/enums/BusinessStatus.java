@@ -10,7 +10,7 @@ import java.util.List;
  * 与 {@link ClueStatus} 相同的思路：编码集中定义，避免数字散落。
  */
 @Getter
-public enum BusinessStatus {
+public enum BusinessStatus implements CodeEnum<Integer> {
 
     /** 待分配 —— 新增商机（含线索转过来的商机）的初始状态 */
     WAIT_ALLOT(1),
@@ -27,14 +27,15 @@ public enum BusinessStatus {
     /** 转客户 —— 已成单，转入客户列表 */
     CONVERT_CUSTOMER(5);
 
-    private final int code;
+    /** 码值：数据库与接口对外都用这个数字 */
+    private final Integer value;
 
-    BusinessStatus(int code) {
-        this.code = code;
+    BusinessStatus(Integer value) {
+        this.value = value;
     }
 
     /**
      * 已关闭的状态：回收的商机在公海池里，转客户的在客户列表里，两者都不出现在商机列表。
      */
-    public static final List<Integer> CLOSED_CODES = List.of(RECYCLED.code, CONVERT_CUSTOMER.code);
+    public static final List<Integer> CLOSED_CODES = List.of(RECYCLED.value, CONVERT_CUSTOMER.value);
 }
