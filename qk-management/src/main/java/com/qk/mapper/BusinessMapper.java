@@ -1,6 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Business;
@@ -32,4 +33,12 @@ public interface BusinessMapper extends BaseMapper<Business> {
      * 公海池列表（回收的商机）
      */
     IPage<BusinessVO> getPoolBusinesses(Page<BusinessVO> page, @Param("businessPoolDto") BusinessPoolDto businessPoolDto);
+
+    /**
+     * 统计引用某课程的商机数（用于删除课程前的引用校验）
+     */
+    default long countByCourseId(Integer courseId) {
+        Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getCourseId, courseId));
+        return count == null ? 0L : count;
+    }
 }

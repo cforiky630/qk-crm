@@ -2,6 +2,8 @@ package com.qk;
 
 import com.qk.mapper.CourseMapper;
 import com.qk.common.util.JwtUtil;
+import com.qk.mapper.BusinessMapper;
+import com.qk.mapper.CustomerMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +16,15 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasItem;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -27,6 +32,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.qk.entity.Course;
+import com.qk.entity.Business;
+import com.qk.entity.Customer;
+import com.qk.entity.enums.BusinessStatus;
 
 /**
  * 课程管理接口测试，校验 4. 接口文档-课程管理.md 中的契约
@@ -36,11 +44,19 @@ import com.qk.entity.Course;
 @Transactional
 class CourseControllerTest {
 
+    private static final AtomicInteger SEQ = new AtomicInteger();
+
     @Autowired
     private WebApplicationContext wac;
 
     @Autowired
     private CourseMapper courseMapper;
+
+    @Autowired
+    private BusinessMapper businessMapper;
+
+    @Autowired
+    private CustomerMapper customerMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -70,6 +86,45 @@ class CourseControllerTest {
         course.setUpdateTime(LocalDateTime.now());
         courseMapper.insert(course);
         return course;
+    }
+
+    /** 造一个把某课程作为意向课程的商机，用于验证「课程被引用时不可删除」 */
+    private Business insertBusiness(Integer courseId) {
+        int seq = SEQ.incrementAndGet();
+        Business business = new Business();
+        business.setName("课程引用商机" + seq);
+        business.setPhone("152" + String.format("%08d", seq));
+        business.setGender(1);
+        business.setAge(24);
+        business.setWechat("wx" + seq);
+        business.setQq("qq" + seq);
+        business.setSubject(1);
+        business.setCourseId(courseId);
+        business.setDegree(4);
+        business.setJobStatus(1);
+        business.setChannel(1);
+        business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
+        businessMapper.insert(business);
+        return business;
+    }
+
+    /** 造一个把某课程作为意向课程的客户 */
+    private Customer insertCustomer(Integer courseId) {
+        int seq = SEQ.incrementAndGet();
+        Customer customer = new Customer();
+        customer.setPhone("156" + String.format("%08d", seq));
+        customer.setChannel(1);
+        customer.setName("课程引用客户" + seq);
+        customer.setGender(1);
+        customer.setAge(22);
+        customer.setWechat("wx" + seq);
+        customer.setQq("qq" + seq);
+        customer.setDegree(4);
+        customer.setJobStatus(1);
+        customer.setSubject(1);
+        customer.setCourseId(courseId);
+        customerMapper.insert(customer);
+        return customer;
     }
 
     @Test
@@ -227,6 +282,35 @@ class CourseControllerTest {
         // 删除后应查不到
         mockMvc.perform(get("/courses/{id}", course.getId()))
                 .andExpect(jsonPath("$.data").doesNotExist());
+
+        // 再直接查库确认，避免只看接口返回
+        assertNull(courseMapper.selectById(course.getId()), "课程应已从库中删除");
+    }
+
+    @Test
+    void deleteCourseReferencedByBusinessIsRejected() throws Exception {
+        Course course = insertCourse(1, "被商机引用的课程", 100, 1, "用于测试引用守卫");
+        insertBusiness(course.getId());
+
+        mockMvc.perform(delete("/courses/{id}", course.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该课程已被 1 条商机引用，无法删除"));
+
+        assertNotNull(courseMapper.selectById(course.getId()), "仍被商机引用的课程不应被删除");
+    }
+
+    @Test
+    void deleteCourseReferencedByCustomerIsRejected() throws Exception {
+        Course course = insertCourse(1, "被客户引用的课程", 200, 1, "用于测试引用守卫");
+        insertCustomer(course.getId());
+
+        mockMvc.perform(delete("/courses/{id}", course.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该课程已被 1 条客户引用，无法删除"));
+
+        assertNotNull(courseMapper.selectById(course.getId()), "仍被客户引用的课程不应被删除");
     }
 
     @Test

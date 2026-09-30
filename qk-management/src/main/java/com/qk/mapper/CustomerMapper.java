@@ -1,6 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Customer;
@@ -26,4 +27,12 @@ public interface CustomerMapper extends BaseMapper<Customer> {
      * 根据ID查询客户（含意向课程名称）
      */
     CustomerVO getCustomerById(@Param("id") Integer id);
+
+    /**
+     * 统计引用某课程的客户数（用于删除课程前的引用校验）
+     */
+    default long countByCourseId(Integer courseId) {
+        Long count = selectCount(new LambdaQueryWrapper<Customer>().eq(Customer::getCourseId, courseId));
+        return count == null ? 0L : count;
+    }
 }

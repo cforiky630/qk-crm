@@ -7,11 +7,14 @@ import com.qk.entity.Course;
 import com.qk.common.PageResult;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.CourseMapper;
+import com.qk.mapper.BusinessMapper;
+import com.qk.mapper.CustomerMapper;
 import com.qk.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.ArrayList;
 
 
 @Service
@@ -25,10 +28,14 @@ public class CourseServiceImpl implements CourseService {
     private static final int MAX_TARGET = 2;
 
     private final CourseMapper courseMapper;
+    private final BusinessMapper businessMapper;
+    private final CustomerMapper customerMapper;
 
     @Autowired
-    public CourseServiceImpl(CourseMapper courseMapper) {
+    public CourseServiceImpl(CourseMapper courseMapper, BusinessMapper businessMapper, CustomerMapper customerMapper) {
         this.courseMapper = courseMapper;
+        this.businessMapper = businessMapper;
+        this.customerMapper = customerMapper;
     }
 
     @Override
@@ -100,6 +107,24 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public void deleteById(Integer id) {
         requireCourse(id);
+
+        // 守卫：仍被商机或客户引用的课程不允许删除。
+        // 项目不使用物理外键（见 sql/business.sql、sql/customer.sql 注释），
+        // business.course_id / customer.course_id 的引用完整性只能由 Service 层兜底，
+        // 否则这些记录的意向课程会变成悬空引用。
+        long businessRefs = businessMapper.countByCourseId(id);
+        long customerRefs = customerMapper.countByCourseId(id);
+        if (businessRefs > 0 || customerRefs > 0) {
+            List<String> refs = new ArrayList<>(2);
+            if (businessRefs > 0) {
+                refs.add(businessRefs + " 条商机");
+            }
+            if (customerRefs > 0) {
+                refs.add(customerRefs + " 条客户");
+            }
+            throw new BusinessException("该课程已被 " + String.join("、", refs) + "引用，无法删除");
+        }
+
         courseMapper.deleteById(id);
     }
 
