@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--
+      测试专用的日志配置：只输出到控制台，不写文件。
+      原因：测试进程的工作目录是模块目录（qk-management），
+      若沿用主配置的 ./logs 相对路径，会在模块下再生成一个 logs 目录，
+      与项目根目录的 logs 重复。测试日志本身也不需要长期留存。
+    -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %magenta(%msg) %n
+            </pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

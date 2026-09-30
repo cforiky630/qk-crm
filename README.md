@@ -170,7 +170,15 @@ curl -H "token: <token>" http://localhost:8080/report/overview
 | `QK_OSS_ACCESS_KEY_SECRET` | 空 | 同上 |
 | `QK_JWT_SECRET` | 开发占位值 | JWT 签名密钥，生产必须替换 ≥32 字节的随机值 |
 
-日志输出到 `./logs`（已在 `.gitignore` 中忽略）；SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关闭。
+日志输出到**项目根目录的 `./logs`**（已在 `.gitignore` 中忽略），历史归档在同级 `history/`。注意 `./logs` 是相对路径，写到哪取决于启动时的工作目录：
+
+| 启动方式 | 工作目录 | 日志位置 |
+| --- | --- | --- |
+| IDEA（使用仓库自带的共享运行配置 `.run/QkApplication.run.xml`） | 项目根 | `./logs` |
+| `mvn spring-boot:run -pl qk-management` / `java -jar ...`（在项目根执行） | 项目根 | `./logs` |
+| `mvn test` | 模块目录 | **不写文件**，仅输出到控制台（`src/test/resources/logback-test.xml`） |
+
+SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关闭。
 
 ## 接口一览
 
@@ -286,4 +294,3 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 - 项目按《轻客管家》课程的分阶段接口文档实现，接口契约以 [`docs/openapi.yaml`](docs/openapi.yaml) 为准。
 - 执行数据清理前的整库备份在 `sql/_backup/`，可用 `mysql -uroot -p < sql/_backup/<文件>.sql` 还原。
-- 本仓库未附带开源许可证。
