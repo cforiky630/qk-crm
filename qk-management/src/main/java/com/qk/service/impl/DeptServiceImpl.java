@@ -29,6 +29,7 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     public void addDept(Dept dept) {
+        // 主键由数据库自增，禁止客户端指定
         dept.setId(null);
         deptMapper.insert(dept);
     }

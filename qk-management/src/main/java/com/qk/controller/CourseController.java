@@ -1,11 +1,14 @@
 package com.qk.controller;
 
 import com.qk.entity.Course;
+import com.qk.entity.dto.CourseSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.CourseService;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,9 +33,9 @@ public class CourseController {
      */
     @LogOperation
     @PostMapping("/courses")
-    public Result<Void> addCourse(@RequestBody Course course) {
-        log.info("新增课程,参数:{}", course);
-        courseService.addCourse(course);
+    public Result<Void> addCourse(@Valid @RequestBody CourseSaveDto courseDto) {
+        log.info("新增课程,参数:{}", courseDto);
+        courseService.addCourse(toCourse(courseDto));
         return Result.success();
     }
 
@@ -74,10 +77,17 @@ public class CourseController {
      */
     @LogOperation
     @PutMapping("/courses")
-    public Result<Void> updateCourse(@RequestBody Course course) {
-        log.info("修改课程信息：{}", course);
-        courseService.updateById(course);
+    public Result<Void> updateCourse(@Valid @RequestBody CourseSaveDto courseDto) {
+        log.info("修改课程信息：{}", courseDto);
+        courseService.updateById(toCourse(courseDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象） */
+    private Course toCourse(CourseSaveDto dto) {
+        Course course = new Course();
+        BeanUtil.copyProperties(dto, course);
+        return course;
     }
 
     /**

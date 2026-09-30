@@ -3,9 +3,12 @@ package com.qk.controller;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.Role;
+import com.qk.entity.dto.RoleSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.RoleService;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,9 +33,9 @@ public class RoleController {
      */
     @LogOperation
     @PostMapping("/roles")
-    public Result<Void> addRole(@RequestBody Role role) {
-        log.info("新增角色,参数:{}", role);
-        roleService.addRole(role);
+    public Result<Void> addRole(@Valid @RequestBody RoleSaveDto roleDto) {
+        log.info("新增角色,参数:{}", roleDto);
+        roleService.addRole(toRole(roleDto));
         return Result.success();
     }
 
@@ -73,10 +76,17 @@ public class RoleController {
      */
     @LogOperation
     @PutMapping("/roles")
-    public Result<Void> updateRole(@RequestBody Role role) {
-        log.info("修改角色信息：{}", role);
-        roleService.updateById(role);
+    public Result<Void> updateRole(@Valid @RequestBody RoleSaveDto roleDto) {
+        log.info("修改角色信息：{}", roleDto);
+        roleService.updateById(toRole(roleDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象） */
+    private Role toRole(RoleSaveDto dto) {
+        Role role = new Role();
+        BeanUtil.copyProperties(dto, role);
+        return role;
     }
 
     /**

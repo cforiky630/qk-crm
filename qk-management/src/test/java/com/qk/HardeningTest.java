@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -292,7 +293,9 @@ class HardeningTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.msg").value("课程名称、学科、价格、适用人群均不能为空"));
+                // DTO 校验改为按字段给出精确提示，具体先报哪个字段由校验器决定，
+                // 因此这里只断言「提示了必填」，不再绑定合并文案
+                .andExpect(jsonPath("$.msg", containsString("不能为空")));
 
         // NOT NULL 拦不住空字符串，所以名称还要单独判空白
         mockMvc.perform(post("/courses")
@@ -332,7 +335,8 @@ class HardeningTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("价格不能为负数"));
 
-        // 修改是部分更新：只传 id + name 应当成功，只传越界的 subject 应当被拒绝
+        // 修改按文档要求提交完整字段（CourseBody.required = subject/name/price/target），
+        // 只是「机制上」null 字段不参与 UPDATE；越界取值必须被拒绝
         Course course = new Course();
         course.setSubject(1);
         course.setName("校验测试课程");
@@ -344,7 +348,7 @@ class HardeningTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
                         .content("""
-                                {"id":%d,"name":"只改名字"}
+                                {"id":%d,"subject":1,"name":"改后的名字","price":100,"target":1}
                                 """.formatted(course.getId())))
                 .andExpect(jsonPath("$.code").value(1));
 
@@ -352,7 +356,7 @@ class HardeningTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
                         .content("""
-                                {"id":%d,"subject":99}
+                                {"id":%d,"subject":99,"name":"越界学科","price":100,"target":1}
                                 """.formatted(course.getId())))
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("学科取值必须在 1~7 之间"));

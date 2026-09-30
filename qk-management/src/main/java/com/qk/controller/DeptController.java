@@ -1,11 +1,14 @@
 package com.qk.controller;
 
 import com.qk.entity.Dept;
+import com.qk.entity.dto.DeptSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.DeptService;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,15 +28,14 @@ public class DeptController {
     /**
      * 新增部门
      *
-     * @param dept 部门信息
+     * @param deptDto 部门信息（新增时忽略 id）
      * @return 操作结果
      */
     @LogOperation
     @PostMapping("/depts") // 对应前端提交时用到的请求方式
-    // 当前端使用POST和PUT的请求体提交json格式的参数时，后端需要使用  @RequestBody 类对象 的方式接收
-    public Result<Void> addDept(@RequestBody Dept dept) {
-        log.info("新增部门,参数:{}", dept);
-        deptService.addDept(dept);
+    public Result<Void> addDept(@Valid @RequestBody DeptSaveDto deptDto) {
+        log.info("新增部门,参数:{}", deptDto);
+        deptService.addDept(toDept(deptDto));
         return Result.success();
     }
 
@@ -73,15 +75,27 @@ public class DeptController {
     /**
      * 修改部门
      *
-     * @param dept 部门信息
+     * @param deptDto 部门信息（id 必填）
      * @return 统一响应结果
      */
     @LogOperation
     @PutMapping("/depts")
-    public Result<Void> updateDept(@RequestBody Dept dept) {
-        log.info("修改部门信息：{}", dept);
-        deptService.updateById(dept);
+    public Result<Void> updateDept(@Valid @RequestBody DeptSaveDto deptDto) {
+        log.info("修改部门信息：{}", deptDto);
+        deptService.updateById(toDept(deptDto));
         return Result.success();
+    }
+
+    /**
+     * 协议适配：请求 DTO → 领域实体
+     * <p>
+     * 放在控制器而不是 Service：Service 不应依赖 Web 层的入参对象，
+     * 否则接口字段一变，业务层就要跟着改。
+     */
+    private Dept toDept(DeptSaveDto dto) {
+        Dept dept = new Dept();
+        BeanUtil.copyProperties(dto, dept);
+        return dept;
     }
 
     /**

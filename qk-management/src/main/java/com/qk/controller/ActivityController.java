@@ -1,11 +1,14 @@
 package com.qk.controller;
 
 import com.qk.entity.Activity;
+import com.qk.entity.dto.ActivitySaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.ActivityService;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,9 +34,9 @@ public class ActivityController {
      */
     @LogOperation
     @PostMapping("/activities")
-    public Result<Void> addActivity(@RequestBody Activity activity) {
-        log.info("新增活动,参数:{}", activity);
-        activityService.addActivity(activity);
+    public Result<Void> addActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
+        log.info("新增活动,参数:{}", activityDto);
+        activityService.addActivity(toActivity(activityDto));
         return Result.success();
     }
 
@@ -73,10 +76,17 @@ public class ActivityController {
      */
     @LogOperation
     @PutMapping("/activities")
-    public Result<Void> updateActivity(@RequestBody Activity activity) {
-        log.info("修改活动信息：{}", activity);
-        activityService.updateById(activity);
+    public Result<Void> updateActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
+        log.info("修改活动信息：{}", activityDto);
+        activityService.updateById(toActivity(activityDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象） */
+    private Activity toActivity(ActivitySaveDto dto) {
+        Activity activity = new Activity();
+        BeanUtil.copyProperties(dto, activity);
+        return activity;
     }
 
     /**

@@ -9,7 +9,7 @@ public interface DeptService {
     /**
      * 新增部门
      *
-     * @param dept 部门信息
+     * @param dept 部门信息（新增时忽略 id）
      */
     void addDept(Dept dept);
 
@@ -35,7 +35,7 @@ public interface DeptService {
     /**
      * 根据id修改部门信息
      *
-     * @param dept 部门信息
+     * @param dept 部门信息（id 必填）
      */
     void updateById(Dept dept);
 

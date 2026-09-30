@@ -3,10 +3,12 @@ package com.qk;
 import com.qk.mapper.DeptMapper;
 import com.qk.common.util.JwtUtil;
 import com.qk.mapper.UserMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +24,12 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.qk.entity.Dept;
@@ -161,5 +167,101 @@ class DeptControllerTest {
                 .andExpect(jsonPath("$.code").value(1));
 
         assertNull(deptMapper.selectById(dept.getId()), "无引用的停用部门应被删除");
+    }
+
+    @Test
+    void addDeptSucceeds() throws Exception {
+        String name = "校验新增部门" + SEQ.incrementAndGet();
+
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"name":"%s","status":1}
+                                """.formatted(name)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        assertEquals(1L, deptMapper.selectCount(
+                new LambdaQueryWrapper<Dept>().eq(Dept::getName, name)));
+    }
+
+    @Test
+    void addDeptWithoutNameIsRejected() throws Exception {
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"status":1}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("部门名称不能为空"));
+    }
+
+    @Test
+    void addDeptWithInvalidStatusIsRejected() throws Exception {
+        // 库里的 status 是 tinyint，没有 CHECK 约束，原先传 9 会直接落库
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"name":"非法状态部门","status":9}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("部门状态只能是 0（停用）或 1（正常）"));
+    }
+
+    @Test
+    void addDeptIgnoresClientSuppliedId() throws Exception {
+        String name = "主键注入部门" + SEQ.incrementAndGet();
+
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"id":999999,"name":"%s","status":1}
+                                """.formatted(name)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        // DTO 不再暴露 create_time 等字段，id 也由服务端强制置空
+        assertNull(deptMapper.selectById(999999), "客户端指定的主键必须被忽略");
+        assertTrue(deptMapper.selectCount(new LambdaQueryWrapper<Dept>().eq(Dept::getName, name)) > 0,
+                "部门应按数据库自增主键落库");
+    }
+
+    @Test
+    void updateDeptSucceeds() throws Exception {
+        Dept dept = insertDept("待修改部门" + SEQ.incrementAndGet(), 1);
+
+        mockMvc.perform(put("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"id":%d,"name":"已修改部门%d","status":0}
+                                """.formatted(dept.getId(), SEQ.incrementAndGet())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        Dept updated = deptMapper.selectById(dept.getId());
+        assertEquals(0, updated.getStatus(), "修改后的状态应落库");
+        assertTrue(updated.getName().startsWith("已修改部门"), "修改后的名称应落库");
+    }
+
+    @Test
+    void updateDeptWithoutStatusIsRejected() throws Exception {
+        Dept dept = insertDept("缺状态部门" + SEQ.incrementAndGet(), 1);
+
+        mockMvc.perform(put("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"id":%d,"name":"只改名字"}
+                                """.formatted(dept.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("部门状态不能为空"));
     }
 }
