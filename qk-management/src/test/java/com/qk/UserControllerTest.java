@@ -240,25 +240,29 @@ class UserControllerTest {
 
     @Test
     void disableCurrentUserIsRejected() throws Exception {
-        // 默认令牌对应的用户 id 是 1：把自己停用会被守卫拦下（登录会拒绝 status=0，否则再也进不来）
+        // 默认令牌对应的用户 id 是 1：把自己停用会被守卫拦下（登录会拒绝 status=0，否则再也进不来）。
+        // 注意：请求体必须满足 UserSaveDto 的必填校验，否则会被参数校验先拦下，
+        // 这条用例就验证不到状态守卫本身。
         mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
                         .content("""
-                                {"id":1,"status":0}
+                                {"id":1,"username":"admin","name":"管理员","phone":"19900000001",
+                                 "email":"admin@qk.test","status":0}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("不能停用当前登录用户"));
 
-        // 停用其他用户是允许的
+        // 停用其他用户是允许的（回填该用户自身的字段，避免触发唯一索引冲突）
         User other = insertUser("cs_disable_other", "可停用用户");
         mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
                         .content("""
-                                {"id":%d,"status":0}
-                                """.formatted(other.getId())))
+                                {"id":%d,"username":"%s","name":"%s","phone":"%s","email":"%s","status":0}
+                                """.formatted(other.getId(), other.getUsername(), other.getName(),
+                                other.getPhone(), other.getEmail())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
     }
