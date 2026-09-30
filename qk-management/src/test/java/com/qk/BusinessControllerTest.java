@@ -100,6 +100,27 @@ class BusinessControllerTest {
     }
 
     @Test
+    void repeatedTransitionsAreRejectedByStatusGuard() throws Exception {
+        // 转客户：第二次必须被状态守卫拒绝，不再重复走建客户流程
+        Business toCustomer = insertBusiness("重复转客户商机", BusinessStatus.WAIT_FOLLOW.getCode());
+        mockMvc.perform(post("/businesses/toCustomer/{id}", toCustomer.getId()))
+                .andExpect(jsonPath("$.code").value(1));
+        mockMvc.perform(post("/businesses/toCustomer/{id}", toCustomer.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该商机当前状态不允许转客户"));
+
+        // 踢回公海：回收之后不能再次回收
+        Business toPool = insertBusiness("重复回公海商机", BusinessStatus.WAIT_FOLLOW.getCode());
+        mockMvc.perform(put("/businesses/back/{id}", toPool.getId()))
+                .andExpect(jsonPath("$.code").value(1));
+        mockMvc.perform(put("/businesses/back/{id}", toPool.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该商机当前状态不允许踢回公海"));
+    }
+
+    @Test
     void listBusinesses() throws Exception {
         insertBusiness("测试商机列表", BusinessStatus.WAIT_ALLOT.getCode());
 
