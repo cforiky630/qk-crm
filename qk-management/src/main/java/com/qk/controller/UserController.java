@@ -33,7 +33,7 @@ public class UserController {
      * 条件分页查询用户列表
      */
     @GetMapping
-    public Result getUsers(UserDto userDto) {
+    public Result<PageResult<UserVO>> getUsers(UserDto userDto) {
         log.info("条件分页查询用户: {}", userDto);
         PageResult<UserVO> pageResult = userService.getUsers(userDto);
         return Result.success(pageResult);
@@ -44,7 +44,7 @@ public class UserController {
      * 注意：字面量路径必须写在 /{id} 之前，否则会被路径变量抢占
      */
     @GetMapping("/list")
-    public Result listAllUsers() {
+    public Result<List<UserVO>> listAllUsers() {
         log.info("查询所有用户");
         List<UserVO> users = userService.listAll();
         return Result.success(users);
@@ -54,7 +54,7 @@ public class UserController {
      * 根据角色标识查询用户
      */
     @GetMapping("/role/{roleLabel}")
-    public Result findUsersByRole(@PathVariable String roleLabel) {
+    public Result<List<UserVO>> findUsersByRole(@PathVariable String roleLabel) {
         log.info("根据角色标识查询用户: {}", roleLabel);
         return Result.success(userService.findByRoleLabel(roleLabel));
     }
@@ -63,7 +63,7 @@ public class UserController {
      * 根据部门ID查询用户
      */
     @GetMapping("/dept/{deptId}")
-    public Result findUsersByDept(@PathVariable Integer deptId) {
+    public Result<List<UserVO>> findUsersByDept(@PathVariable Integer deptId) {
         log.info("根据部门ID查询用户: {}", deptId);
         return Result.success(userService.findByDeptId(deptId));
     }
@@ -73,7 +73,7 @@ public class UserController {
      */
     @LogOperation
     @PostMapping
-    public Result addUser(@RequestBody User user) {
+    public Result<Void> addUser(@RequestBody User user) {
         log.info("新增用户: {}", user.getUsername());
         userService.addUser(user);
         return Result.success();
@@ -83,7 +83,7 @@ public class UserController {
      * 根据ID查询用户信息（回显）
      */
     @GetMapping("/{id}")
-    public Result getUserById(@PathVariable Integer id) {
+    public Result<UserVO> getUserById(@PathVariable Integer id) {
         log.info("根据ID查询用户: {}", id);
         UserVO userVO = userService.getUserById(id);
         return userVO != null ? Result.success(userVO) : Result.error("用户不存在");
@@ -94,7 +94,7 @@ public class UserController {
      */
     @LogOperation
     @PutMapping
-    public Result updateUser(@RequestBody User user) {
+    public Result<Void> updateUser(@RequestBody User user) {
         log.info("修改用户: {}", user.getUsername());
         userService.updateUser(user);
         return Result.success();
@@ -105,7 +105,7 @@ public class UserController {
      */
     @LogOperation
     @DeleteMapping("/{ids}")
-    public Result deleteUsers(@PathVariable List<Integer> ids) {
+    public Result<Void> deleteUsers(@PathVariable List<Integer> ids) {
         log.info("批量删除用户: {}", ids);
         userService.removeBatchByIds(ids);
         return Result.success();

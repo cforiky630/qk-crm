@@ -34,7 +34,7 @@ public class ClueController {
      * 线索列表查询
      */
     @GetMapping
-    public Result listClues(ClueQueryDto clueQueryDto) {
+    public Result<PageResult<ClueVO>> listClues(ClueQueryDto clueQueryDto) {
         log.info("线索列表查询, 参数: {}", clueQueryDto);
         PageResult<ClueVO> pageResult = clueService.listClues(clueQueryDto);
         return Result.success(pageResult);
@@ -44,7 +44,7 @@ public class ClueController {
      * 线索池列表查询
      */
     @GetMapping("/pool")
-    public Result getPoolClues(CluePoolDto cluePoolDto) {
+    public Result<PageResult<ClueVO>> getPoolClues(CluePoolDto cluePoolDto) {
         log.info("线索池列表查询, 参数: {}", cluePoolDto);
         PageResult<ClueVO> pageResult = clueService.getPoolClues(cluePoolDto);
         return Result.success(pageResult);
@@ -54,7 +54,7 @@ public class ClueController {
      * 根据ID查询线索详细信息（含跟进记录）
      */
     @GetMapping("/{id}")
-    public Result getClueById(@PathVariable Integer id) {
+    public Result<ClueVO> getClueById(@PathVariable Integer id) {
         log.info("根据ID查询线索详细信息, id: {}", id);
         ClueVO clue = clueService.getClueById(id);
         return clue != null ? Result.success(clue) : Result.error("线索不存在");
@@ -65,7 +65,7 @@ public class ClueController {
      */
     @LogOperation
     @PostMapping
-    public Result addClue(@RequestBody Clue clue) {
+    public Result<Void> addClue(@RequestBody Clue clue) {
         log.info("新增线索: {}", clue);
         clueService.addClue(clue);
         return Result.success();
@@ -76,7 +76,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/assign/{clueId}/{userId}")
-    public Result assignClue(@PathVariable Integer clueId, @PathVariable Integer userId) {
+    public Result<Void> assignClue(@PathVariable Integer clueId, @PathVariable Integer userId) {
         log.info("分配线索: 线索ID={}, 用户ID={}", clueId, userId);
         clueService.assignClue(clueId, userId);
         return Result.success();
@@ -87,7 +87,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping
-    public Result trackClue(@RequestBody ClueTrackDto clueTrackDto) {
+    public Result<Void> trackClue(@RequestBody ClueTrackDto clueTrackDto) {
         log.info("跟进线索: {}", clueTrackDto);
         clueService.trackClue(clueTrackDto);
         return Result.success();
@@ -98,7 +98,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/false/{id}")
-    public Result markFalseClue(@PathVariable Integer id, @RequestBody MarkFalseClueDto markFalseClueDto) {
+    public Result<Void> markFalseClue(@PathVariable Integer id, @RequestBody MarkFalseClueDto markFalseClueDto) {
         log.info("将线索标记为伪线索, id: {}, 原因: {}", id, markFalseClueDto);
         clueService.markFalseClue(id, markFalseClueDto);
         return Result.success();
@@ -109,7 +109,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/toBusiness/{id}")
-    public Result convertToBusiness(@PathVariable Integer id) {
+    public Result<Void> convertToBusiness(@PathVariable Integer id) {
         log.info("将线索转为商机, id: {}", id);
         clueService.convertToBusiness(id);
         return Result.success();

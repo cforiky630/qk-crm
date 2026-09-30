@@ -29,7 +29,7 @@ public class LogController {
      * 操作日志列表查询
      */
     @GetMapping("/logs")
-    public Result listLogs(LogQueryDto logQueryDto) {
+    public Result<PageResult<OperateLogVO>> listLogs(LogQueryDto logQueryDto) {
         log.info("查询操作日志, 参数: {}", logQueryDto);
         PageResult<OperateLogVO> pageResult = operateLogService.listLogs(logQueryDto);
         return Result.success(pageResult);

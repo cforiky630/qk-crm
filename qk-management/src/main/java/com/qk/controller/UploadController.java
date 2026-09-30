@@ -34,7 +34,7 @@ public class UploadController {
      * @return 文件上传的 url
      */
     @PostMapping("/upload")
-    public Result upload(MultipartFile image) throws IOException {
+    public Result<String> upload(MultipartFile image) throws IOException {
         if (image == null || image.isEmpty()) {
             throw new BusinessException("请选择要上传的图片");
         }

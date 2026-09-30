@@ -31,7 +31,7 @@ public class ActivityController {
      */
     @LogOperation
     @PostMapping("/activities")
-    public Result addActivity(@RequestBody Activity activity) {
+    public Result<Void> addActivity(@RequestBody Activity activity) {
         log.info("新增活动,参数:{}", activity);
         activityService.addActivity(activity);
         return Result.success();
@@ -41,7 +41,7 @@ public class ActivityController {
      * 条件分页查询活动
      */
     @GetMapping("/activities")
-    public Result listActivities(Integer channel, Integer type,
+    public Result<PageResult<Activity>> listActivities(Integer channel, Integer type,
                                  @RequestParam(defaultValue = "1") Integer page,
                                  @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询活动, 参数: channel={}, type={}, page={}, pageSize={}", channel, type, page, pageSize);
@@ -53,7 +53,7 @@ public class ActivityController {
      * 查询指定类型的所有活动，不分页
      */
     @GetMapping("/activities/type/{type}")
-    public Result listActivitiesByType(@PathVariable Integer type) {
+    public Result<List<Activity>> listActivitiesByType(@PathVariable Integer type) {
         log.info("查询类型为{}的活动", type);
         List<Activity> activities = activityService.findByType(type);
         return Result.success(activities);
@@ -63,7 +63,7 @@ public class ActivityController {
      * 根据ID查询活动
      */
     @GetMapping("/activities/{id}")
-    public Result findById(@PathVariable Integer id) {
+    public Result<Activity> findById(@PathVariable Integer id) {
         log.info("查询活动ID为{}的活动信息", id);
         return Result.success(activityService.findById(id));
     }
@@ -73,7 +73,7 @@ public class ActivityController {
      */
     @LogOperation
     @PutMapping("/activities")
-    public Result updateActivity(@RequestBody Activity activity) {
+    public Result<Void> updateActivity(@RequestBody Activity activity) {
         log.info("修改活动信息：{}", activity);
         activityService.updateById(activity);
         return Result.success();
@@ -84,7 +84,7 @@ public class ActivityController {
      */
     @LogOperation
     @DeleteMapping("/activities/{id}")
-    public Result deleteActivity(@PathVariable("id") Integer id) {
+    public Result<Void> deleteActivity(@PathVariable("id") Integer id) {
         log.info("删除活动：{}", id);
         activityService.deleteById(id);
         return Result.success();

@@ -20,13 +20,13 @@ public class GlobalExceptionHandler {
      * 业务异常：属于「预期内的失败」，HTTP 状态保持 200，由响应体 code=0 表达
      */
     @ExceptionHandler(BusinessException.class)
-    public Result handlerBusinessException(BusinessException e) {
+    public Result<Void> handlerBusinessException(BusinessException e) {
         log.warn("业务校验未通过: {}", e.getMessage());
         return Result.error(e.getMessage());
     }
 
     @ExceptionHandler(DuplicateKeyException.class) // 处理DuplicateKeyException类型的异常
-    public Result handlerException(DuplicateKeyException e) {// 这个参数用于接收捕获到的异常
+    public Result<Void> handlerException(DuplicateKeyException e) {// 这个参数用于接收捕获到的异常
         String message = e.getMessage(); // 异常信息中包含违反的唯一索引名称
         if (message.contains("dept.name")) {
             log.error("部门名称已存在");
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result handlerMessageNotReadable(HttpMessageNotReadableException e) {
+    public Result<Void> handlerMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
         return Result.error("请求参数格式不正确");
     }
@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result handlerTypeMismatch(MethodArgumentTypeMismatchException e) {
+    public Result<Void> handlerTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("请求参数类型不匹配: {} = {}", e.getName(), e.getValue());
         return Result.error("请求参数类型不正确");
     }
@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result handlerMaxUploadSize(MaxUploadSizeExceededException e) {
+    public Result<Void> handlerMaxUploadSize(MaxUploadSizeExceededException e) {
         log.warn("上传文件超出大小限制: {}", e.getMessage());
         return Result.error("上传文件过大");
     }
@@ -101,7 +101,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Result handlerException(Exception e) {
+    public Result<Void> handlerException(Exception e) {
         log.error("服务器发生异常", e);
         return Result.error("系统繁忙,请稍后重试");
     }

@@ -28,7 +28,7 @@ public class LoginController {
      * @return 登录结果
      */
     @PostMapping("/login")
-    public Result login(@RequestBody User user) {
+    public Result<LoginResultVo> login(@RequestBody User user) {
         // 只打印用户名，禁止把整个 User 对象（含密码）写进日志
         log.info("用户登录请求: {}", user.getUsername());
         LoginResultVo loginResult = userService.login(user.getUsername(), user.getPassword());

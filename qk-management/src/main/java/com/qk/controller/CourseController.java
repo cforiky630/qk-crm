@@ -30,7 +30,7 @@ public class CourseController {
      */
     @LogOperation
     @PostMapping("/courses")
-    public Result addCourse(@RequestBody Course course) {
+    public Result<Void> addCourse(@RequestBody Course course) {
         log.info("新增课程,参数:{}", course);
         courseService.addCourse(course);
         return Result.success();
@@ -47,7 +47,7 @@ public class CourseController {
      * @return 分页查询结果
      */
     @GetMapping("/courses")
-    public Result listCourses(String name, Integer subject, Integer target, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
+    public Result<PageResult<Course>> listCourses(String name, Integer subject, Integer target, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询课程, 参数: name={}, subject={}, target={}, page={}, pageSize={}", name, subject, target, page, pageSize);
         PageResult<Course> pageResult = courseService.findCoursesByPage(name, subject, target, page, pageSize);
         return Result.success(pageResult);
@@ -60,7 +60,7 @@ public class CourseController {
      * @return 查询结果
      */
     @GetMapping("/courses/{id}")
-    public Result findById(@PathVariable Integer id) {
+    public Result<Course> findById(@PathVariable Integer id) {
         log.info("查询课程ID为{}的课程信息", id);
         Course course = courseService.findById(id);
         return Result.success(course);
@@ -74,7 +74,7 @@ public class CourseController {
      */
     @LogOperation
     @PutMapping("/courses")
-    public Result updateCourse(@RequestBody Course course) {
+    public Result<Void> updateCourse(@RequestBody Course course) {
         log.info("修改课程信息：{}", course);
         courseService.updateById(course);
         return Result.success();
@@ -88,7 +88,7 @@ public class CourseController {
      */
     @LogOperation
     @DeleteMapping("/courses/{id}")
-    public Result deleteCourse(@PathVariable("id") Integer id) {
+    public Result<Void> deleteCourse(@PathVariable("id") Integer id) {
         log.info("删除课程：{}", id);
         courseService.deleteById(id);
         return Result.success();
@@ -100,7 +100,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @GetMapping("/courses/list")
-    public Result listAllCourses() {
+    public Result<List<Course>> listAllCourses() {
         log.info("查询所有课程");
         List<Course> courses = courseService.findAll();
         return Result.success(courses);
@@ -113,7 +113,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @GetMapping("/courses/subject/{subject}")
-    public Result listCoursesBySubject(@PathVariable Integer subject) {
+    public Result<List<Course>> listCoursesBySubject(@PathVariable Integer subject) {
         log.info("查询学科为{}的课程", subject);
         List<Course> courses = courseService.findBySubject(subject);
         return Result.success(courses);

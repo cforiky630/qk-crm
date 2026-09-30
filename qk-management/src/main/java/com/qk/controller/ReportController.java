@@ -29,7 +29,7 @@ public class ReportController {
      * 获取首页概览数据
      */
     @GetMapping("/overview")
-    public Result getOverview() {
+    public Result<OverviewVO> getOverview() {
         log.info("获取首页概览数据");
         OverviewVO overview = reportService.getOverview();
         return Result.success(overview);

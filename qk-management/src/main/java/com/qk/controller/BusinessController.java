@@ -33,7 +33,7 @@ public class BusinessController {
      * 商机列表查询
      */
     @GetMapping
-    public Result listBusinesses(BusinessQueryDto businessQueryDto) {
+    public Result<PageResult<BusinessVO>> listBusinesses(BusinessQueryDto businessQueryDto) {
         log.info("商机列表查询, 参数: {}", businessQueryDto);
         PageResult<BusinessVO> pageResult = businessService.listBusinesses(businessQueryDto);
         return Result.success(pageResult);
@@ -43,7 +43,7 @@ public class BusinessController {
      * 公海池列表查询
      */
     @GetMapping("/pool")
-    public Result getPoolBusinesses(BusinessPoolDto businessPoolDto) {
+    public Result<PageResult<BusinessVO>> getPoolBusinesses(BusinessPoolDto businessPoolDto) {
         log.info("公海池列表查询, 参数: {}", businessPoolDto);
         PageResult<BusinessVO> pageResult = businessService.getPoolBusinesses(businessPoolDto);
         return Result.success(pageResult);
@@ -53,7 +53,7 @@ public class BusinessController {
      * 根据ID查询商机详细信息（含跟进记录）
      */
     @GetMapping("/{id}")
-    public Result getBusinessById(@PathVariable Integer id) {
+    public Result<BusinessVO> getBusinessById(@PathVariable Integer id) {
         log.info("根据ID查询商机详细信息, id: {}", id);
         BusinessVO business = businessService.getBusinessById(id);
         return business != null ? Result.success(business) : Result.error("商机不存在");
@@ -64,7 +64,7 @@ public class BusinessController {
      */
     @LogOperation
     @PostMapping
-    public Result addBusiness(@RequestBody Business business) {
+    public Result<Void> addBusiness(@RequestBody Business business) {
         log.info("新增商机: {}", business);
         businessService.addBusiness(business);
         return Result.success();
@@ -75,7 +75,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping("/assign/{businessId}/{userId}")
-    public Result assignBusiness(@PathVariable Integer businessId, @PathVariable Integer userId) {
+    public Result<Void> assignBusiness(@PathVariable Integer businessId, @PathVariable Integer userId) {
         log.info("分配商机: 商机ID={}, 用户ID={}", businessId, userId);
         businessService.assignBusiness(businessId, userId);
         return Result.success();
@@ -86,7 +86,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping("/back/{id}")
-    public Result backToPool(@PathVariable Integer id) {
+    public Result<Void> backToPool(@PathVariable Integer id) {
         log.info("将商机踢回公海, id: {}", id);
         businessService.backToPool(id);
         return Result.success();
@@ -97,7 +97,7 @@ public class BusinessController {
      */
     @LogOperation
     @PostMapping("/toCustomer/{id}")
-    public Result convertToCustomer(@PathVariable Integer id) {
+    public Result<Void> convertToCustomer(@PathVariable Integer id) {
         log.info("将商机转为客户, id: {}", id);
         businessService.convertToCustomer(id);
         return Result.success();
@@ -108,7 +108,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping
-    public Result trackBusiness(@RequestBody BusinessTrackDto businessTrackDto) {
+    public Result<Void> trackBusiness(@RequestBody BusinessTrackDto businessTrackDto) {
         log.info("跟进商机: {}", businessTrackDto);
         businessService.trackBusiness(businessTrackDto);
         return Result.success();

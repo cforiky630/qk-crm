@@ -31,7 +31,7 @@ public class CustomerController {
      * 客户列表查询
      */
     @GetMapping
-    public Result listCustomers(CustomerQueryDto customerQueryDto) {
+    public Result<PageResult<CustomerVO>> listCustomers(CustomerQueryDto customerQueryDto) {
         log.info("客户列表查询, 参数: {}", customerQueryDto);
         PageResult<CustomerVO> pageResult = customerService.listCustomers(customerQueryDto);
         return Result.success(pageResult);
@@ -42,7 +42,7 @@ public class CustomerController {
      */
     @LogOperation
     @PostMapping
-    public Result addCustomer(@RequestBody Customer customer) {
+    public Result<Void> addCustomer(@RequestBody Customer customer) {
         log.info("新增客户: {}", customer);
         customerService.addCustomer(customer);
         return Result.success();
@@ -52,7 +52,7 @@ public class CustomerController {
      * 根据ID查询客户
      */
     @GetMapping("/{id}")
-    public Result getCustomerById(@PathVariable Integer id) {
+    public Result<CustomerVO> getCustomerById(@PathVariable Integer id) {
         log.info("根据ID查询客户, id: {}", id);
         CustomerVO customer = customerService.getCustomerById(id);
         return customer != null ? Result.success(customer) : Result.error("客户不存在");
@@ -63,7 +63,7 @@ public class CustomerController {
      */
     @LogOperation
     @PutMapping
-    public Result updateCustomer(@RequestBody Customer customer) {
+    public Result<Void> updateCustomer(@RequestBody Customer customer) {
         log.info("修改客户: {}", customer);
         customerService.updateCustomer(customer);
         return Result.success();
