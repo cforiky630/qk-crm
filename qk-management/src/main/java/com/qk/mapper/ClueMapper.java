@@ -1,6 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Clue;
@@ -32,4 +33,12 @@ public interface ClueMapper extends BaseMapper<Clue> {
      * 线索池列表（含活动名称）
      */
     IPage<ClueVO> getPoolClues(Page<ClueVO> page, @Param("cluePoolDto") CluePoolDto cluePoolDto);
+
+    /**
+     * 统计关联某活动的线索数（用于删除活动前的引用校验）
+     */
+    default long countByActivityId(Integer activityId) {
+        Long count = selectCount(new LambdaQueryWrapper<Clue>().eq(Clue::getActivityId, activityId));
+        return count == null ? 0L : count;
+    }
 }

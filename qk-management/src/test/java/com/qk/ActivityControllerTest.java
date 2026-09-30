@@ -2,6 +2,7 @@ package com.qk;
 
 import com.qk.mapper.ActivityMapper;
 import com.qk.common.util.JwtUtil;
+import com.qk.mapper.ClueMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -26,6 +28,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.qk.entity.Activity;
+import com.qk.entity.Clue;
+import com.qk.entity.enums.ClueStatus;
 
 /**
  * 活动管理接口测试，校验 5. 接口文档-活动管理.md 中的契约
@@ -42,6 +46,9 @@ class ActivityControllerTest {
 
     @Autowired
     private ActivityMapper activityMapper;
+
+    @Autowired
+    private ClueMapper clueMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -66,6 +73,25 @@ class ActivityControllerTest {
         activity.setType(type);
         activityMapper.insert(activity);
         return activity;
+    }
+
+    /** 造一条关联指定活动的线索，用于验证「活动被引用时不可删除」 */
+    private Clue insertClue(Integer activityId) {
+        int seq = SEQ.incrementAndGet();
+        Clue clue = new Clue();
+        clue.setPhone("150" + String.format("%08d", seq));
+        clue.setChannel(1);
+        clue.setActivityId(activityId);
+        clue.setName("活动引用线索" + seq);
+        clue.setGender(1);
+        clue.setAge(24);
+        clue.setWechat("wx" + seq);
+        clue.setQq("qq" + seq);
+        clue.setStatus(ClueStatus.WAIT_ALLOT.getCode());
+        clue.setSubject(1);
+        clue.setLevel(2);
+        clueMapper.insert(clue);
+        return clue;
     }
 
     @Test
@@ -164,6 +190,28 @@ class ActivityControllerTest {
                 .andExpect(jsonPath("$.code").value(1));
 
         org.junit.jupiter.api.Assertions.assertNull(activityMapper.selectById(activity.getId()));
+    }
+
+    @Test
+    void deleteMissingActivityIsRejected() throws Exception {
+        // 原先删除接口没有存在性校验，删不存在的 id 也会返回「成功」
+        mockMvc.perform(delete("/activities/{id}", 99999999))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("活动不存在"));
+    }
+
+    @Test
+    void deleteActivityReferencedByClueIsRejected() throws Exception {
+        Activity activity = insertActivity(1, "被线索引用的活动" + SEQ.incrementAndGet(), 1);
+        insertClue(activity.getId());
+
+        mockMvc.perform(delete("/activities/{id}", activity.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该活动已关联 1 条线索，无法删除"));
+
+        assertNotNull(activityMapper.selectById(activity.getId()), "仍被线索引用的活动不应被删除");
     }
 
     @Test
