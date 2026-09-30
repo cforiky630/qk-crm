@@ -234,7 +234,8 @@ class HardeningTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.msg").value("手机号与线索来源不能为空"));
+                // DTO 校验按字段给出精确提示，不再使用合并文案
+                .andExpect(jsonPath("$.msg", containsString("不能为空")));
     }
 
     @Test
@@ -279,7 +280,9 @@ class HardeningTest {
 
         String params = logs.get(0).getMethodParams();
         Assertions.assertFalse(params.contains(rawPassword), "操作日志里不能出现明文密码");
-        Assertions.assertTrue(params.contains("password=***"), "密码字段应被脱敏为 ***");
+        // UserSaveDto 已把 password 从接口契约里移除，日志里连该字段都不会出现；
+        // LogAspect 的脱敏逻辑仍保留，作为其他敏感字段的防御性兜底。
+        Assertions.assertFalse(params.contains("password"), "接口不应再接收 password 字段");
     }
 
     @Test

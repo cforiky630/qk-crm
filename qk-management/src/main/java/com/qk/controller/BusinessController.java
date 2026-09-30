@@ -1,6 +1,8 @@
 package com.qk.controller;
 
 import com.qk.entity.Business;
+import com.qk.entity.dto.BusinessSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
@@ -10,6 +12,7 @@ import com.qk.entity.dto.BusinessTrackDto;
 import com.qk.service.BusinessService;
 import com.qk.entity.vo.BusinessVO;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -64,10 +67,17 @@ public class BusinessController {
      */
     @LogOperation
     @PostMapping
-    public Result<Void> addBusiness(@RequestBody Business business) {
-        log.info("新增商机: {}", business);
-        businessService.addBusiness(business);
+    public Result<Void> addBusiness(@Valid @RequestBody BusinessSaveDto businessDto) {
+        log.info("新增商机: {}", businessDto);
+        businessService.addBusiness(toBusiness(businessDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（status / userId / clueId 由 Service 赋值） */
+    private Business toBusiness(BusinessSaveDto dto) {
+        Business business = new Business();
+        BeanUtil.copyProperties(dto, business);
+        return business;
     }
 
     /**

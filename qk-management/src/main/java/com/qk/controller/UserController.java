@@ -3,11 +3,14 @@ package com.qk.controller;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.User;
+import com.qk.entity.dto.UserSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.UserDto;
 import com.qk.service.UserService;
 import com.qk.entity.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,9 +76,9 @@ public class UserController {
      */
     @LogOperation
     @PostMapping
-    public Result<Void> addUser(@RequestBody User user) {
-        log.info("新增用户: {}", user.getUsername());
-        userService.addUser(user);
+    public Result<Void> addUser(@Valid @RequestBody UserSaveDto userDto) {
+        log.info("新增用户: {}", userDto.getUsername());
+        userService.addUser(toUser(userDto));
         return Result.success();
     }
 
@@ -94,10 +97,17 @@ public class UserController {
      */
     @LogOperation
     @PutMapping
-    public Result<Void> updateUser(@RequestBody User user) {
-        log.info("修改用户: {}", user.getUsername());
-        userService.updateUser(user);
+    public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userDto) {
+        log.info("修改用户: {}", userDto.getUsername());
+        userService.updateUser(toUser(userDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（password 不在 DTO 中，由 Service 决定） */
+    private User toUser(UserSaveDto dto) {
+        User user = new User();
+        BeanUtil.copyProperties(dto, user);
+        return user;
     }
 
     /**

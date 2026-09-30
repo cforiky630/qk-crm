@@ -1,6 +1,8 @@
 package com.qk.controller;
 
 import com.qk.entity.Clue;
+import com.qk.entity.dto.ClueSaveDto;
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.common.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
@@ -11,6 +13,7 @@ import com.qk.entity.dto.MarkFalseClueDto;
 import com.qk.service.ClueService;
 import com.qk.entity.vo.ClueVO;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,10 +68,17 @@ public class ClueController {
      */
     @LogOperation
     @PostMapping
-    public Result<Void> addClue(@RequestBody Clue clue) {
-        log.info("新增线索: {}", clue);
-        clueService.addClue(clue);
+    public Result<Void> addClue(@Valid @RequestBody ClueSaveDto clueDto) {
+        log.info("新增线索: {}", clueDto);
+        clueService.addClue(toClue(clueDto));
         return Result.success();
+    }
+
+    /** 协议适配：请求 DTO → 领域实体（status / userId 由 Service 赋值） */
+    private Clue toClue(ClueSaveDto dto) {
+        Clue clue = new Clue();
+        BeanUtil.copyProperties(dto, clue);
+        return clue;
     }
 
     /**

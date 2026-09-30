@@ -239,6 +239,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **entity** 只映射表列，不放 join 结果、不放请求参数；
 - **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`）；
 - **vo** 负责出参（`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段都在 VO 上）。
+- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解；**控制器负责把 DTO 映射成实体**再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
+- `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
 
 **统一响应（Result / ResultCode）**
 
