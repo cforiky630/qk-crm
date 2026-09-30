@@ -4,76 +4,96 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.qk</groupId>
-    <artifactId>qk-parent</artifactId>
-    <version>1.1.12</version>
-    <packaging>pom</packaging>
-    <modules>
-        <module>qk-common</module>
-        <module>qk-entity</module>
-        <module>qk-management</module>
-    </modules>
-
+    <!-- 继承 Spring Boot 官方父 POM：提供第三方依赖的版本管理（BOM）与插件默认配置 -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.0.8</version>
         <relativePath/>
     </parent>
-    <developers>
-        <developer>
-            <id>1001</id>
-            <name>wuyanzu</name>
-            <email>@</email>
-        </developer>
-    </developers>
+
+    <groupId>com.qk</groupId>
+    <artifactId>qk-parent</artifactId>
+    <version>1.1.12</version>
+    <packaging>pom</packaging>
+    <name>qk-parent</name>
+    <description>轻客管家 QK · 教培销售 CRM 后端（聚合模块与依赖版本管理）</description>
+
+    <modules>
+        <module>qk-common</module>
+        <module>qk-entity</module>
+        <module>qk-management</module>
+    </modules>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <!--
+          编译目标由 spring-boot-starter-parent 的 maven.compiler.release 决定，
+          它取自 java.version。只写 maven.compiler.source/target 是无效的：
+          当 release 存在时，javac 会忽略 source/target。
+        -->
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+          子模块独立版本：与各子模块 pom 里自身 <version> 必须一致。
+          Maven 不支持在模块自身版本里写表达式（会产生警告且影响 IDE 导入），
+          因此这里与模块 pom 存在两处声明，改版本时需同步修改。
+        -->
+        <qk.common.version>1.0.1</qk.common.version>
+        <qk.entity.version>1.0.0</qk.entity.version>
+
+        <!-- 第三方依赖版本 -->
         <lombok.version>1.18.48</lombok.version>
         <hutool.version>5.8.47</hutool.version>
         <mybatisplus.version>3.5.17</mybatisplus.version>
         <aliyun-oss-v2.version>0.6.0</aliyun-oss-v2.version>
     </properties>
 
-    <dependencies>
-        <!--lombok-->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-        </dependency>
-
-        <!--hutool工具包 如jwt-->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>${hutool.version}</version>
-        </dependency>
-    </dependencies>
-
+    <!--
+      只做版本与作用域管理，不直接引入依赖。
+      各子模块按需声明依赖且不写版本号，避免版本散落各处。
+    -->
     <dependencyManagement>
         <dependencies>
-            <!--子模块-->
+            <!-- 内部子模块 -->
             <dependency>
                 <groupId>com.qk</groupId>
                 <artifactId>qk-common</artifactId>
-                <version>${project.version}</version>
+                <version>${qk.common.version}</version>
             </dependency>
-            <!--子模块-->
             <dependency>
                 <groupId>com.qk</groupId>
                 <artifactId>qk-entity</artifactId>
-                <version>${project.version}</version>
+                <version>${qk.entity.version}</version>
             </dependency>
-            <!--MyBatis Plus-->
+
+            <!-- Lombok：仅编译期生效，保持 provided 以免被打进运行时产物 -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Hutool 工具包（JWT、摘要等） -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+
+            <!-- MyBatis-Plus：启动器与分页所需的 SQL 解析器版本保持一致 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
                 <version>${mybatisplus.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser</artifactId>
+                <version>${mybatisplus.version}</version>
+            </dependency>
+
             <!-- 阿里云 OSS SDK V2 -->
             <dependency>
                 <groupId>com.aliyun</groupId>
@@ -82,6 +102,5 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 
 </project>

@@ -3,59 +3,45 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.qk</groupId>
         <artifactId>qk-parent</artifactId>
         <version>1.1.12</version>
     </parent>
 
+    <!-- 可启动模块：版本随父 POM（1.1.12），不单独声明 -->
     <artifactId>qk-management</artifactId>
+    <name>qk-management</name>
+    <description>可启动模块：接口层、业务层、数据访问层与全局配置</description>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <dependencies>
-        <!--springboot web框架-->
+        <!-- Web 与参数校验 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
-        <!--mysql-->
+        <!-- AOP：操作日志切面需要（Spring Boot 4 中 starter-aop 已更名为 starter-aspectj） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
+        </dependency>
+
+        <!-- 数据库驱动 -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!--测试-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <!--AOP：操作日志切面需要（Spring Boot 4 中 starter-aop 已更名为 starter-aspectj）-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aspectj</artifactId>
-        </dependency>
-
-        <!--分页器-->
+        <!-- 分页器所需的 SQL 解析器（版本由父 POM 管理） -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>
-            <version>3.5.17</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.aliyun</groupId>
-            <artifactId>alibabacloud-oss-v2</artifactId>
-        </dependency>
-
-        <!--依赖common 与 entity 模块-->
+        <!-- 内部子模块 -->
         <dependency>
             <groupId>com.qk</groupId>
             <artifactId>qk-common</artifactId>
@@ -63,6 +49,24 @@
         <dependency>
             <groupId>com.qk</groupId>
             <artifactId>qk-entity</artifactId>
+        </dependency>
+
+        <!-- Hutool：登录密码摘要等 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <!-- 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

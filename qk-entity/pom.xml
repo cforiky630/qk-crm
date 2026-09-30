@@ -3,6 +3,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.qk</groupId>
         <artifactId>qk-parent</artifactId>
@@ -10,14 +11,13 @@
     </parent>
 
     <artifactId>qk-entity</artifactId>
+    <!-- 独立版本：与父 POM 的 qk.entity.version 保持一致 -->
+    <version>1.0.0</version>
+    <name>qk-entity</name>
+    <description>实体 / DTO / VO / 枚举</description>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
     <dependencies>
-
+        <!-- MyBatis-Plus 注解：@TableName、@TableId 等 -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
         </dependency>
     </dependencies>
 
