@@ -45,6 +45,17 @@ public interface UserService extends IService<User> {
     void updateUser(User user);
 
     /**
+     * 批量删除用户（支持单个与批量删除）
+     * <p>
+     * 删除前会做三道守卫：禁止删除当前登录用户；待删 ID 必须真实存在；
+     * 仍被线索、商机或跟进记录引用的用户不允许删除（项目不使用物理外键，
+     * 引用完整性由 Service 层保证），此类账号应改为停用。
+     *
+     * @param ids 待删除的用户ID，不能为空
+     */
+    void deleteUsers(List<Integer> ids);
+
+    /**
      * 查询所有用户，不分页，用于下拉框
      *
      * @return 用户列表

@@ -41,4 +41,12 @@ public interface ClueMapper extends BaseMapper<Clue> {
         Long count = selectCount(new LambdaQueryWrapper<Clue>().eq(Clue::getActivityId, activityId));
         return count == null ? 0L : count;
     }
+
+    /**
+     * 统计归属于某用户的线索数（用于删除用户前的引用校验）
+     */
+    default long countByUserId(Integer userId) {
+        Long count = selectCount(new LambdaQueryWrapper<Clue>().eq(Clue::getUserId, userId));
+        return count == null ? 0L : count;
+    }
 }

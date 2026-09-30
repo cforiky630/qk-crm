@@ -41,4 +41,12 @@ public interface BusinessMapper extends BaseMapper<Business> {
         Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getCourseId, courseId));
         return count == null ? 0L : count;
     }
+
+    /**
+     * 统计归属于某用户的商机数（用于删除用户前的引用校验）
+     */
+    default long countByUserId(Integer userId) {
+        Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getUserId, userId));
+        return count == null ? 0L : count;
+    }
 }

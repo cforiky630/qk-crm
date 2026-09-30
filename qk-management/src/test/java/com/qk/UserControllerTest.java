@@ -4,6 +4,7 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qk.mapper.UserMapper;
 import com.qk.common.util.JwtUtil;
+import com.qk.mapper.ClueMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,6 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.qk.entity.Dept;
 import com.qk.entity.Role;
 import com.qk.entity.User;
+import com.qk.entity.Clue;
+import com.qk.entity.enums.ClueStatus;
 
 /**
  * 用户管理接口测试，校验 3. 接口文档-用户管理.md 中的契约
@@ -50,6 +54,9 @@ class UserControllerTest {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private ClueMapper clueMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -83,6 +90,25 @@ class UserControllerTest {
         user.setRemark("单元测试数据");
         userMapper.insert(user);
         return user;
+    }
+
+    /** 造一条归属于指定用户的线索，用于验证「用户被业务数据引用时不可删除」 */
+    private Clue insertClue(Integer userId) {
+        int seq = SEQ.incrementAndGet();
+        Clue clue = new Clue();
+        clue.setPhone("151" + String.format("%08d", seq));
+        clue.setChannel(1);
+        clue.setName("用户引用线索" + seq);
+        clue.setGender(1);
+        clue.setAge(24);
+        clue.setWechat("wx" + seq);
+        clue.setQq("qq" + seq);
+        clue.setUserId(userId);
+        clue.setStatus(ClueStatus.WAIT_ALLOT.getCode());
+        clue.setSubject(1);
+        clue.setLevel(2);
+        clueMapper.insert(clue);
+        return clue;
     }
 
     @Test
@@ -201,6 +227,37 @@ class UserControllerTest {
 
         org.junit.jupiter.api.Assertions.assertNull(userMapper.selectById(first.getId()));
         org.junit.jupiter.api.Assertions.assertNull(userMapper.selectById(second.getId()));
+    }
+
+    @Test
+    void deleteCurrentUserIsRejected() throws Exception {
+        // 默认令牌对应的用户 id 是 1，删除自己会被守卫拦下
+        mockMvc.perform(delete("/users/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("不能删除当前登录用户"));
+    }
+
+    @Test
+    void deleteMissingUserIsRejected() throws Exception {
+        mockMvc.perform(delete("/users/99999999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("用户不存在: [99999999]"));
+    }
+
+    @Test
+    void deleteUserReferencedByClueIsRejected() throws Exception {
+        User user = insertUser("cs_delete_ref", "被线索引用");
+        insertClue(user.getId());
+
+        mockMvc.perform(delete("/users/" + user.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("用户 " + user.getId()
+                        + " 仍被业务数据引用（线索 1 条、商机 0 条、跟进记录 0 条），无法删除；如不再使用请改为停用"));
+
+        assertNotNull(userMapper.selectById(user.getId()), "仍被线索引用的用户不应被删除");
     }
 
     @Test

@@ -107,7 +107,7 @@ public class UserController {
     @DeleteMapping("/{ids}")
     public Result<Void> deleteUsers(@PathVariable List<Integer> ids) {
         log.info("批量删除用户: {}", ids);
-        userService.removeBatchByIds(ids);
+        userService.deleteUsers(ids);
         return Result.success();
     }
 }
