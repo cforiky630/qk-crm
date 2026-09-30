@@ -22,6 +22,13 @@
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
+        <!-- Bean Validation：DTO 上用 @NotBlank/@Min 等注解声明校验规则，
+             失败信息由 GlobalExceptionHandler 统一转成 code=0 + 中文提示 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
         <!-- AOP：操作日志切面需要（Spring Boot 4 中 starter-aop 已更名为 starter-aspectj） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

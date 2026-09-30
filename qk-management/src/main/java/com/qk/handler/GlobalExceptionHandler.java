@@ -9,8 +9,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import java.util.Objects;
 
 @Slf4j
 @RestControllerAdvice
@@ -81,6 +84,26 @@ public class GlobalExceptionHandler {
     public Result<Void> handlerTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("请求参数类型不匹配: {} = {}", e.getName(), e.getValue());
         return Result.error("请求参数类型不正确");
+    }
+
+    /**
+     * DTO 校验失败（@Valid + @NotBlank/@Min 等注解）
+     * <p>
+     * 按项目既有约定返回 HTTP 200 + code=0：这里属于「可预期的业务失败」，
+     * 与 Service 层抛 BusinessException 的表现一致；HTTP 400 只保留给
+     * 「请求体根本不是合法 JSON」「路径参数类型不匹配」这类框架层解析错误。
+     * <p>
+     * msg 取第一条字段错误信息，具体文案由 DTO 注解上的 message 决定。
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<Void> handlerValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> Objects.toString(fieldError.getDefaultMessage(), null))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("请求参数校验未通过");
+        log.warn("参数校验未通过: {}", message);
+        return Result.error(message);
     }
 
     /**
