@@ -2133,7 +2133,7 @@ components:
         remark:
           type: [string, 'null']
           description: 备注
-      # channel 按页面原型（2.11 渠道来源，选填）与接口文档均为非必须，库列已允许为 NULL
+      # channel 按页面原型（2.11 渠道来源，选填）与接口文档均为非必须
       required: [phone]
 
     BusinessTrackBody:
@@ -2265,7 +2265,7 @@ components:
               format: int32
             - type: 'null'
           description: 意向课程ID
-      # channel 按页面原型（3.3 渠道来源，选填）与接口文档均为非必须，库列已允许为 NULL
+      # channel 按页面原型（3.3 渠道来源，选填）与接口文档均为非必须
       required: [phone]
 
     # ---------- 操作日志 ----------
