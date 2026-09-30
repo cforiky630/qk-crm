@@ -174,9 +174,11 @@ curl -H "token: <token>" http://localhost:8080/report/overview
 
 | 启动方式 | 工作目录 | 日志位置 |
 | --- | --- | --- |
-| IDEA（使用仓库自带的共享运行配置 `.run/QkApplication.run.xml`） | 项目根 | `./logs` |
+| IDEA（需把运行配置的 `Working directory` 设为 `$PROJECT_DIR$`） | 项目根 | `./logs` |
 | `mvn spring-boot:run -pl qk-management` / `java -jar ...`（在项目根执行） | 项目根 | `./logs` |
 | `mvn test` | 模块目录 | **不写文件**，仅输出到控制台（`src/test/resources/logback-test.xml`） |
+
+> IDEA 的运行配置不随仓库分发。若不设置工作目录，IDEA 默认使用模块目录 `qk-management`，日志会写到 `qk-management/logs`——该目录同样被 `.gitignore` 忽略，只是会多出一个日志目录。
 
 SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关闭。
 
