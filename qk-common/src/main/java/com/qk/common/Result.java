@@ -1,6 +1,8 @@
 package com.qk.common;
 
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 import java.util.Objects;
 
@@ -13,29 +15,33 @@ import java.util.Objects;
  * <p>
  * 注意：泛型只作用于编译期，JSON 输出与原先完全一致
  * （字段仍是 {@code code}、{@code msg}、{@code data}）。
+ * <p>
+ * 本类<b>不可变</b>：字段全部 final、构造器私有、不提供 setter。
+ * 实例只能由 {@link #success()}、{@link #success(Object)}、{@link #error(String)}、
+ * {@link #custom(ResultCode, String, Object)} 创建，从根本上杜绝
+ * 「响应码为空」与「创建后被篡改」这两类非法响应。
  *
  * @param <T> 业务数据类型；无数据时使用 {@link Void}
  */
-@Data
+@Getter
+@ToString
+@EqualsAndHashCode
 public class Result<T> {
 
     /** 编码，取值见 {@link ResultCode}：1 成功，0 失败 */
-    private Integer code;
+    private final Integer code;
 
     /** 提示信息 */
-    private String msg;
+    private final String msg;
 
     /** 业务数据 */
-    private T data;
+    private final T data;
 
-    /**
-     * 私有构造：统一由静态工厂创建
-     * <p>
-     * 若保留隐式公开构造，外部就能 {@code new Result<>()} 造出 code / msg 都为 null 的非法响应，
-     * 绕过 {@link ResultCode} 的约束。私有化之后，响应只能来自
-     * {@link #success()}、{@link #success(Object)}、{@link #error(String)}、{@link #custom(ResultCode, String, Object)}。
-     */
-    private Result() {
+    /** 私有构造：只能由下方的静态工厂调用，外部无法 new 出响应 */
+    private Result(Integer code, String msg, T data) {
+        this.code = code;
+        this.msg = msg;
+        this.data = data;
     }
 
     /** 成功，且不携带业务数据 */
@@ -79,11 +85,7 @@ public class Result<T> {
      */
     public static <T> Result<T> custom(ResultCode resultCode, String msg, T data) {
         Objects.requireNonNull(resultCode, "响应码不能为空，取值见 ResultCode");
-        Result<T> result = new Result<>();
-        result.code = resultCode.getCode();
-        result.msg = msg;
-        result.data = data;
-        return result;
+        return new Result<>(resultCode.getCode(), msg, data);
     }
 
     private static <T> Result<T> of(ResultCode resultCode, T data) {

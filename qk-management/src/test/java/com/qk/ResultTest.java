@@ -7,11 +7,13 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,14 +29,26 @@ class ResultTest {
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
     /**
-     * 构造器必须私有：响应只能由静态工厂创建，
-     * 否则外部可以 new 出 code / msg 为 null 的非法响应。
+     * 不可变约定，三条一起守：
+     * 1) 构造器私有 —— 响应只能由静态工厂创建；
+     * 2) 不暴露 setter —— 创建后不能被篡改；
+     * 3) 字段 final —— 从字节码层面杜绝重新赋值。
      */
     @Test
-    void constructorIsPrivate() {
-        Constructor<Result> constructor = assertDoesNotThrow(() -> Result.class.getDeclaredConstructor());
+    void isImmutable() {
+        Constructor<?>[] constructors = Result.class.getDeclaredConstructors();
+        assertEquals(1, constructors.length, "Result 应当只有一个构造器");
+        assertTrue(Modifier.isPrivate(constructors[0].getModifiers()), "Result 的构造器必须是 private");
 
-        assertTrue(Modifier.isPrivate(constructor.getModifiers()), "Result 的构造器必须是 private");
+        for (Method method : Result.class.getMethods()) {
+            assertFalse(method.getName().startsWith("set"), "Result 不应暴露 setter: " + method.getName());
+        }
+
+        for (Field field : Result.class.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())) {
+                assertTrue(Modifier.isFinal(field.getModifiers()), field.getName() + " 必须是 final");
+            }
+        }
     }
 
     /**
