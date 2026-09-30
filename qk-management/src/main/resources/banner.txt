@@ -1,0 +1,12 @@
+${AnsiColor.BRIGHT_CYAN}
+  ██████╗ ██╗  ██╗
+ ██╔═══██╗██║ ██╔╝
+ ██║   ██║█████╔╝
+ ██║▄▄ ██║██╔═██╗
+ ╚██████╔╝██║  ██╗
+  ╚══▄▄═╝ ╚═╝  ╚═╝
+${AnsiColor.BRIGHT_WHITE}
+  轻客管家 · 教培销售 CRM 后端服务${application.formatted-version}
+${AnsiColor.DEFAULT}
+  线索 → 分配 → 跟进 → 商机 → 再分配 → 客户
+  Spring Boot ${spring-boot.version} · Java ${java.version}

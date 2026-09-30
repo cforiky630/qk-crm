@@ -29,6 +29,7 @@ mybatis-plus:
     # StdOutImpl，会绕过日志框架直接打到标准输出
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
+    banner: false  # 关闭 MyBatis-Plus 自带启动 logo，避免与项目 banner 重复
     db-config:
       id-type: auto  # 全局主键策略 数据库自增
 
