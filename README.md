@@ -159,16 +159,16 @@ curl -H "token: <token>" http://localhost:8080/report/overview
 
 ## 配置项
 
-`application.yml` 中带的是**本地开发默认值**，生产请删除默认值并只走环境变量：
+数据库密码、OSS AccessKey、JWT 密钥**不进仓库**：`application.yml` 只保留环境变量占位（默认值为空），真实值放在 `config/application-local.yml`。该文件已被 `.gitignore` 忽略，也可以改用 `~/.qk/application-local.yml`，两个位置都会被自动加载，且优先级高于 `application.yml`。
 
 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `QK_DB_USERNAME` | `root` | 数据库账号 |
-| `QK_DB_PASSWORD` | `123456` | 数据库密码 |
+| `QK_DB_PASSWORD` | `123456` | 数据库密码（本地开发库，非敏感） |
 | `QK_OSS_REGION` | `cn-beijing` | OSS 区域（`qk-bucket-oss` 桶位于华北2） |
-| `QK_OSS_ACCESS_KEY_ID` | 本地默认值 | OSS 凭证，生产务必用环境变量并定期轮换 |
-| `QK_OSS_ACCESS_KEY_SECRET` | 本地默认值 | 同上 |
-| `QK_JWT_SECRET` | 本地默认值 | JWT 签名密钥 |
+| `QK_OSS_ACCESS_KEY_ID` | 空 | OSS 凭证，本地写在 `config/application-local.yml`，生产走环境变量并定期轮换 |
+| `QK_OSS_ACCESS_KEY_SECRET` | 空 | 同上 |
+| `QK_JWT_SECRET` | 开发占位值 | JWT 签名密钥，生产必须替换 ≥32 字节的随机值 |
 
 日志输出到 `./logs`（已在 `.gitignore` 中忽略）；SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关闭。
 
