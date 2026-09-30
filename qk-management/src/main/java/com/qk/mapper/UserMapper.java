@@ -57,4 +57,12 @@ public interface UserMapper extends BaseMapper<User> {
         Long count = selectCount(new LambdaQueryWrapper<User>().eq(User::getDeptId, deptId));
         return count == null ? 0L : count;
     }
+
+    /**
+     * 统计某角色下的用户数（用于删除角色前的引用校验）
+     */
+    default long countByRoleId(Integer roleId) {
+        Long count = selectCount(new LambdaQueryWrapper<User>().eq(User::getRoleId, roleId));
+        return count == null ? 0L : count;
+    }
 }

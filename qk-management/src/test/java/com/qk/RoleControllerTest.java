@@ -2,6 +2,7 @@ package com.qk;
 
 import com.qk.mapper.RoleMapper;
 import com.qk.common.util.JwtUtil;
+import com.qk.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +15,11 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -23,6 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.qk.entity.Role;
+import com.qk.entity.User;
+import com.qk.entity.enums.EnableStatus;
 
 /**
  * 角色管理接口测试，校验 2. 接口文档-角色管理.md 中的契约
@@ -32,11 +38,16 @@ import com.qk.entity.Role;
 @Transactional
 class RoleControllerTest {
 
+    private static final AtomicInteger SEQ = new AtomicInteger();
+
     @Autowired
     private WebApplicationContext wac;
 
     @Autowired
     private RoleMapper roleMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -66,6 +77,21 @@ class RoleControllerTest {
         return role;
     }
 
+    /** 造一个引用指定角色的用户，用于验证「角色被引用时不可删除」 */
+    private User insertUser(Integer roleId) {
+        int seq = SEQ.incrementAndGet();
+        User user = new User();
+        user.setUsername("cs_role_u" + seq);
+        user.setName("角色测试用户" + seq);
+        user.setPhone("155" + String.format("%08d", seq));
+        user.setEmail("cs_role_u" + seq + "@qk.test");
+        user.setPassword("x");
+        user.setGender(1);
+        user.setStatus(EnableStatus.ENABLED.getCode());
+        user.setRoleId(roleId);
+        userMapper.insert(user);
+        return user;
+    }
     @Test
     void addRole() throws Exception {
         mockMvc.perform(post("/roles")
@@ -182,6 +208,22 @@ class RoleControllerTest {
         // 删除后应查不到
         mockMvc.perform(get("/roles/{id}", role.getId()))
                 .andExpect(jsonPath("$.data").doesNotExist());
+
+        // 再直接查库确认，避免只看接口返回
+        assertNull(roleMapper.selectById(role.getId()), "角色应已从库中删除");
+    }
+
+    @Test
+    void deleteRoleReferencedByUserIsRejected() throws Exception {
+        Role role = insertRole("仍被引用的角色", "ut_role_in_use", "用于测试引用守卫");
+        insertUser(role.getId());
+
+        mockMvc.perform(delete("/roles/{id}", role.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该角色下还有 1 名用户，无法删除"));
+
+        assertNotNull(roleMapper.selectById(role.getId()), "仍被用户引用的角色不应被删除");
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.qk.common.PageResult;
 import com.qk.entity.Role;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.RoleMapper;
+import com.qk.mapper.UserMapper;
 import com.qk.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,10 +19,12 @@ import java.util.List;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleMapper roleMapper;
+    private final UserMapper userMapper;
 
     @Autowired
-    public RoleServiceImpl(RoleMapper roleMapper) {
+    public RoleServiceImpl(RoleMapper roleMapper, UserMapper userMapper) {
         this.roleMapper = roleMapper;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -62,6 +65,15 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public void deleteById(Integer id) {
         requireRole(id);
+
+        // 守卫：仍被用户引用的角色不允许删除。
+        // 项目不使用物理外键（见 sql/user.sql 注释），user.role_id 的引用完整性只能由 Service 层兜底，
+        // 否则登录时查不到角色，roleLabel 变成 null，前端菜单会渲染异常。
+        long userCount = userMapper.countByRoleId(id);
+        if (userCount > 0) {
+            throw new BusinessException("该角色下还有 " + userCount + " 名用户，无法删除");
+        }
+
         roleMapper.deleteById(id);
     }
 
