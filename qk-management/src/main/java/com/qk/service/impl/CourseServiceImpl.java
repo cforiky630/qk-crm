@@ -1,7 +1,7 @@
 package com.qk.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Course;
 import com.qk.common.PageResult;
@@ -52,20 +52,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public PageResult<Course> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize) {
-        // 1.设置分页参数
-        Page<Course> p = new Page<>(page, pageSize);
-
-        // 2. 设置条件参数，name 为模糊查询，subject 和 target 为等值查询
-        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Course::getName, name)
-                .eq(subject != null, Course::getSubject, subject)
-                .eq(target != null, Course::getTarget, target)
-                .orderByAsc(Course::getId); // 固定排序，避免分页时记录重复或丢失
-
-        // 3. 执行分页查询
-        p = courseMapper.selectPage(p, wrapper);
-
-        // 4. 返回结果
+        IPage<Course> p = courseMapper.pageCourses(new Page<>(page, pageSize), name, subject, target);
         return new PageResult<>(p.getTotal(), p.getRecords());
     }
 
@@ -142,16 +129,12 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<Course> findAll() {
-        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByAsc(Course::getId);
-        return courseMapper.selectList(wrapper);
+        return courseMapper.listAllOrdered();
     }
 
     @Override
     public List<Course> findBySubject(Integer subject) {
-        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Course::getSubject, subject).orderByAsc(Course::getId);
-        return courseMapper.selectList(wrapper);
+        return courseMapper.listBySubject(subject);
     }
 
 }

@@ -2,6 +2,7 @@ package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Business;
@@ -48,5 +49,18 @@ public interface BusinessMapper extends BaseMapper<Business> {
     default long countByUserId(Integer userId) {
         Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getUserId, userId));
         return count == null ? 0L : count;
+    }
+
+    /**
+     * 清空某条商机的归属人（踢回公海时使用）
+     * <p>
+     * {@code updateById} 会忽略 null 字段，因此置空必须借助 UpdateWrapper 显式指定。
+     *
+     * @return 受影响行数
+     */
+    default int clearAssignee(Integer businessId) {
+        return update(null, new LambdaUpdateWrapper<Business>()
+                .eq(Business::getId, businessId)
+                .set(Business::getUserId, null));
     }
 }

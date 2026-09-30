@@ -1,7 +1,6 @@
 package com.qk.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Dept;
 import com.qk.common.PageResult;
@@ -36,18 +35,8 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     public PageResult<Dept> findDeptsByPage(String name, Integer status, Integer page, Integer pageSize) {
-        // 分页插件使用步骤
-        // 1.设置分页参数
-        Page<Dept> p = new Page<>(page, pageSize);
-
-        // 2. 设置条件参数
-        LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Dept::getName, name).eq(status != null, Dept::getStatus, status);
-
-        // 3. 执行分页查询
-        p = deptMapper.selectPage(p, wrapper);
-
-        // 4. 返回结果
+        // 查询条件与排序由 Mapper 负责，Service 只做参数传递与结果包装
+        IPage<Dept> p = deptMapper.pageDepts(new Page<>(page, pageSize), name, status);
         return new PageResult<>(p.getTotal(), p.getRecords());
     }
 
@@ -101,10 +90,7 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     public List<Dept> findAllNormal() {
-        LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<>();
-        // 下拉框只展示正常状态的部门
-        wrapper.eq(Dept::getStatus, EnableStatus.ENABLED.getCode()).orderByAsc(Dept::getId);
-        return deptMapper.selectList(wrapper);
+        return deptMapper.listEnabled();
     }
 
 }

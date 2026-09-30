@@ -1,7 +1,6 @@
 package com.qk.service.impl;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.common.PageResult;
 import com.qk.entity.Role;
@@ -35,19 +34,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public PageResult<Role> findRolesByPage(String name, String label, Integer page, Integer pageSize) {
-        // 1.设置分页参数
-        Page<Role> p = new Page<>(page, pageSize);
-
-        // 2. 设置条件参数，name 和 label 均为模糊查询
-        LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StrUtil.isNotBlank(name), Role::getName, name)
-                .like(StrUtil.isNotBlank(label), Role::getLabel, label)
-                .orderByAsc(Role::getId); // 固定排序，避免分页时记录重复或丢失
-
-        // 3. 执行分页查询
-        p = roleMapper.selectPage(p, wrapper);
-
-        // 4. 返回结果
+        IPage<Role> p = roleMapper.pageRoles(new Page<>(page, pageSize), name, label);
         return new PageResult<>(p.getTotal(), p.getRecords());
     }
 
@@ -91,9 +78,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<Role> findAll() {
-        LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByAsc(Role::getId);
-        return roleMapper.selectList(wrapper);
+        return roleMapper.listAllOrdered();
     }
 
 }

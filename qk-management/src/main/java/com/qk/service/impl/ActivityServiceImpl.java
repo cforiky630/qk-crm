@@ -1,7 +1,7 @@
 package com.qk.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Activity;
 import com.qk.common.PageResult;
@@ -38,14 +38,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     public PageResult<Activity> findActivitiesByPage(Integer channel, Integer type, Integer page, Integer pageSize) {
-        Page<Activity> p = new Page<>(page, pageSize);
-
-        LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(channel != null, Activity::getChannel, channel)
-                .eq(type != null, Activity::getType, type)
-                .orderByAsc(Activity::getId); // 固定排序，避免分页时记录重复或丢失
-
-        p = activityMapper.selectPage(p, wrapper);
+        IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type);
         return new PageResult<>(p.getTotal(), p.getRecords());
     }
 
@@ -92,8 +85,6 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     public List<Activity> findByType(Integer type) {
-        LambdaQueryWrapper<Activity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Activity::getType, type).orderByAsc(Activity::getId);
-        return activityMapper.selectList(wrapper);
+        return activityMapper.listByType(type);
     }
 }

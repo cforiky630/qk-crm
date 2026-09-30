@@ -65,4 +65,13 @@ public interface UserMapper extends BaseMapper<User> {
         Long count = selectCount(new LambdaQueryWrapper<User>().eq(User::getRoleId, roleId));
         return count == null ? 0L : count;
     }
+
+    /**
+     * 按用户名精确查询用户（登录使用）
+     * <p>
+     * username 上有唯一索引，因此最多只会命中一条。
+     */
+    default User findByUsername(String username) {
+        return selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+    }
 }

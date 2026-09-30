@@ -250,7 +250,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 **Mapper（wrapper 负责简单查询、XML 负责复杂 SQL）**
 
-- 单表 CRUD 与单表条件查询 → `BaseMapper` + `LambdaQueryWrapper`（写在 Service 里，如部门/角色/课程/活动的分页与列表）；
+- 单表 CRUD 与单表条件查询 → `BaseMapper` + `LambdaQueryWrapper`，**wrapper 写在 Mapper 的 default 方法里**（如 `DeptMapper.pageDepts`、`UserMapper.findByUsername`）；
+  Service 只做参数传递、业务判断与结果包装，不感知查询 DSL（分层证据：`service` 包里不再出现 `LambdaQueryWrapper`）；
 - 多表 join、聚合统计 → Mapper XML，按 MyBatis 官方约定放在**与接口同包同名**的路径下：
   `src/main/resources/com/qk/mapper/XxxMapper.xml`，`namespace` 为接口全限定名。
   因此 **不需要配置 `mapper-locations`**（MyBatis 会按接口路径自动加载同名 XML）；

@@ -75,8 +75,8 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setStatus(BusinessStatus.RECYCLED.getCode());
         // 踢回公海，需要同时解除归属人
         updateById(business);
-        // updateById 默认忽略 null 字段，因此清空归属人要用 UpdateWrapper 显式置 null
-        lambdaUpdate().eq(Business::getId, id).set(Business::getUserId, null).update();
+        // updateById 默认忽略 null 字段，因此清空归属人交给 Mapper 显式置 null
+        baseMapper.clearAssignee(id);
     }
 
     @Override

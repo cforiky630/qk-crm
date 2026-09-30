@@ -178,7 +178,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         // 1. 根据用户名查询用户
-        User user = lambdaQuery().eq(User::getUsername, username).one();
+        User user = userMapper.findByUsername(username);
         if (user == null || user.getStatus() != null && user.getStatus() == 0) {
             return null;
         }
