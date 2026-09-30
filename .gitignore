@@ -6,6 +6,8 @@ target/
 
 ### IntelliJ IDEA ###
 .idea/
+# IDEA 的“项目级”运行配置目录：本项目的运行配置不随仓库分发，避免与他人本地配置重名
+.run/
 *.iws
 *.iml
 *.ipr
