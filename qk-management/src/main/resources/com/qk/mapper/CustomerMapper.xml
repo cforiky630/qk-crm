@@ -9,7 +9,7 @@
         LEFT JOIN course c ON cu.course_id = c.id
     </sql>
 
-    <select id="listCustomers" resultType="com.qk.vo.CustomerVO">
+    <select id="listCustomers" resultType="com.qk.entity.vo.CustomerVO">
         <include refid="viewSelect"/>
         <where>
             <if test="customerQueryDto.phone != null and customerQueryDto.phone != ''">
@@ -28,7 +28,7 @@
         ORDER BY cu.create_time DESC, cu.id DESC
     </select>
 
-    <select id="getCustomerById" resultType="com.qk.vo.CustomerVO">
+    <select id="getCustomerById" resultType="com.qk.entity.vo.CustomerVO">
         <include refid="viewSelect"/>
         WHERE cu.id = #{id}
     </select>

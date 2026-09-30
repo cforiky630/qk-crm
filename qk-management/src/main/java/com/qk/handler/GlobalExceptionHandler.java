@@ -1,7 +1,7 @@
 package com.qk.handler;
 
-import com.qk.Result;
-import com.qk.exception.BusinessException;
+import com.qk.common.Result;
+import com.qk.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;

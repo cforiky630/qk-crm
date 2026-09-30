@@ -1,5 +1,5 @@
 -- 商机表 + 商机跟进记录表
--- 对应实体类 com.qk.Business、com.qk.BusinessTrackRecord
+-- 对应实体类 com.qk.entity.Business、com.qk.entity.BusinessTrackRecord
 --
 -- 建表约定：
 --   1. 不使用物理外键约束（FOREIGN KEY），表之间的关联关系全部通过逻辑约束维护，

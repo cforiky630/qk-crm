@@ -1,9 +1,9 @@
 package com.qk.service;
 
-import com.qk.OperateLog;
-import com.qk.PageResult;
-import com.qk.dto.LogQueryDto;
-import com.qk.vo.OperateLogVO;
+import com.qk.entity.OperateLog;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.LogQueryDto;
+import com.qk.entity.vo.OperateLogVO;
 
 /**
  * 操作日志Service接口

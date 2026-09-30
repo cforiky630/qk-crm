@@ -2,11 +2,11 @@ package com.qk;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.qk.enums.ClueStatus;
+import com.qk.entity.enums.ClueStatus;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.CourseMapper;
 import com.qk.mapper.OperateLogMapper;
-import com.qk.util.JwtUtil;
+import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +30,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.qk.entity.Clue;
+import com.qk.entity.Course;
+import com.qk.entity.OperateLog;
+import com.qk.entity.User;
 
 /**
  * 上线前的安全与健壮性守护测试

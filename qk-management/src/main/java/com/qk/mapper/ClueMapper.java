@@ -3,10 +3,10 @@ package com.qk.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.Clue;
-import com.qk.dto.CluePoolDto;
-import com.qk.dto.ClueQueryDto;
-import com.qk.vo.ClueVO;
+import com.qk.entity.Clue;
+import com.qk.entity.dto.CluePoolDto;
+import com.qk.entity.dto.ClueQueryDto;
+import com.qk.entity.vo.ClueVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

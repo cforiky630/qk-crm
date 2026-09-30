@@ -3,10 +3,10 @@ package com.qk.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.Business;
-import com.qk.dto.BusinessPoolDto;
-import com.qk.dto.BusinessQueryDto;
-import com.qk.vo.BusinessVO;
+import com.qk.entity.Business;
+import com.qk.entity.dto.BusinessPoolDto;
+import com.qk.entity.dto.BusinessQueryDto;
+import com.qk.entity.vo.BusinessVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

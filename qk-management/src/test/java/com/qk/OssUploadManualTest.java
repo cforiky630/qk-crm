@@ -1,7 +1,7 @@
 package com.qk;
 
-import com.qk.properties.OssProperties;
-import com.qk.util.OssTemplate;
+import com.qk.common.properties.OssProperties;
+import com.qk.common.util.OssTemplate;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

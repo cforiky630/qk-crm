@@ -1,8 +1,8 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.qk.ClueTrackRecord;
-import com.qk.vo.ClueTrackRecordVO;
+import com.qk.entity.ClueTrackRecord;
+import com.qk.entity.vo.ClueTrackRecordVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

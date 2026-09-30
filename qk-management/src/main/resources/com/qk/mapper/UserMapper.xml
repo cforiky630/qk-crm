@@ -19,7 +19,7 @@
     </sql>
 
     <!-- 动态条件分页：Page 参数由 MyBatis-Plus 分页插件自动追加 limit 并回填 total -->
-    <select id="getUsers" resultType="com.qk.vo.UserVO">
+    <select id="getUsers" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         <where>
             <if test="userDto.name != null and userDto.name != ''">
@@ -38,23 +38,23 @@
         ORDER BY u.create_time DESC, u.id DESC
     </select>
 
-    <select id="getUserById" resultType="com.qk.vo.UserVO">
+    <select id="getUserById" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         WHERE u.id = #{id}
     </select>
 
-    <select id="listAll" resultType="com.qk.vo.UserVO">
+    <select id="listAll" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         ORDER BY u.id
     </select>
 
-    <select id="findByRoleLabel" resultType="com.qk.vo.UserVO">
+    <select id="findByRoleLabel" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         WHERE r.label = #{roleLabel}
         ORDER BY u.id
     </select>
 
-    <select id="findByDeptId" resultType="com.qk.vo.UserVO">
+    <select id="findByDeptId" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         WHERE u.dept_id = #{deptId}
         ORDER BY u.id

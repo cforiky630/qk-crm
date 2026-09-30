@@ -16,7 +16,7 @@
         LEFT JOIN activity a ON c.activity_id = a.id
     </sql>
 
-    <select id="listClues" resultType="com.qk.vo.ClueVO">
+    <select id="listClues" resultType="com.qk.entity.vo.ClueVO">
         <include refid="listSelect"/>
         <where>
             <!-- 已关闭的线索不出现在列表：4 伪线索、5 转为商机（对应 ClueStatus.CLOSED_CODES） -->
@@ -41,13 +41,13 @@
     </select>
 
     <!-- 线索详情：跟进记录由 ClueTrackRecordMapper 单独查询后在 Service 组装 -->
-    <select id="getClueById" resultType="com.qk.vo.ClueVO">
+    <select id="getClueById" resultType="com.qk.entity.vo.ClueVO">
         <include refid="listSelect"/>
         WHERE c.id = #{id}
     </select>
 
     <!-- 线索池：含伪线索，用于重新分配 -->
-    <select id="getPoolClues" resultType="com.qk.vo.ClueVO">
+    <select id="getPoolClues" resultType="com.qk.entity.vo.ClueVO">
         <include refid="poolSelect"/>
         <where>
             <if test="cluePoolDto.clueId != null">

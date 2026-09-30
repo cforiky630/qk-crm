@@ -1,7 +1,7 @@
 package com.qk;
 
 import com.qk.mapper.ActivityMapper;
-import com.qk.util.JwtUtil;
+import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.qk.entity.Activity;
 
 /**
  * 活动管理接口测试，校验 5. 接口文档-活动管理.md 中的契约

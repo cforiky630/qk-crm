@@ -1,11 +1,11 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.PageResult;
-import com.qk.User;
-import com.qk.dto.UserDto;
-import com.qk.vo.LoginResultVo;
-import com.qk.vo.UserVO;
+import com.qk.common.PageResult;
+import com.qk.entity.User;
+import com.qk.entity.dto.UserDto;
+import com.qk.entity.vo.LoginResultVo;
+import com.qk.entity.vo.UserVO;
 
 import java.util.List;
 

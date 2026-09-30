@@ -2,7 +2,7 @@ package com.qk.service.impl;
 
 import com.qk.mapper.ReportMapper;
 import com.qk.service.ReportService;
-import com.qk.vo.OverviewVO;
+import com.qk.entity.vo.OverviewVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

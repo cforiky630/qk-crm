@@ -3,9 +3,9 @@ package com.qk.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.OperateLog;
-import com.qk.dto.LogQueryDto;
-import com.qk.vo.OperateLogVO;
+import com.qk.entity.OperateLog;
+import com.qk.entity.dto.LogQueryDto;
+import com.qk.entity.vo.OperateLogVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

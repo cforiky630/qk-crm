@@ -1,7 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.qk.Dept;
+import com.qk.entity.Dept;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

@@ -1,6 +1,6 @@
 package com.qk.mapper;
 
-import com.qk.vo.OverviewVO;
+import com.qk.entity.vo.OverviewVO;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

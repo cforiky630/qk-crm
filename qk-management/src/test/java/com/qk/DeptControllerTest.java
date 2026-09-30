@@ -1,7 +1,7 @@
 package com.qk;
 
 import com.qk.mapper.DeptMapper;
-import com.qk.util.JwtUtil;
+import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.qk.entity.Dept;
 
 /**
  * 部门管理接口测试，覆盖 1. 接口文档-部门管理.md 中 /depts/list

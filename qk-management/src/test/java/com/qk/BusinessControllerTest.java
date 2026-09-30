@@ -3,8 +3,8 @@ package com.qk;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.CustomerMapper;
 import com.qk.mapper.UserMapper;
-import com.qk.enums.BusinessStatus;
-import com.qk.util.JwtUtil;
+import com.qk.entity.enums.BusinessStatus;
+import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.qk.entity.Business;
+import com.qk.entity.Customer;
+import com.qk.entity.User;
 
 /**
  * 商机管理接口测试，校验 7. 接口文档-商机管理.md 中的契约

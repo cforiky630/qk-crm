@@ -72,13 +72,14 @@
 
 ```
 qk-parent
-├── qk-common/          通用能力：Result / PageResult、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
-├── qk-entity/          实体 / DTO / VO / 枚举
-│   └── com.qk          实体（Dept、User、Clue、Business…）
+├── qk-common/          通用能力（包根 com.qk.common）
+│   └── com.qk.common   Result / PageResult、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
+├── qk-entity/          实体 / DTO / VO / 枚举（包根 com.qk.entity）
+│   └── com.qk.entity   实体（Dept、User、Clue、Business…）
 │       ├── dto         入参：XxxQueryDto、ClueTrackDto、MarkFalseClueDto…
 │       ├── vo          出参：UserVO、ClueVO、BusinessVO、OverviewVO…
 │       └── enums       状态枚举：ClueStatus、BusinessStatus、ClueTrackType
-├── qk-management/      可启动模块
+├── qk-management/      可启动模块（包根 com.qk）
 │   └── com.qk
 │       ├── controller  接口层
 │       ├── service     业务层（接口 + impl）

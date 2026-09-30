@@ -1,8 +1,8 @@
 package com.qk.aspect;
 
-import com.qk.OperateLog;
+import com.qk.entity.OperateLog;
 import com.qk.service.OperateLogService;
-import com.qk.util.UserHolder;
+import com.qk.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;

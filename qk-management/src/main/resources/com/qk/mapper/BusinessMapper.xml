@@ -9,7 +9,7 @@
         LEFT JOIN `user` u ON b.user_id = u.id
     </sql>
 
-    <select id="listBusinesses" resultType="com.qk.vo.BusinessVO">
+    <select id="listBusinesses" resultType="com.qk.entity.vo.BusinessVO">
         <include refid="listSelect"/>
         <where>
             <!-- 已关闭的商机不出现在列表：4 回收（进公海池）、5 转客户（进客户列表） -->
@@ -34,7 +34,7 @@
     </select>
 
     <!-- 商机详情：除归属人外还要带上意向课程名称，因此单独写一条完整 SELECT -->
-    <select id="getBusinessById" resultType="com.qk.vo.BusinessVO">
+    <select id="getBusinessById" resultType="com.qk.entity.vo.BusinessVO">
         SELECT
             b.*,
             u.name AS assign_name,
@@ -46,7 +46,7 @@
     </select>
 
     <!-- 公海池：只查回收状态（4）的商机 -->
-    <select id="getPoolBusinesses" resultType="com.qk.vo.BusinessVO">
+    <select id="getPoolBusinesses" resultType="com.qk.entity.vo.BusinessVO">
         <include refid="listSelect"/>
         <where>
             AND b.status = 4

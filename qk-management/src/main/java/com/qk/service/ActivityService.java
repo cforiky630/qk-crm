@@ -1,7 +1,7 @@
 package com.qk.service;
 
-import com.qk.Activity;
-import com.qk.PageResult;
+import com.qk.entity.Activity;
+import com.qk.common.PageResult;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package com.qk.service;
 
-import com.qk.vo.OverviewVO;
+import com.qk.entity.vo.OverviewVO;
 
 /**
  * 首页数据概览Service接口

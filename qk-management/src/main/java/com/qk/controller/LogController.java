@@ -1,10 +1,10 @@
 package com.qk.controller;
 
-import com.qk.PageResult;
-import com.qk.Result;
-import com.qk.dto.LogQueryDto;
+import com.qk.common.PageResult;
+import com.qk.common.Result;
+import com.qk.entity.dto.LogQueryDto;
 import com.qk.service.OperateLogService;
-import com.qk.vo.OperateLogVO;
+import com.qk.entity.vo.OperateLogVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

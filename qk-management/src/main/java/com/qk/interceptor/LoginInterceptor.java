@@ -1,7 +1,7 @@
 package com.qk.interceptor;
 
-import com.qk.util.JwtUtil;
-import com.qk.util.UserHolder;
+import com.qk.common.util.JwtUtil;
+import com.qk.common.util.UserHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.qk.Activity;
+import com.qk.entity.Activity;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

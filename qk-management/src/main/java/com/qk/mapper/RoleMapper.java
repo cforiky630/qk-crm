@@ -1,7 +1,7 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.qk.Role;
+import com.qk.entity.Role;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

@@ -1,9 +1,9 @@
 package com.qk.controller;
 
-import com.qk.Result;
-import com.qk.exception.BusinessException;
-import com.qk.util.OssTemplate;
-import com.qk.util.UserHolder;
+import com.qk.common.Result;
+import com.qk.common.exception.BusinessException;
+import com.qk.common.util.OssTemplate;
+import com.qk.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;

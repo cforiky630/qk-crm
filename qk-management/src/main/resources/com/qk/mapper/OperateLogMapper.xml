@@ -3,7 +3,7 @@
 <mapper namespace="com.qk.mapper.OperateLogMapper">
 
     <!-- 操作日志列表：附带操作人姓名，支持按操作人姓名模糊查询 -->
-    <select id="listLogs" resultType="com.qk.vo.OperateLogVO">
+    <select id="listLogs" resultType="com.qk.entity.vo.OperateLogVO">
         SELECT
             l.id,
             l.operate_user_id,

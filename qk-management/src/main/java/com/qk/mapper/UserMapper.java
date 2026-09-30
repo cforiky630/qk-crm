@@ -3,9 +3,9 @@ package com.qk.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.User;
-import com.qk.dto.UserDto;
-import com.qk.vo.UserVO;
+import com.qk.entity.User;
+import com.qk.entity.dto.UserDto;
+import com.qk.entity.vo.UserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

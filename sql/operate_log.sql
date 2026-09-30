@@ -1,5 +1,5 @@
 -- 操作日志表
--- 对应实体类 com.qk.OperateLog
+-- 对应实体类 com.qk.entity.OperateLog
 --
 -- 建表约定：
 --   1. 不使用物理外键约束（FOREIGN KEY），operate_user_id 通过逻辑约束关联用户表。

@@ -1,12 +1,12 @@
 package com.qk.controller;
 
-import com.qk.PageResult;
-import com.qk.Result;
-import com.qk.User;
+import com.qk.common.PageResult;
+import com.qk.common.Result;
+import com.qk.entity.User;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.dto.UserDto;
+import com.qk.entity.dto.UserDto;
 import com.qk.service.UserService;
-import com.qk.vo.UserVO;
+import com.qk.entity.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

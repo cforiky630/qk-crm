@@ -1,5 +1,5 @@
 -- 客户表
--- 对应实体类 com.qk.Customer
+-- 对应实体类 com.qk.entity.Customer
 --
 -- 建表约定：
 --   1. 不使用物理外键约束（FOREIGN KEY），表之间的关联关系全部通过逻辑约束维护，

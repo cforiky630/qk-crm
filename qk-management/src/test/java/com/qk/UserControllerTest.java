@@ -3,7 +3,7 @@ package com.qk;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qk.mapper.UserMapper;
-import com.qk.util.JwtUtil;
+import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +26,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.qk.entity.Dept;
+import com.qk.entity.Role;
+import com.qk.entity.User;
 
 /**
  * 用户管理接口测试，校验 3. 接口文档-用户管理.md 中的契约

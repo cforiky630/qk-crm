@@ -3,7 +3,7 @@
 <mapper namespace="com.qk.mapper.ClueTrackRecordMapper">
 
     <!-- 某条线索的跟进记录：附带跟进人姓名 -->
-    <select id="listTrackRecords" resultType="com.qk.vo.ClueTrackRecordVO">
+    <select id="listTrackRecords" resultType="com.qk.entity.vo.ClueTrackRecordVO">
         SELECT
             tr.*,
             u.name AS assign_name

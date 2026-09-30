@@ -2,12 +2,12 @@ package com.qk.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.OperateLog;
-import com.qk.PageResult;
-import com.qk.dto.LogQueryDto;
+import com.qk.entity.OperateLog;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.LogQueryDto;
 import com.qk.mapper.OperateLogMapper;
 import com.qk.service.OperateLogService;
-import com.qk.vo.OperateLogVO;
+import com.qk.entity.vo.OperateLogVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -3,7 +3,7 @@
 <mapper namespace="com.qk.mapper.BusinessTrackRecordMapper">
 
     <!-- 某条商机的跟进记录：附带跟进人姓名 -->
-    <select id="listTrackRecords" resultType="com.qk.vo.BusinessTrackRecordVO">
+    <select id="listTrackRecords" resultType="com.qk.entity.vo.BusinessTrackRecordVO">
         SELECT
             tr.*,
             u.name AS assign_name

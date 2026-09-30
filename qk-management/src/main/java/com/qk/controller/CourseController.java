@@ -1,8 +1,8 @@
 package com.qk.controller;
 
-import com.qk.Course;
-import com.qk.PageResult;
-import com.qk.Result;
+import com.qk.entity.Course;
+import com.qk.common.PageResult;
+import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.CourseService;
 import lombok.extern.slf4j.Slf4j;

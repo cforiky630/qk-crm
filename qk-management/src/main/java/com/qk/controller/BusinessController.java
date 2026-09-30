@@ -1,14 +1,14 @@
 package com.qk.controller;
 
-import com.qk.Business;
-import com.qk.PageResult;
-import com.qk.Result;
+import com.qk.entity.Business;
+import com.qk.common.PageResult;
+import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.dto.BusinessPoolDto;
-import com.qk.dto.BusinessQueryDto;
-import com.qk.dto.BusinessTrackDto;
+import com.qk.entity.dto.BusinessPoolDto;
+import com.qk.entity.dto.BusinessQueryDto;
+import com.qk.entity.dto.BusinessTrackDto;
 import com.qk.service.BusinessService;
-import com.qk.vo.BusinessVO;
+import com.qk.entity.vo.BusinessVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

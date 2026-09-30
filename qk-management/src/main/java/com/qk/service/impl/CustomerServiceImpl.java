@@ -3,13 +3,13 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.Customer;
-import com.qk.PageResult;
-import com.qk.dto.CustomerQueryDto;
-import com.qk.exception.BusinessException;
+import com.qk.entity.Customer;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.CustomerQueryDto;
+import com.qk.common.exception.BusinessException;
 import com.qk.mapper.CustomerMapper;
 import com.qk.service.CustomerService;
-import com.qk.vo.CustomerVO;
+import com.qk.entity.vo.CustomerVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -1,8 +1,8 @@
 package com.qk.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.qk.BusinessTrackRecord;
-import com.qk.vo.BusinessTrackRecordVO;
+import com.qk.entity.BusinessTrackRecord;
+import com.qk.entity.vo.BusinessTrackRecordVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

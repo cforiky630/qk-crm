@@ -1,13 +1,13 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.Clue;
-import com.qk.PageResult;
-import com.qk.dto.CluePoolDto;
-import com.qk.dto.ClueQueryDto;
-import com.qk.dto.ClueTrackDto;
-import com.qk.dto.MarkFalseClueDto;
-import com.qk.vo.ClueVO;
+import com.qk.entity.Clue;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.CluePoolDto;
+import com.qk.entity.dto.ClueQueryDto;
+import com.qk.entity.dto.ClueTrackDto;
+import com.qk.entity.dto.MarkFalseClueDto;
+import com.qk.entity.vo.ClueVO;
 
 /**
  * 线索管理Service接口

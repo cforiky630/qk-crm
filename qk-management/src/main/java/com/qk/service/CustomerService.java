@@ -1,9 +1,9 @@
 package com.qk.service;
 
-import com.qk.Customer;
-import com.qk.PageResult;
-import com.qk.dto.CustomerQueryDto;
-import com.qk.vo.CustomerVO;
+import com.qk.entity.Customer;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.CustomerQueryDto;
+import com.qk.entity.vo.CustomerVO;
 
 /**
  * 客户管理Service接口

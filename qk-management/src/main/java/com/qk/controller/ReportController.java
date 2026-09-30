@@ -1,8 +1,8 @@
 package com.qk.controller;
 
-import com.qk.Result;
+import com.qk.common.Result;
 import com.qk.service.ReportService;
-import com.qk.vo.OverviewVO;
+import com.qk.entity.vo.OverviewVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

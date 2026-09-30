@@ -1,9 +1,9 @@
 package com.qk.controller;
 
-import com.qk.Result;
-import com.qk.User;
+import com.qk.common.Result;
+import com.qk.entity.User;
 import com.qk.service.UserService;
-import com.qk.vo.LoginResultVo;
+import com.qk.entity.vo.LoginResultVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;

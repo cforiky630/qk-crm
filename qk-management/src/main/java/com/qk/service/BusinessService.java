@@ -1,12 +1,12 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.Business;
-import com.qk.PageResult;
-import com.qk.dto.BusinessPoolDto;
-import com.qk.dto.BusinessQueryDto;
-import com.qk.dto.BusinessTrackDto;
-import com.qk.vo.BusinessVO;
+import com.qk.entity.Business;
+import com.qk.common.PageResult;
+import com.qk.entity.dto.BusinessPoolDto;
+import com.qk.entity.dto.BusinessQueryDto;
+import com.qk.entity.dto.BusinessTrackDto;
+import com.qk.entity.vo.BusinessVO;
 
 /**
  * 商机管理Service接口
