@@ -258,6 +258,20 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - 一对多详情 → 拆成两次查询由 Service 组装（线索/商机 + 各自跟进记录），避免 join 产生重复行；
 - 状态编码（如"列表排除 4 伪线索、5 转商机"）在 XML 里有注释标注对应的枚举，并由测试守卫。
 
+**删除接口的守卫**
+
+项目不使用物理外键（见 `sql/user.sql` 等脚本注释），关联完整性由 Service 层保证。因此删除前必须逐个通过守卫，任一不满足即返回 `code = 0`：
+
+| 接口 | 守卫 |
+| --- | --- |
+| `DELETE /depts/{id}` | 启用状态（`status = 1`）不可删；部门下仍有用户不可删 |
+| `DELETE /roles/{id}` | 角色下仍有用户不可删 |
+| `DELETE /courses/{id}` | 仍被商机或客户引用不可删 |
+| `DELETE /activities/{id}` | 活动必须存在；仍被线索引用不可删 |
+| `DELETE /users/{ids}` | 必须存在；不能删当前登录用户；仍被线索、商机或跟进记录引用不可删 |
+
+不再使用的数据应改为**停用**（`status = 0`），而不是删除。引用计数统一放在 Mapper 的具名方法里（如 `UserMapper.countByDeptId`），Service 只负责业务判断，不感知 ORM 的查询 DSL。
+
 **其他**
 
 - `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入兼容多种写法。
