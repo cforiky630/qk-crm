@@ -2,6 +2,8 @@ package com.qk;
 
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.ClueMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.qk.entity.Business;
 import com.qk.mapper.UserMapper;
 import com.qk.entity.enums.BusinessStatus;
 import com.qk.entity.enums.ClueStatus;
@@ -231,6 +233,37 @@ class ClueControllerTest {
         org.junit.jupiter.api.Assertions.assertNotNull(updated.getNextTime());
         // 跟进后归属人保持不变
         org.junit.jupiter.api.Assertions.assertNull(updated.getUserId());
+    }
+
+    @Test
+    void stateGuardsRejectRepeatedTransitions() throws Exception {
+        // 状态守卫：重复流转必须被拒，且不能留下重复数据
+        Clue twiceFalse = insertClue("重复标伪线索", ClueStatus.WAIT_FOLLOW.getCode());
+        mockMvc.perform(put("/clues/false/{id}", twiceFalse.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("{}"))
+                .andExpect(jsonPath("$.code").value(1));
+        mockMvc.perform(put("/clues/false/{id}", twiceFalse.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该线索当前状态不允许标记为伪线索"));
+
+        Clue twiceConvert = insertClue("重复转商机线索", ClueStatus.WAIT_FOLLOW.getCode());
+        mockMvc.perform(put("/clues/toBusiness/{id}", twiceConvert.getId()))
+                .andExpect(jsonPath("$.code").value(1));
+        mockMvc.perform(put("/clues/toBusiness/{id}", twiceConvert.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("该线索当前状态不允许转商机"));
+
+        // 第二次转商机不能真的再生成一个商机
+        org.junit.jupiter.api.Assertions.assertEquals(1L, businessMapper.selectCount(
+                new LambdaQueryWrapper<Business>().eq(Business::getClueId, twiceConvert.getId())),
+                "重复转商机不应产生第二个商机");
     }
 
     @Test
