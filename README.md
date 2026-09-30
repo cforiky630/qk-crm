@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-83%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-126%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -52,7 +52,7 @@
 | 客户管理 | 列表（带意向课程名）、新增、详情、修改 |
 | 用户管理 | 列表（多表关联出部门/角色名）、新增（默认密码）、修改、批量删除、按角色/部门筛选 |
 | 基础数据 | 部门、角色、课程的增删改查与下拉列表 |
-| 活动管理 | 活动的增删改查、按渠道/类型筛选 |
+| 活动管理 | 活动的增删改查、按渠道/类型/活动状态（未开始、进行中、已结束）筛选 |
 | 统计分析 | 首页概览（线索与商机各阶段数量） |
 | 系统能力 | JWT 登录鉴权、图片上传到阿里云 OSS、AOP 操作日志、统一响应与全局异常处理 |
 
@@ -78,7 +78,7 @@ qk-parent
 │   └── com.qk.entity   实体（Dept、User、Clue、Business…）
 │       ├── dto         入参：XxxQueryDto、ClueTrackDto、MarkFalseClueDto…
 │       ├── vo          出参：UserVO、ClueVO、BusinessVO、OverviewVO…
-│       └── enums       状态枚举：ClueStatus、BusinessStatus、ClueTrackType
+│       └── enums       状态枚举：ClueStatus、BusinessStatus、ClueTrackType、ActivityStatus（查询用）
 ├── qk-management/      可启动模块（包根 com.qk）
 │   └── com.qk
 │       ├── controller  接口层
@@ -189,15 +189,15 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 | 模块 | 基础路径 | 说明 |
 | --- | --- | --- |
 | 认证 | `/login` | 登录，签发 JWT |
-| 用户 | `/users` | 列表 / 详情 / 新增 / 修改 / 批量删除 / 按角色 / 按部门 |
+| 用户 | `/users` | 列表 / 详情 / 新增 / 修改 / 批量删除 / 按角色（只返回正常状态，供分配人员下拉）/ 按部门 |
 | 部门 | `/depts` | 增删改查 + `/depts/list` |
 | 角色 | `/roles` | 增删改查 + `/roles/list` |
 | 课程 | `/courses` | 增删改查 + 按学科筛选 |
-| 活动 | `/activities` | 增删改查 + 按类型筛选 |
-| 线索 | `/clues` | 列表 / 详情 / 新增 / 分配 / 跟进 / 伪线索 / 转商机 / 线索池 |
-| 商机 | `/businesses` | 列表 / 详情 / 新增 / 分配 / 跟进 / 回收 / 转客户 / 公海池 |
+| 活动 | `/activities` | 增删改查 + 按渠道/类型/活动状态筛选 |
+| 线索 | `/clues` | 列表（多条件，含按状态筛选）/ 详情 / 新增 / 分配 / 跟进 / 伪线索 / 转商机 / 线索池（只放伪线索） |
+| 商机 | `/businesses` | 列表（多条件，含按状态筛选）/ 详情 / 新增 / 分配 / 跟进 / 回收 / 转客户 / 公海池 |
 | 客户 | `/customers` | 列表 / 详情 / 新增 / 修改 |
-| 系统 | `/logs`、`/report/overview`、`/upload` | 操作日志、首页概览、图片上传 |
+| 系统 | `/logs`、`/report/overview`、`/upload` | 操作日志（带操作模块/操作类型，支持按模块、类型、操作人筛选）、首页概览、图片上传 |
 
 **通用约定**
 
@@ -223,7 +223,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：11 个测试类 / 83 个用例（2 个手动用例默认跳过）
+mvn test                              # 全量：14 个测试类 / 126 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -278,7 +278,10 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 **其他**
 
 - `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入兼容多种写法。
-- 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType`），不散落裸数字；它们统一实现 `CodeEnum` 契约，可用 `CodeEnum.fromCode(XxxStatus.class, code)` 按码值反查，或用 `CodeEnum.codes(...)` 取全部码值。
+- 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType` / `ActivityStatus`），不散落裸数字；它们统一实现 `CodeEnum` 契约，可用 `CodeEnum.fromCode(XxxStatus.class, code)` 按码值反查，或用 `CodeEnum.codes(...)` 取全部码值。其中 `ActivityStatus`（未开始/进行中/已结束）由 `startTime`、`endTime` 与当前时间推算，**不落库**，只作为 `/activities` 的查询条件。
+- 列表排序按页面原型：部门/角色/课程/活动/用户按最后修改时间倒序，线索/商机/线索池/公海池按修改时间倒序，客户按创建时间倒序；排序末尾都补 `id`，避免排序键不唯一导致翻页重复或丢记录。
+- `GET /users/role/{roleLabel}`（分配线索/商机的人员下拉）只返回 `status = 1` 的用户：停用账号登录会被拒绝，分配给它等于这条数据没有归属人。
+- 「操作日志」页面上的**操作模块**与**操作类型**不落库，由 `class_name` / `method_name` 在查询时映射（见 `OperateLogMapper.xml` 的 `moduleExpr` / `typeExpr`），`/logs` 支持 `operateModule`、`operateType` 模糊搜索。
 - 增删改接口标注 `@LogOperation`，由切面写入 `operate_log`（密码字段落库前脱敏为 `***`）。
 
 ## 常见问题
@@ -315,7 +318,18 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 2. **用户名当盐的副作用**：修改 `username` 后该账号旧密码失效，建议把用户名视为不可变字段。
 3. **登录只接受明文密码**（服务端现算摘要比对），不接受直接提交摘要。
 4. **课程接口文档与库冲突**：`subject/name/price/target` 在课程文档里标注为"非必须"，但库中为 NOT NULL；服务端已按库口径加了必填与取值范围校验。
-5. **上传**：仅校验扩展名与大小；对象为公共读，尚无孤儿对象清理机制。
+5. **课程「适用人群」档位不一致**：接口文档与库注释只有 1 小白学员、2 中级程序员两档，页面原型是小白学员、初级程序员、中级程序员三档。后端按超集放开为 1~3（3 = 初级程序员），已有数据的 1/2 含义不变；若前端下拉按原型顺序取值，需确认 2/3 的含义与前端字典一致。
+6. **客户 / 商机的「渠道来源」按原型与文档改为选填**：服务端已去掉必填校验，`customer.channel`、`business.channel` 已允许 NULL。**已有的库需要执行一次放宽 DDL**：
+
+   ```sql
+   ALTER TABLE customer MODIFY `channel` tinyint unsigned DEFAULT NULL;
+   ALTER TABLE business MODIFY `channel` tinyint unsigned DEFAULT NULL;
+   ```
+
+   线索的 `channel` 仍是必填（原型 2.2 明确必填）。
+7. **两个「池」的口径与活动状态**：线索池只返回 `status = 4 伪线索`（与公海池只返回 `status = 4 回收` 一致）；`/clues`、`/businesses` 默认排除已关闭状态，但显式传 `status` 时按传入值筛选。活动状态（未开始/进行中/已结束）不落库，由 `/activities?activityStatus=` 按时间推算。
+8. **操作日志只记录增删改**：页面原型里出现过"查询部门/查询用户"这类记录，但当前只在 `@LogOperation` 标注的写接口上写日志，查询接口不写；如需查询日志，要给 GET 接口加注解（会让日志表随查询量增长）。
+9. **上传**：仅校验扩展名与大小；对象为公共读，尚无孤儿对象清理机制。
 
 ## 说明
 

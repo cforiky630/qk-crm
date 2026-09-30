@@ -144,13 +144,27 @@ class OtherControllerTest {
                 .andExpect(jsonPath("$.data.rows[0].className").exists())
                 .andExpect(jsonPath("$.data.rows[0].methodParams").exists())
                 .andExpect(jsonPath("$.data.rows[0].returnValue").exists())
-                .andExpect(jsonPath("$.data.rows[0].costTime").isNumber());
+                .andExpect(jsonPath("$.data.rows[0].costTime").isNumber())
+                // 页面原型要展示「操作模块」「操作类型」，由类名/方法名映射得到
+                .andExpect(jsonPath("$.data.rows[0].operateModule").value("活动管理"))
+                .andExpect(jsonPath("$.data.rows[0].operateType").value("新增活动"));
 
         // 按操作人姓名模糊查询：令牌里的用户就是上面自建的 operator
         mockMvc.perform(get("/logs").param("operateUserName", operator.getName()))
                 .andExpect(jsonPath("$.data.total", greaterThanOrEqualTo(1)));
 
         mockMvc.perform(get("/logs").param("operateUserName", "不存在的操作人"))
+                .andExpect(jsonPath("$.data.rows", hasSize(0)));
+
+        // 按操作模块 / 操作类型模糊查询（原型 1.1 / 1.2 的两个搜索条件）
+        mockMvc.perform(get("/logs").param("operateModule", "活动管理").param("operateType", "新增活动"))
+                .andExpect(jsonPath("$.data.total", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.data.rows[*].methodName", hasItem("addActivity")));
+
+        mockMvc.perform(get("/logs").param("operateModule", "不存在的模块"))
+                .andExpect(jsonPath("$.data.rows", hasSize(0)));
+
+        mockMvc.perform(get("/logs").param("operateType", "不存在的操作类型"))
                 .andExpect(jsonPath("$.data.rows", hasSize(0)));
     }
 

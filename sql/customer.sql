@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `customer`
 (
     `id`          int unsigned     NOT NULL AUTO_INCREMENT COMMENT '客户ID，主键',
     `phone`       char(11)         NOT NULL COMMENT '手机号',
-    `channel`     tinyint unsigned NOT NULL COMMENT '渠道来源，1:线上活动, 2:推广介绍',
+    `channel`     tinyint unsigned DEFAULT NULL COMMENT '渠道来源，1:线上活动, 2:推广介绍；选填（原型与接口文档均为非必须）',
     `name`        varchar(20)      DEFAULT NULL COMMENT '客户姓名',
     `gender`      tinyint unsigned DEFAULT NULL COMMENT '性别，1:男, 2:女',
     `age`         tinyint unsigned DEFAULT NULL COMMENT '年龄',

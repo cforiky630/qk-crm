@@ -48,8 +48,10 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
 
     @Override
     public void addBusiness(Business business) {
-        if (StrUtil.isBlank(business.getPhone()) || business.getChannel() == null) {
-            throw new BusinessException("手机号与渠道来源不能为空");
+        // 手机号是库里的 NOT NULL + 唯一键，必须校验；
+        // 渠道来源按页面原型（2.11 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
+        if (StrUtil.isBlank(business.getPhone())) {
+            throw new BusinessException("手机号不能为空");
         }
         business.setId(null);
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());

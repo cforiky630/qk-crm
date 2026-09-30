@@ -23,7 +23,7 @@ public class Customer {
     /** 手机号 */
     private String phone;
 
-    /** 渠道来源，1:线上活动, 2:推广介绍 */
+    /** 渠道来源，1:线上活动, 2:推广介绍；选填，允许为空 */
     private Integer channel;
 
     /** 客户姓名 */

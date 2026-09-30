@@ -19,14 +19,17 @@ import java.util.List;
 public interface CourseMapper extends BaseMapper<Course> {
 
     /**
-     * 课程分页查询：name 模糊匹配，subject / target 等值匹配，按 id 升序
+     * 课程分页查询：name 模糊匹配，subject / target 等值匹配
+     * <p>
+     * 排序与页面原型一致：按更新时间倒序，末尾补 id 保证翻页稳定。
      */
     default IPage<Course> pageCourses(Page<Course> page, String name, Integer subject, Integer target) {
         LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(name), Course::getName, name)
                 .eq(subject != null, Course::getSubject, subject)
                 .eq(target != null, Course::getTarget, target)
-                .orderByAsc(Course::getId);
+                .orderByDesc(Course::getUpdateTime)
+                .orderByDesc(Course::getId);
         return selectPage(page, wrapper);
     }
 

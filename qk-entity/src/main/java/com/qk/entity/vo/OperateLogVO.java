@@ -38,4 +38,20 @@ public class OperateLogVO {
 
     /** 操作用户姓名 */
     private String operateUserName;
+
+    /**
+     * 操作模块（业务化名称，如「部门管理」「用户管理」）
+     * <p>
+     * 库里没有这一列，由 class_name 映射得到（见 OperateLogMapper.xml），
+     * 对应页面原型日志列表的「操作模块」列；映射不到时为 null。
+     */
+    private String operateModule;
+
+    /**
+     * 操作类型（业务化名称，如「新增部门」「删除用户」）
+     * <p>
+     * 由 class_name + method_name 映射得到，对应页面原型的「操作类型」列；
+     * 未配置映射的方法回退为原始方法名。
+     */
+    private String operateType;
 }

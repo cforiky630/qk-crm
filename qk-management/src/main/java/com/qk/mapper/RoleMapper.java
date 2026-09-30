@@ -19,13 +19,16 @@ import java.util.List;
 public interface RoleMapper extends BaseMapper<Role> {
 
     /**
-     * 角色分页查询：name 与 label 均为模糊匹配，按 id 升序
+     * 角色分页查询：name 与 label 均为模糊匹配
+     * <p>
+     * 排序与页面原型一致：按最后修改时间倒序，末尾补 id 保证翻页稳定。
      */
     default IPage<Role> pageRoles(Page<Role> page, String name, String label) {
         LambdaQueryWrapper<Role> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(name), Role::getName, name)
                 .like(StringUtils.hasText(label), Role::getLabel, label)
-                .orderByAsc(Role::getId);
+                .orderByDesc(Role::getUpdateTime)
+                .orderByDesc(Role::getId);
         return selectPage(page, wrapper);
     }
 

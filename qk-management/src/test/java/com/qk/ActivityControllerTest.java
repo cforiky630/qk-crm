@@ -18,8 +18,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -92,6 +94,59 @@ class ActivityControllerTest {
         clue.setLevel(2);
         clueMapper.insert(clue);
         return clue;
+    }
+
+    /** 造一条指定起止时间的活动，用于验证「活动状态」筛选 */
+    private Activity insertActivityWithTime(String name, LocalDateTime start, LocalDateTime end) {
+        Activity activity = new Activity();
+        activity.setChannel(1);
+        activity.setName(name);
+        activity.setStartTime(start);
+        activity.setEndTime(end);
+        activity.setDescription("活动状态筛选测试");
+        activity.setType(1);
+        activity.setDiscount(new java.math.BigDecimal("8.0"));
+        activityMapper.insert(activity);
+        return activity;
+    }
+
+    /**
+     * 页面原型的「活动状态」筛选（未开始 / 进行中 / 已结束）：
+     * 库里没有状态列，后端按 start_time / end_time 与当前时间比较来实现。
+     */
+    @Test
+    void listActivitiesByStatus() throws Exception {
+        int seq = SEQ.incrementAndGet();
+        LocalDateTime now = LocalDateTime.now();
+
+        Activity notStarted = insertActivityWithTime("未开始活动" + seq, now.plusDays(1), now.plusDays(3));
+        Activity inProgress = insertActivityWithTime("进行中活动" + seq, now.minusDays(1), now.plusDays(1));
+        Activity finished = insertActivityWithTime("已结束活动" + seq, now.minusDays(3), now.minusDays(1));
+
+        // 1 未开始
+        mockMvc.perform(get("/activities").param("activityStatus", "1").param("pageSize", "200"))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(notStarted.getId())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId()))))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId()))));
+
+        // 2 进行中
+        mockMvc.perform(get("/activities").param("activityStatus", "2").param("pageSize", "200"))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(inProgress.getId())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(notStarted.getId()))))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId()))));
+
+        // 3 已结束
+        mockMvc.perform(get("/activities").param("activityStatus", "3").param("pageSize", "200"))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(finished.getId())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId()))));
+
+        // 非法状态码给出明确提示，而不是静默返回全量数据
+        mockMvc.perform(get("/activities").param("activityStatus", "9"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("活动状态取值为 1（未开始）、2（进行中）、3（已结束）"));
     }
 
     @Test

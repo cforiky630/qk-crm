@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `business`
     `course_id`   int unsigned     DEFAULT NULL COMMENT '意向课程，课程ID',
     `degree`      tinyint unsigned DEFAULT NULL COMMENT '学历，1:高中, 2:中专, 3:大专, 4:本科, 5:硕士, 6:博士, 7:其他',
     `job_status`  tinyint unsigned DEFAULT NULL COMMENT '在职情况，1:在职, 0:离职',
-    `channel`     tinyint unsigned NOT NULL COMMENT '渠道来源，1:线上活动, 2:推广介绍',
+    `channel`     tinyint unsigned DEFAULT NULL COMMENT '渠道来源，1:线上活动, 2:推广介绍；选填（原型与接口文档均为非必须）',
     `remark`      varchar(50)      DEFAULT NULL COMMENT '备注',
     `status`      tinyint unsigned NOT NULL DEFAULT 1 COMMENT '商机状态，1:待分配, 2:待跟进, 3:跟进中, 4:回收, 5:转客户',
     `user_id`     int unsigned     DEFAULT NULL COMMENT '归属人ID，关联用户表主键',

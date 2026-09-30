@@ -5,6 +5,8 @@
 --   1. 不使用物理外键约束（FOREIGN KEY），operate_user_id 通过逻辑约束关联用户表。
 --   2. 时间字段统一用 datetime NOT NULL，由 Service 层（切面）写入，不使用数据库默认值。
 --   3. 该表由 AOP 切面自动写入，只增不改，因此没有 update_time。
+--   4. 页面上的「操作模块」「操作类型」不落库：由 class_name / method_name 在查询时映射
+--      （见 OperateLogMapper.xml 的 moduleExpr / typeExpr），避免为展示字段回填历史数据。
 CREATE TABLE IF NOT EXISTS `operate_log`
 (
     `id`              int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID，主键',

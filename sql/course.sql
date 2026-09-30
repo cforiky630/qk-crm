@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `course`
     `subject`     tinyint unsigned NOT NULL COMMENT '学科：1-AI智能应用开发(Java)，2-AI大模型开发(Python)，3-AI鸿蒙开发，4-AI大数据，5-AI嵌入式，6-AI测试，7-AI运维',
     `name`        varchar(50)      NOT NULL COMMENT '课程名称',
     `price`       int unsigned     NOT NULL COMMENT '价格，单位：元',
-    `target`      tinyint unsigned NOT NULL COMMENT '适用人群：1-小白学员，2-中级程序员',
+    `target`      tinyint unsigned NOT NULL COMMENT '适用人群：1-小白学员，2-中级程序员，3-初级程序员',
     `description` varchar(255)     DEFAULT NULL COMMENT '课程介绍',
     `create_time` datetime         NOT NULL COMMENT '创建时间',
     `update_time` datetime         NOT NULL COMMENT '修改时间',

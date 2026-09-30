@@ -19,8 +19,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,6 +36,7 @@ import com.qk.entity.Role;
 import com.qk.entity.User;
 import com.qk.entity.Clue;
 import com.qk.entity.enums.ClueStatus;
+import com.qk.entity.enums.EnableStatus;
 
 /**
  * 用户管理接口测试，校验 3. 接口文档-用户管理.md 中的契约
@@ -316,6 +320,23 @@ class UserControllerTest {
         // 不存在的角色标识返回空数组
         mockMvc.perform(get("/users/role/{roleLabel}", "not_exists_label"))
                 .andExpect(jsonPath("$.data", hasSize(0)));
+    }
+
+    /**
+     * 这个接口是「分配线索 / 分配商机」的人员下拉数据源：
+     * 停用账号登录会被拒绝，因此不能出现在候选人员里。
+     */
+    @Test
+    void findUsersByRoleLabelExcludesDisabled() throws Exception {
+        User disabled = insertUser("cs_role_off", "测试停用专员");
+        disabled.setStatus(EnableStatus.DISABLED.getCode());
+        userMapper.updateById(disabled);
+
+        mockMvc.perform(get("/users/role/{roleLabel}", "admin"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data[*].name", not(hasItem("测试停用专员"))))
+                .andExpect(jsonPath("$.data[*].status", everyItem(is(EnableStatus.ENABLED.getCode()))));
     }
 
     @Test

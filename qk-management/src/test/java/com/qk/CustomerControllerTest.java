@@ -149,6 +149,30 @@ class CustomerControllerTest {
         org.junit.jupiter.api.Assertions.assertNull(saved.getBusinessId());
     }
 
+    /**
+     * 页面原型 3.3 与接口文档都把「渠道来源」标为选填，不传渠道也应能新增成功
+     * （对应的 customer.channel 已允许为 NULL）。
+     */
+    @Test
+    void addCustomerWithoutChannel() throws Exception {
+        int seq = SEQ.incrementAndGet();
+        String phone = "137" + String.format("%08d", seq);
+
+        mockMvc.perform(post("/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"phone":"%s","name":"无渠道来源客户"}
+                                """.formatted(phone)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        Customer saved = customerMapper.selectList(null).stream()
+                .filter(c -> phone.equals(c.getPhone())).findFirst().orElse(null);
+        org.junit.jupiter.api.Assertions.assertNotNull(saved, "不填渠道来源也应能新增客户");
+        org.junit.jupiter.api.Assertions.assertNull(saved.getChannel());
+    }
+
     @Test
     void getCustomerById() throws Exception {
         Customer customer = insertCustomer("测试客户详情", null, 2);

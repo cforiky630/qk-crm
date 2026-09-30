@@ -4,6 +4,8 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.Activity;
+import com.qk.entity.enums.ActivityStatus;
+import com.qk.entity.enums.CodeEnum;
 import com.qk.common.PageResult;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.ActivityMapper;
@@ -37,8 +39,14 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public PageResult<Activity> findActivitiesByPage(Integer channel, Integer type, Integer page, Integer pageSize) {
-        IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type);
+    public PageResult<Activity> findActivitiesByPage(Integer channel, Integer type,
+                                                     Integer activityStatus, Integer page, Integer pageSize) {
+        // 活动状态是查询条件而不是库里的列，取值必须先收敛到枚举，
+        // 否则前端传 9 之类的脏值会被静默忽略，返回「没有筛选」的全量数据
+        if (activityStatus != null && CodeEnum.fromCode(ActivityStatus.class, activityStatus).isEmpty()) {
+            throw new BusinessException("活动状态取值为 1（未开始）、2（进行中）、3（已结束）");
+        }
+        IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type, activityStatus);
         return new PageResult<>(p.getTotal(), p.getRecords());
     }
 

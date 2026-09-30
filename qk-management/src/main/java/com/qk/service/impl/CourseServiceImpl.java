@@ -23,9 +23,13 @@ public class CourseServiceImpl implements CourseService {
     /** 学科取值范围：1~7，分别对应 AI 方向的 7 个学科 */
     private static final int MIN_SUBJECT = 1;
     private static final int MAX_SUBJECT = 7;
-    /** 适用人群取值范围：1 小白学员、2 中级程序员 */
+    /**
+     * 适用人群取值范围：1 小白学员、2 中级程序员、3 初级程序员（原型多出的一档）
+     * <p>
+     * 库里的 target 只是 tinyint，没有 CHECK 约束，取值靠这里兜底。
+     */
     private static final int MIN_TARGET = 1;
-    private static final int MAX_TARGET = 2;
+    private static final int MAX_TARGET = 3;
 
     private final CourseMapper courseMapper;
     private final BusinessMapper businessMapper;

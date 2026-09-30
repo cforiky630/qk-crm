@@ -21,14 +21,18 @@ import java.util.List;
 public interface DeptMapper extends BaseMapper<Dept> {
 
     /**
-     * 部门分页查询：name 模糊匹配、status 等值匹配，按 id 升序
-     * （固定排序，避免分页时记录重复或丢失）
+     * 部门分页查询：name 模糊匹配、status 等值匹配
+     * <p>
+     * 排序与页面原型一致：按最后修改时间倒序，刚改过的部门排在最前面。
+     * 末尾固定补一个 id，避免同一秒内多条记录的相对顺序在翻页时漂移
+     * （排序键不唯一会导致记录重复或丢失）。
      */
     default IPage<Dept> pageDepts(Page<Dept> page, String name, Integer status) {
         LambdaQueryWrapper<Dept> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(name), Dept::getName, name)
                 .eq(status != null, Dept::getStatus, status)
-                .orderByAsc(Dept::getId);
+                .orderByDesc(Dept::getUpdateTime)
+                .orderByDesc(Dept::getId);
         return selectPage(page, wrapper);
     }
 

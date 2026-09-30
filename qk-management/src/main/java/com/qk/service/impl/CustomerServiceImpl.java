@@ -35,8 +35,10 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public void addCustomer(Customer customer) {
-        if (StrUtil.isBlank(customer.getPhone()) || customer.getChannel() == null) {
-            throw new BusinessException("手机号与渠道来源不能为空");
+        // 手机号是库里的 NOT NULL + 唯一键，必须校验；
+        // 渠道来源按页面原型（3.3 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
+        if (StrUtil.isBlank(customer.getPhone())) {
+            throw new BusinessException("手机号不能为空");
         }
         customer.setId(null);
         customerMapper.insert(customer);

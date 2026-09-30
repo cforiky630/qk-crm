@@ -326,7 +326,8 @@ class HardeningTest {
                                 {"subject":1,"name":"人群越界","price":100,"target":9}
                                 """))
                 .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.msg").value("适用人群取值必须在 1~2 之间"));
+                // 适用人群按页面原型放开为 1~3（3 表示初级程序员），越界值仍然拒绝
+                .andExpect(jsonPath("$.msg").value("适用人群取值必须在 1~3 之间"));
 
         // price 是 int unsigned，负数会直接被数据库拒绝，这里提前给出可读提示
         mockMvc.perform(post("/courses")

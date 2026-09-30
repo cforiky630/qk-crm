@@ -19,16 +19,25 @@
     <select id="listClues" resultType="com.qk.entity.vo.ClueVO">
         <include refid="listSelect"/>
         <where>
-            <!-- 已关闭的线索不出现在列表：4 伪线索、5 转为商机（对应 ClueStatus.CLOSED_CODES） -->
-            AND c.status NOT IN (4, 5)
+            <!--
+              默认视图只展示未关闭的线索：4 伪线索（在线索池里重新分配）、
+              5 转为商机（由商机模块接管），对应 ClueStatus.CLOSED_CODES。
+              但前端的状态下拉里包含这两个状态，显式筛选时按用户的选择走，
+              否则选了「伪线索」永远只能得到空列表。
+            -->
+            <choose>
+                <when test="clueQueryDto.status != null">
+                    AND c.status = #{clueQueryDto.status}
+                </when>
+                <otherwise>
+                    AND c.status NOT IN (4, 5)
+                </otherwise>
+            </choose>
             <if test="clueQueryDto.clueId != null">
                 AND c.id = #{clueQueryDto.clueId}
             </if>
             <if test="clueQueryDto.phone != null and clueQueryDto.phone != ''">
                 AND c.phone LIKE CONCAT('%', #{clueQueryDto.phone}, '%')
-            </if>
-            <if test="clueQueryDto.status != null">
-                AND c.status = #{clueQueryDto.status}
             </if>
             <if test="clueQueryDto.channel != null">
                 AND c.channel = #{clueQueryDto.channel}
@@ -46,10 +55,15 @@
         WHERE c.id = #{id}
     </select>
 
-    <!-- 线索池：含伪线索，用于重新分配 -->
+    <!--
+      线索池：只查伪线索（status = 4，对应 ClueStatus.FALSE_CLUE），用于重新分配。
+      与公海池（只查 status = 4 的商机）保持同一种口径：池子只放「被判定为无效/被回收」的数据，
+      待分配、待跟进、跟进中的线索留在线索列表里。
+    -->
     <select id="getPoolClues" resultType="com.qk.entity.vo.ClueVO">
         <include refid="poolSelect"/>
         <where>
+            AND c.status = 4
             <if test="cluePoolDto.clueId != null">
                 AND c.id = #{cluePoolDto.clueId}
             </if>

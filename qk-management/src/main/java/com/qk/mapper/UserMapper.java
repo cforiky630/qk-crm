@@ -39,6 +39,9 @@ public interface UserMapper extends BaseMapper<User> {
 
     /**
      * 根据角色标识查询用户
+     * <p>
+     * 只返回正常状态（{@code status = 1}）的用户，供「分配线索 / 分配商机」的人员下拉使用：
+     * 停用账号无法登录，分配给它等于没有归属人。
      */
     List<UserVO> findByRoleLabel(@Param("roleLabel") String roleLabel);
 

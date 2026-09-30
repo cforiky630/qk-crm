@@ -39,7 +39,7 @@ public class Course {
     private Integer price;
 
     /**
-     * 适用人群：1-小白学员，2-中级程序员
+     * 适用人群：1-小白学员，2-中级程序员，3-初级程序员（对齐页面原型的第三档）
      */
     private Integer target;
 

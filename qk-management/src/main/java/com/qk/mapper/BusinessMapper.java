@@ -21,7 +21,10 @@ import org.apache.ibatis.annotations.Param;
 public interface BusinessMapper extends BaseMapper<Business> {
 
     /**
-     * 商机列表（含归属人姓名），只查询跟进中的商机
+     * 商机列表（含归属人姓名）
+     * <p>
+     * 不传 status 时只查询未关闭的商机（排除 4 回收、5 转客户）；
+     * 显式传 status 时按传入值筛选，对应前端状态下拉里的全部选项。
      */
     IPage<BusinessVO> listBusinesses(Page<BusinessVO> page, @Param("businessQueryDto") BusinessQueryDto businessQueryDto);
 

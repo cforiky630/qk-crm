@@ -63,7 +63,7 @@ public interface UserService extends IService<User> {
     List<UserVO> listAll();
 
     /**
-     * 根据角色标识查询用户
+     * 根据角色标识查询用户（只返回正常状态的用户，供分配人员下拉使用）
      *
      * @param roleLabel 角色标识
      * @return 用户列表

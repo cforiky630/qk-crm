@@ -50,7 +50,7 @@ public class Business {
     /** 在职情况，1:在职, 0:离职 */
     private Integer jobStatus;
 
-    /** 渠道来源，1:线上活动, 2:推广介绍 */
+    /** 渠道来源，1:线上活动, 2:推广介绍；选填，允许为空 */
     private Integer channel;
 
     /** 备注 */

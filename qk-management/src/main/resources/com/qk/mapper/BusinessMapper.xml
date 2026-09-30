@@ -12,8 +12,19 @@
     <select id="listBusinesses" resultType="com.qk.entity.vo.BusinessVO">
         <include refid="listSelect"/>
         <where>
-            <!-- 已关闭的商机不出现在列表：4 回收（进公海池）、5 转客户（进客户列表） -->
-            AND b.status NOT IN (4, 5)
+            <!--
+              默认视图只展示未关闭的商机：4 回收（进公海池）、5 转客户（进客户列表）。
+              但前端的状态下拉里包含这两个状态，显式筛选时按用户的选择走，
+              否则选了「回收」永远只能得到空列表。
+            -->
+            <choose>
+                <when test="businessQueryDto.status != null">
+                    AND b.status = #{businessQueryDto.status}
+                </when>
+                <otherwise>
+                    AND b.status NOT IN (4, 5)
+                </otherwise>
+            </choose>
             <if test="businessQueryDto.businessId != null">
                 AND b.id = #{businessQueryDto.businessId}
             </if>
@@ -22,9 +33,6 @@
             </if>
             <if test="businessQueryDto.phone != null and businessQueryDto.phone != ''">
                 AND b.phone LIKE CONCAT('%', #{businessQueryDto.phone}, '%')
-            </if>
-            <if test="businessQueryDto.status != null">
-                AND b.status = #{businessQueryDto.status}
             </if>
             <if test="businessQueryDto.assignName != null and businessQueryDto.assignName != ''">
                 AND u.name LIKE CONCAT('%', #{businessQueryDto.assignName}, '%')

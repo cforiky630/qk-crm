@@ -123,6 +123,24 @@ class DeptControllerTest {
                 .andExpect(jsonPath("$.data[0].updateTime").exists());
     }
 
+    /**
+     * 页面原型要求部门列表「根据最后修改时间倒序排序」：
+     * 先插入的部门应排在后面，后插入的排在最前面。
+     * 时间精度是秒，同一秒内的两条记录按 id 倒序兜底，因此顺序是确定的。
+     */
+    @Test
+    void listDeptsOrderedByUpdateTimeDesc() throws Exception {
+        Dept older = insertDept("排序测试部门A", 1);
+        Dept newer = insertDept("排序测试部门B", 1);
+
+        mockMvc.perform(get("/depts").param("name", "排序测试部门"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andExpect(jsonPath("$.data.rows[0].id").value(newer.getId()))
+                .andExpect(jsonPath("$.data.rows[1].id").value(older.getId()));
+    }
+
     @Test
     void listRouteIsNotCapturedById() throws Exception {
         // /depts/list 是字面量路径，不能被 /depts/{id} 抢占，否则会因 id 转数字失败而报错

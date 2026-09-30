@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -312,6 +315,8 @@ class ClueControllerTest {
     @Test
     void getPoolClues() throws Exception {
         Clue falseClue = insertClue("测试线索池伪线索", ClueStatus.FALSE_CLUE.getCode());
+        // 线索池按原型只放伪线索：待分配/待跟进/跟进中的线索留在线索列表里
+        Clue activeClue = insertClue("测试线索池内的活跃线索", ClueStatus.WAIT_ALLOT.getCode());
 
         mockMvc.perform(get("/clues/pool").param("page", "1").param("pageSize", "10"))
                 .andExpect(status().isOk())
@@ -319,10 +324,29 @@ class ClueControllerTest {
                 .andExpect(jsonPath("$.data.total").isNumber())
                 .andExpect(jsonPath("$.data.rows").isArray())
                 .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(activeClue.getId()))))
+                .andExpect(jsonPath("$.data.rows[*].status", everyItem(is(4))))
                 .andExpect(jsonPath("$.data.rows[0].activityName").doesNotExist());
 
         mockMvc.perform(get("/clues/pool").param("clueId", String.valueOf(falseClue.getId())))
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.rows[0].status").value(4));
+    }
+
+    /**
+     * 页面原型的状态下拉里有「伪线索 / 转商机」，显式选中时必须能查到数据：
+     * 默认视图排除 4/5，但带 status 条件时按用户选择走。
+     */
+    @Test
+    void listCluesWithClosedStatusFilter() throws Exception {
+        Clue falseClue = insertClue("测试按状态筛选伪线索", ClueStatus.FALSE_CLUE.getCode());
+
+        mockMvc.perform(get("/clues").param("pageSize", "50"))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(falseClue.getId()))));
+
+        mockMvc.perform(get("/clues").param("status", String.valueOf(ClueStatus.FALSE_CLUE.getCode())))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId())))
+                .andExpect(jsonPath("$.data.rows[*].status", everyItem(is(4))));
     }
 }

@@ -42,13 +42,17 @@ public class ActivityController {
 
     /**
      * 条件分页查询活动
+     *
+     * @param activityStatus 活动状态（1 未开始 / 2 进行中 / 3 已结束），按开始/结束时间推算，为空表示不筛选
      */
     @GetMapping("/activities")
-    public Result<PageResult<Activity>> listActivities(Integer channel, Integer type,
+    public Result<PageResult<Activity>> listActivities(Integer channel, Integer type, Integer activityStatus,
                                  @RequestParam(defaultValue = "1") Integer page,
                                  @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("分页查询活动, 参数: channel={}, type={}, page={}, pageSize={}", channel, type, page, pageSize);
-        PageResult<Activity> pageResult = activityService.findActivitiesByPage(channel, type, page, pageSize);
+        log.info("分页查询活动, 参数: channel={}, type={}, activityStatus={}, page={}, pageSize={}",
+                channel, type, activityStatus, page, pageSize);
+        PageResult<Activity> pageResult =
+                activityService.findActivitiesByPage(channel, type, activityStatus, page, pageSize);
         return Result.success(pageResult);
     }
 

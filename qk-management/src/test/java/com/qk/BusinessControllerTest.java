@@ -188,6 +188,31 @@ class BusinessControllerTest {
         org.junit.jupiter.api.Assertions.assertNotNull(saved.getCreateTime());
     }
 
+    /**
+     * 页面原型 2.11 与接口文档都把「渠道来源」标为选填，不传渠道也应能新增成功
+     * （对应的 business.channel 已允许为 NULL）。
+     */
+    @Test
+    void addBusinessWithoutChannel() throws Exception {
+        int seq = SEQ.incrementAndGet();
+        String phone = "152" + String.format("%08d", seq);
+
+        mockMvc.perform(post("/businesses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"phone":"%s","name":"无渠道来源商机","gender":1,"age":22,
+                                 "subject":1,"degree":4,"jobStatus":1}
+                                """.formatted(phone)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        Business saved = businessMapper.selectList(null).stream()
+                .filter(b -> phone.equals(b.getPhone())).findFirst().orElse(null);
+        org.junit.jupiter.api.Assertions.assertNotNull(saved, "不填渠道来源也应能新增商机");
+        org.junit.jupiter.api.Assertions.assertNull(saved.getChannel());
+    }
+
     @Test
     void assignBusiness() throws Exception {
         Business business = insertBusiness("测试分配商机", BusinessStatus.WAIT_ALLOT.getCode());

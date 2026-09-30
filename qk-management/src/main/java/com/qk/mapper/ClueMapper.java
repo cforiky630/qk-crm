@@ -20,7 +20,10 @@ import org.apache.ibatis.annotations.Param;
 public interface ClueMapper extends BaseMapper<Clue> {
 
     /**
-     * 线索列表（含归属人姓名），只查询未关闭的线索
+     * 线索列表（含归属人姓名）
+     * <p>
+     * 不传 status 时只查询未关闭的线索（排除 4 伪线索、5 转为商机）；
+     * 显式传 status 时按传入值筛选，对应前端状态下拉里的全部选项。
      */
     IPage<ClueVO> listClues(Page<ClueVO> page, @Param("clueQueryDto") ClueQueryDto clueQueryDto);
 
@@ -30,7 +33,7 @@ public interface ClueMapper extends BaseMapper<Clue> {
     ClueVO getClueById(@Param("id") Integer id);
 
     /**
-     * 线索池列表（含活动名称）
+     * 线索池列表（含活动名称），只返回伪线索（status = 4），供重新分配
      */
     IPage<ClueVO> getPoolClues(Page<ClueVO> page, @Param("cluePoolDto") CluePoolDto cluePoolDto);
 

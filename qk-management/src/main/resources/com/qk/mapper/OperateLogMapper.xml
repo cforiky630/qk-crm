@@ -2,7 +2,100 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.qk.mapper.OperateLogMapper">
 
-    <!-- 操作日志列表：附带操作人姓名，支持按操作人姓名模糊查询 -->
+    <!--
+      页面原型里的「操作模块」「操作类型」是给运营看的业务化叫法，
+      库里只有 class_name / method_name（如 com.qk.controller.DeptController + addDept），
+      因此这里用 CASE 在查询时翻译，不新增列也不回填历史数据：
+        操作模块 = 控制器 → 业务模块（部门管理、用户管理…）
+        操作类型 = 方法名   → 操作动作（新增部门、修改部门、删除用户…）
+      新增控制器或写接口时，把映射补在这里即可（未命中时模块为 NULL、类型回退成方法名）。
+    -->
+    <sql id="moduleExpr">
+        CASE
+            WHEN l.class_name LIKE '%DeptController%'     THEN '部门管理'
+            WHEN l.class_name LIKE '%RoleController%'     THEN '角色管理'
+            WHEN l.class_name LIKE '%UserController%'     THEN '用户管理'
+            WHEN l.class_name LIKE '%CourseController%'   THEN '课程管理'
+            WHEN l.class_name LIKE '%ActivityController%' THEN '活动管理'
+            WHEN l.class_name LIKE '%ClueController%'     THEN '线索管理'
+            WHEN l.class_name LIKE '%BusinessController%' THEN '商机管理'
+            WHEN l.class_name LIKE '%CustomerController%' THEN '客户管理'
+            WHEN l.class_name LIKE '%UploadController%'   THEN '文件上传'
+            ELSE NULL
+        END
+    </sql>
+
+    <sql id="typeExpr">
+        CASE
+            WHEN l.class_name LIKE '%DeptController%' THEN
+                CASE l.method_name
+                    WHEN 'addDept'    THEN '新增部门'
+                    WHEN 'updateDept' THEN '修改部门'
+                    WHEN 'deleteDept' THEN '删除部门'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%RoleController%' THEN
+                CASE l.method_name
+                    WHEN 'addRole'    THEN '新增角色'
+                    WHEN 'updateRole' THEN '修改角色'
+                    WHEN 'deleteRole' THEN '删除角色'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%UserController%' THEN
+                CASE l.method_name
+                    WHEN 'addUser'     THEN '新增用户'
+                    WHEN 'updateUser'  THEN '修改用户'
+                    WHEN 'deleteUsers' THEN '删除用户'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%CourseController%' THEN
+                CASE l.method_name
+                    WHEN 'addCourse'    THEN '新增课程'
+                    WHEN 'updateCourse' THEN '修改课程'
+                    WHEN 'deleteCourse' THEN '删除课程'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%ActivityController%' THEN
+                CASE l.method_name
+                    WHEN 'addActivity'    THEN '新增活动'
+                    WHEN 'updateActivity' THEN '修改活动'
+                    WHEN 'deleteActivity' THEN '删除活动'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%ClueController%' THEN
+                CASE l.method_name
+                    WHEN 'addClue'           THEN '新增线索'
+                    WHEN 'assignClue'        THEN '分配线索'
+                    WHEN 'trackClue'         THEN '跟进线索'
+                    WHEN 'markFalseClue'     THEN '伪线索上报'
+                    WHEN 'convertToBusiness' THEN '转商机'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%BusinessController%' THEN
+                CASE l.method_name
+                    WHEN 'addBusiness'       THEN '新增商机'
+                    WHEN 'assignBusiness'    THEN '分配商机'
+                    WHEN 'trackBusiness'     THEN '跟进商机'
+                    WHEN 'backToPool'        THEN '踢回公海'
+                    WHEN 'convertToCustomer' THEN '转客户'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%CustomerController%' THEN
+                CASE l.method_name
+                    WHEN 'addCustomer'    THEN '新增客户'
+                    WHEN 'updateCustomer' THEN '修改客户'
+                    ELSE l.method_name
+                END
+            WHEN l.class_name LIKE '%UploadController%' THEN
+                CASE l.method_name
+                    WHEN 'upload' THEN '图片上传'
+                    ELSE l.method_name
+                END
+            ELSE l.method_name
+        END
+    </sql>
+
+    <!-- 操作日志列表：附带操作人姓名、业务化的操作模块与操作类型，支持三个条件模糊查询 -->
     <select id="listLogs" resultType="com.qk.entity.vo.OperateLogVO">
         SELECT
             l.id,
@@ -13,12 +106,20 @@
             l.method_params,
             l.return_value,
             l.cost_time,
-            u.name AS operate_user_name
+            u.name AS operate_user_name,
+            <include refid="moduleExpr"/> AS operate_module,
+            <include refid="typeExpr"/> AS operate_type
         FROM operate_log l
         LEFT JOIN `user` u ON l.operate_user_id = u.id
         <where>
             <if test="logQueryDto.operateUserName != null and logQueryDto.operateUserName != ''">
                 AND u.name LIKE CONCAT('%', #{logQueryDto.operateUserName}, '%')
+            </if>
+            <if test="logQueryDto.operateModule != null and logQueryDto.operateModule != ''">
+                AND <include refid="moduleExpr"/> LIKE CONCAT('%', #{logQueryDto.operateModule}, '%')
+            </if>
+            <if test="logQueryDto.operateType != null and logQueryDto.operateType != ''">
+                AND <include refid="typeExpr"/> LIKE CONCAT('%', #{logQueryDto.operateType}, '%')
             </if>
         </where>
         ORDER BY l.operate_time DESC, l.id DESC

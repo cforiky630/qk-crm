@@ -54,7 +54,7 @@ public class UserController {
     }
 
     /**
-     * 根据角色标识查询用户
+     * 根据角色标识查询用户（只返回正常状态的用户，用于分配线索/商机时的人员下拉）
      */
     @GetMapping("/role/{roleLabel}")
     public Result<List<UserVO>> findUsersByRole(@PathVariable String roleLabel) {
