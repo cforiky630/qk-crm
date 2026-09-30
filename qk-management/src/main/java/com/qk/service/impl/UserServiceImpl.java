@@ -9,6 +9,7 @@ import com.qk.common.PageResult;
 import com.qk.entity.Role;
 import com.qk.entity.User;
 import com.qk.entity.dto.UserDto;
+import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
@@ -103,6 +104,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user.getId() == null || getById(user.getId()) == null) {
             throw new BusinessException("用户不存在");
         }
+
+        // 守卫：不允许把当前登录用户自己停用。
+        // 登录会拒绝 status=0 的账号，一旦把自己停用，就再也进不来了（与「不能删除自己」同类）。
+        Integer currentUserId = UserHolder.getCurrentUser();
+        if (currentUserId != null && currentUserId.equals(user.getId())
+                && EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
+            throw new BusinessException("不能停用当前登录用户");
+        }
+
         // 接口文档中修改用户不包含密码字段，密码修改走单独的重置流程，
         // 因此这里显式置空，避免前端回传的密码摘要被二次加密后写坏数据
         user.setPassword(null);

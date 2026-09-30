@@ -239,6 +239,31 @@ class UserControllerTest {
     }
 
     @Test
+    void disableCurrentUserIsRejected() throws Exception {
+        // 默认令牌对应的用户 id 是 1：把自己停用会被守卫拦下（登录会拒绝 status=0，否则再也进不来）
+        mockMvc.perform(put("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"id":1,"status":0}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("不能停用当前登录用户"));
+
+        // 停用其他用户是允许的
+        User other = insertUser("cs_disable_other", "可停用用户");
+        mockMvc.perform(put("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"id":%d,"status":0}
+                                """.formatted(other.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+    }
+
+    @Test
     void deleteMissingUserIsRejected() throws Exception {
         mockMvc.perform(delete("/users/99999999"))
                 .andExpect(status().isOk())
