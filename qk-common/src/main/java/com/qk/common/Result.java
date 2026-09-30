@@ -17,7 +17,7 @@ import lombok.Data;
 @Data
 public class Result<T> {
 
-    /** 编码：1 成功，0 失败 */
+    /** 编码，取值见 {@link ResultCode}：1 成功，0 失败 */
     private Integer code;
 
     /** 提示信息 */
@@ -28,12 +28,12 @@ public class Result<T> {
 
     /** 成功，且不携带业务数据 */
     public static Result<Void> success() {
-        return of(1, "success", null);
+        return of(ResultCode.SUCCESS, null);
     }
 
     /** 成功，并携带业务数据 */
     public static <T> Result<T> success(T data) {
-        return of(1, "success", data);
+        return of(ResultCode.SUCCESS, data);
     }
 
     /**
@@ -43,12 +43,16 @@ public class Result<T> {
      * 这类写法可以继续编译：目标类型 {@code Result<X>} 会同时作用于两个分支。
      */
     public static <T> Result<T> error(String msg) {
-        return of(0, msg, null);
+        return of(ResultCode.FAIL, msg, null);
     }
 
-    private static <T> Result<T> of(Integer code, String msg, T data) {
+    private static <T> Result<T> of(ResultCode resultCode, T data) {
+        return of(resultCode, resultCode.getMsg(), data);
+    }
+
+    private static <T> Result<T> of(ResultCode resultCode, String msg, T data) {
         Result<T> result = new Result<>();
-        result.code = code;
+        result.code = resultCode.getCode();
         result.msg = msg;
         result.data = data;
         return result;

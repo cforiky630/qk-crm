@@ -1,6 +1,7 @@
 package com.qk;
 
 import com.qk.common.Result;
+import com.qk.common.ResultCode;
 import org.junit.jupiter.api.Test;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -20,6 +21,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ResultTest {
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
+
+    /**
+     * 响应码是对外契约，取值被永久冻结：1 成功、0 失败。
+     * 这个断言的作用是防止以后有人"顺手"改成别的编码体系。
+     */
+    @Test
+    void resultCodeValuesAreFrozen() {
+        assertEquals(1, ResultCode.SUCCESS.getCode());
+        assertEquals("success", ResultCode.SUCCESS.getMsg());
+        assertEquals(0, ResultCode.FAIL.getCode());
+    }
 
     @Test
     void successWithoutDataKeepsJsonShape() {
