@@ -2,6 +2,8 @@ package com.qk.common;
 
 import lombok.Data;
 
+import java.util.Objects;
+
 /**
  * 后端统一返回结果
  * <p>
@@ -43,19 +45,39 @@ public class Result<T> {
      * 这类写法可以继续编译：目标类型 {@code Result<X>} 会同时作用于两个分支。
      */
     public static <T> Result<T> error(String msg) {
-        return of(ResultCode.FAIL, msg, null);
+        return custom(ResultCode.FAIL, msg, null);
     }
 
-    private static <T> Result<T> of(ResultCode resultCode, T data) {
-        return of(resultCode, resultCode.getMsg(), data);
-    }
-
-    private static <T> Result<T> of(ResultCode resultCode, String msg, T data) {
+    /**
+     * 自定义响应：自行指定响应码与提示语，用于极少数 {@link #success()} / {@link #error(String)}
+     * 覆盖不了的场景。
+     * <p>
+     * <b>约定：能不用自定义就不用自定义。</b>
+     * <ul>
+     *   <li>常规的成功与失败一律使用 {@link #success()}、{@link #success(Object)}、{@link #error(String)}，
+     *       它们把响应码固定为 {@code 1} / {@code 0}，这是对外契约的一部分，不可更改；</li>
+     *   <li>只有「同一响应码需要换一句提示语」或「确需新增响应码」时才用本方法；</li>
+     *   <li>确需新增响应码时，必须先在 {@link ResultCode} 中增加带注释的枚举成员，
+     *       并同步更新 docs/openapi.yaml 的状态码约定，不允许在调用处临时拼一个码值；</li>
+     *   <li>响应码只能取自 {@link ResultCode}，不接受裸数字，避免重新引入魔法值。</li>
+     * </ul>
+     *
+     * @param resultCode 响应码，取值见 {@link ResultCode}
+     * @param msg        提示信息，可直接展示给用户
+     * @param data       业务数据，无数据时传 null
+     * @return 组装好的响应对象
+     */
+    public static <T> Result<T> custom(ResultCode resultCode, String msg, T data) {
+        Objects.requireNonNull(resultCode, "响应码不能为空，取值见 ResultCode");
         Result<T> result = new Result<>();
         result.code = resultCode.getCode();
         result.msg = msg;
         result.data = data;
         return result;
+    }
+
+    private static <T> Result<T> of(ResultCode resultCode, T data) {
+        return custom(resultCode, resultCode.getMsg(), data);
     }
 
 }

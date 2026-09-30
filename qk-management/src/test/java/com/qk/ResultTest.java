@@ -10,6 +10,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -66,6 +67,28 @@ class ResultTest {
         assertEquals("客户不存在", result.getMsg());
         assertNull(result.getData());
         assertEquals(0, ((Number) toMap(result).get("code")).intValue());
+    }
+
+    /**
+     * 自定义入口是逃生舱：允许换提示语，但响应码仍必须来自 ResultCode，
+     * 不允许在调用处拼裸数字。
+     */
+    @Test
+    void customCarriesChosenCodeAndMessage() {
+        Result<String> result = Result.custom(ResultCode.FAIL, "手机号已存在", "payload");
+
+        assertEquals(0, result.getCode());
+        assertEquals("手机号已存在", result.getMsg());
+        assertEquals("payload", result.getData());
+        assertEquals("手机号已存在", toMap(result).get("msg"));
+    }
+
+    @Test
+    void customRejectsNullResultCode() {
+        NullPointerException error = assertThrows(NullPointerException.class,
+                () -> Result.custom(null, "提示", null));
+
+        assertTrue(error.getMessage().contains("ResultCode"), "异常信息应指向 ResultCode");
     }
 
     /**

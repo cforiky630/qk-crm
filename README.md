@@ -240,6 +240,14 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`）；
 - **vo** 负责出参（`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段都在 VO 上）。
 
+**统一响应（Result / ResultCode）**
+
+- 响应码**只有两个取值**：`1` 成功、`0` 失败，属于对外契约，**不可更改**；业务失败同样返回 HTTP 200，由 `code` 区分，失败原因写在 `msg` 里。
+- 常规场景只用 `Result.success(...)` 与 `Result.error(msg)`。`Result.custom(ResultCode, msg, data)` 是逃生舱，**能不用就不用**。
+- 确需新增响应码时：先给 `ResultCode` 加带注释的枚举成员，再同步更新 `docs/openapi.yaml` 的状态码约定。`custom` 只接受 `ResultCode`、不接受裸数字，就是为了防止在调用处临时拼码值。
+- `data` 为 `null` 时字段依然存在，不会被省略。前端判定成功请用 `code === 1`，不要用 `code === 0` 判失败——前者在将来新增码值时依然正确。
+- `Result<T>` 为泛型，接口返回类型即数据类型；泛型只在编译期生效，JSON 结构固定为 `code` / `msg` / `data`，由 `ResultTest` 守卫。
+
 **Mapper（wrapper 负责简单查询、XML 负责复杂 SQL）**
 
 - 单表 CRUD 与单表条件查询 → `BaseMapper` + `LambdaQueryWrapper`（写在 Service 里，如部门/角色/课程/活动的分页与列表）；
@@ -253,7 +261,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 **其他**
 
 - `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入兼容多种写法。
-- 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType`），不散落裸数字。
+- 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType`），不散落裸数字；它们统一实现 `CodeEnum` 契约，可用 `CodeEnum.fromCode(XxxStatus.class, code)` 按码值反查，或用 `CodeEnum.codes(...)` 取全部码值。
 - 增删改接口标注 `@LogOperation`，由切面写入 `operate_log`（密码字段落库前脱敏为 `***`）。
 
 ## 常见问题
