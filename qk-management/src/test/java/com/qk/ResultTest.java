@@ -6,8 +6,11 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,6 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ResultTest {
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
+
+    /**
+     * 构造器必须私有：响应只能由静态工厂创建，
+     * 否则外部可以 new 出 code / msg 为 null 的非法响应。
+     */
+    @Test
+    void constructorIsPrivate() {
+        Constructor<Result> constructor = assertDoesNotThrow(() -> Result.class.getDeclaredConstructor());
+
+        assertTrue(Modifier.isPrivate(constructor.getModifiers()), "Result 的构造器必须是 private");
+    }
 
     /**
      * 响应码是对外契约，取值被永久冻结：1 成功、0 失败。

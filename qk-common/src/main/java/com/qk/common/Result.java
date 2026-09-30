@@ -28,6 +28,16 @@ public class Result<T> {
     /** 业务数据 */
     private T data;
 
+    /**
+     * 私有构造：统一由静态工厂创建
+     * <p>
+     * 若保留隐式公开构造，外部就能 {@code new Result<>()} 造出 code / msg 都为 null 的非法响应，
+     * 绕过 {@link ResultCode} 的约束。私有化之后，响应只能来自
+     * {@link #success()}、{@link #success(Object)}、{@link #error(String)}、{@link #custom(ResultCode, String, Object)}。
+     */
+    private Result() {
+    }
+
     /** 成功，且不携带业务数据 */
     public static Result<Void> success() {
         return of(ResultCode.SUCCESS, null);
