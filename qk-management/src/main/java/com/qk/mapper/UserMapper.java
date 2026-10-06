@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.User;
+import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
 import com.qk.entity.vo.UserVO;
 import org.apache.ibatis.annotations.Mapper;
@@ -30,7 +30,7 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 根据ID查询用户（含部门名称、角色名称）
      */
-    UserVO getUserById(@Param("id") Integer id);
+    UserVO getUserById(@Param("id") Long id);
 
     /**
      * 查询所有用户（下拉框使用）
@@ -48,7 +48,7 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 根据部门ID查询用户
      */
-    List<UserVO> findByDeptId(@Param("deptId") Integer deptId);
+    List<UserVO> findByDeptId(@Param("deptId") Long deptId);
 
     /**
      * 统计某部门下的用户数
@@ -56,7 +56,7 @@ public interface UserMapper extends BaseMapper<User> {
      * 供删除部门前的引用校验使用。放在 Mapper 层而不是 Service 里：
      * 这是「数据访问」职责，且名字即语义，Service 不必感知查询怎么构造。
      */
-    default long countByDeptId(Integer deptId) {
+    default long countByDeptId(Long deptId) {
         Long count = selectCount(new LambdaQueryWrapper<User>().eq(User::getDeptId, deptId));
         return count == null ? 0L : count;
     }
@@ -64,7 +64,7 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 统计某角色下的用户数（用于删除角色前的引用校验）
      */
-    default long countByRoleId(Integer roleId) {
+    default long countByRoleId(Long roleId) {
         Long count = selectCount(new LambdaQueryWrapper<User>().eq(User::getRoleId, roleId));
         return count == null ? 0L : count;
     }

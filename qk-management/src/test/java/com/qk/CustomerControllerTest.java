@@ -22,8 +22,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Course;
-import com.qk.entity.Customer;
+import com.qk.entity.po.Course;
+import com.qk.entity.po.Customer;
 
 /**
  * 客户管理接口测试，校验 8. 接口文档-客户管理.md 中的契约
@@ -58,7 +58,7 @@ class CustomerControllerTest {
     }
 
     /** 课程表用于校验客户列表的 courseName 关联查询 */
-    private Integer insertCourse(String name) {
+    private Long insertCourse(String name) {
         Course course = new Course();
         course.setSubject(1);
         course.setName(name);
@@ -69,7 +69,7 @@ class CustomerControllerTest {
         return course.getId();
     }
 
-    private Customer insertCustomer(String name, Integer courseId, Integer channel) {
+    private Customer insertCustomer(String name, Long courseId, Integer channel) {
         int seq = SEQ.incrementAndGet();
         Customer customer = new Customer();
         customer.setPhone("155" + String.format("%08d", seq));
@@ -90,7 +90,7 @@ class CustomerControllerTest {
     @Test
     void listCustomers() throws Exception {
         String courseName = "测试意向课程" + SEQ.incrementAndGet();
-        Integer courseId = insertCourse(courseName);
+        Long courseId = insertCourse(courseName);
         Customer customer = insertCustomer("测试客户列表", courseId, 1);
 
         mockMvc.perform(get("/customers").param("page", "1").param("pageSize", "10"))

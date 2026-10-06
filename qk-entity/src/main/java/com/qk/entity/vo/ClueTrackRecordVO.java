@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 public class ClueTrackRecordVO {
 
     /** 跟进记录ID */
-    private Integer id;
+    private Long id;
 
     /** 线索ID */
-    private Integer clueId;
+    private Long clueId;
 
     /** 跟进人ID */
-    private Integer userId;
+    private Long userId;
 
     /** 意向学科 */
     private Integer subject;

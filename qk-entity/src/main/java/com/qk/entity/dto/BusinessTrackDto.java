@@ -16,7 +16,7 @@ import java.util.List;
 public class BusinessTrackDto {
 
     /** 商机ID，必填 */
-    private Integer id;
+    private Long id;
 
     /** 客户姓名 */
     private String name;
@@ -40,7 +40,7 @@ public class BusinessTrackDto {
     private Integer subject;
 
     /** 意向课程ID */
-    private Integer courseId;
+    private Long courseId;
 
     /** 学历 */
     private Integer degree;

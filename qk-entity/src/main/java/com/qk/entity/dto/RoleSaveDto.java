@@ -13,7 +13,7 @@ import lombok.Data;
 public class RoleSaveDto {
 
     /** 角色ID：修改时必填，新增时忽略，主键由数据库自增 */
-    private Integer id;
+    private Long id;
 
     @NotBlank(message = "角色名称不能为空")
     private String name;

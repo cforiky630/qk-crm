@@ -1,9 +1,9 @@
 package com.qk.controller;
 
-import com.qk.entity.Business;
+import com.qk.entity.po.Business;
 import com.qk.entity.dto.BusinessSaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.BusinessPoolDto;
@@ -56,7 +56,7 @@ public class BusinessController {
      * 根据ID查询商机详细信息（含跟进记录）
      */
     @GetMapping("/{id}")
-    public Result<BusinessVO> getBusinessById(@PathVariable Integer id) {
+    public Result<BusinessVO> getBusinessById(@PathVariable Long id) {
         log.info("根据ID查询商机详细信息, id: {}", id);
         BusinessVO business = businessService.getBusinessById(id);
         return business != null ? Result.success(business) : Result.error("商机不存在");
@@ -85,7 +85,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping("/assign/{businessId}/{userId}")
-    public Result<Void> assignBusiness(@PathVariable Integer businessId, @PathVariable Integer userId) {
+    public Result<Void> assignBusiness(@PathVariable Long businessId, @PathVariable Long userId) {
         log.info("分配商机: 商机ID={}, 用户ID={}", businessId, userId);
         businessService.assignBusiness(businessId, userId);
         return Result.success();
@@ -96,7 +96,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping("/back/{id}")
-    public Result<Void> backToPool(@PathVariable Integer id) {
+    public Result<Void> backToPool(@PathVariable Long id) {
         log.info("将商机踢回公海, id: {}", id);
         businessService.backToPool(id);
         return Result.success();
@@ -107,7 +107,7 @@ public class BusinessController {
      */
     @LogOperation
     @PostMapping("/toCustomer/{id}")
-    public Result<Void> convertToCustomer(@PathVariable Integer id) {
+    public Result<Void> convertToCustomer(@PathVariable Long id) {
         log.info("将商机转为客户, id: {}", id);
         businessService.convertToCustomer(id);
         return Result.success();

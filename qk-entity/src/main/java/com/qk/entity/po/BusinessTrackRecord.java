@@ -1,4 +1,4 @@
-package com.qk.entity;
+package com.qk.entity.po;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -18,13 +18,13 @@ public class BusinessTrackRecord {
 
     /** 跟进记录ID，主键 */
     @TableId
-    private Integer id;
+    private Long id;
 
     /** 商机ID，关联商机表主键 */
-    private Integer businessId;
+    private Long businessId;
 
     /** 跟进人ID，关联用户表主键 */
-    private Integer userId;
+    private Long userId;
 
     /** 跟进状态，1:接通, 2:拒绝, 3:无人接听 */
     private Integer trackStatus;

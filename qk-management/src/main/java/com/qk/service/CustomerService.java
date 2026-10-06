@@ -1,7 +1,7 @@
 package com.qk.service;
 
-import com.qk.entity.Customer;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Customer;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.entity.vo.CustomerVO;
 
@@ -31,7 +31,7 @@ public interface CustomerService {
      * @param id 客户ID
      * @return 客户信息
      */
-    CustomerVO getCustomerById(Integer id);
+    CustomerVO getCustomerById(Long id);
 
     /**
      * 修改客户信息

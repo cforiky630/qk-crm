@@ -10,7 +10,7 @@ import lombok.Data;
 public class BusinessQueryDto {
 
     /** 商机ID */
-    private Integer businessId;
+    private Long businessId;
 
     /** 客户姓名 */
     private String name;

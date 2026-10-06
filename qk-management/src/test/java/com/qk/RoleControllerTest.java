@@ -27,8 +27,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Role;
-import com.qk.entity.User;
+import com.qk.entity.po.Role;
+import com.qk.entity.po.User;
 import com.qk.entity.enums.EnableStatus;
 
 /**
@@ -79,7 +79,7 @@ class RoleControllerTest {
     }
 
     /** 造一个引用指定角色的用户，用于验证「角色被引用时不可删除」 */
-    private User insertUser(Integer roleId) {
+    private User insertUser(Long roleId) {
         int seq = SEQ.incrementAndGet();
         User user = new User();
         user.setUsername("cs_role_u" + seq);

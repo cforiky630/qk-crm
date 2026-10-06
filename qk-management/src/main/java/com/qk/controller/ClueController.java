@@ -1,9 +1,9 @@
 package com.qk.controller;
 
-import com.qk.entity.Clue;
+import com.qk.entity.po.Clue;
 import com.qk.entity.dto.ClueSaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.CluePoolDto;
@@ -57,7 +57,7 @@ public class ClueController {
      * 根据ID查询线索详细信息（含跟进记录）
      */
     @GetMapping("/{id}")
-    public Result<ClueVO> getClueById(@PathVariable Integer id) {
+    public Result<ClueVO> getClueById(@PathVariable Long id) {
         log.info("根据ID查询线索详细信息, id: {}", id);
         ClueVO clue = clueService.getClueById(id);
         return clue != null ? Result.success(clue) : Result.error("线索不存在");
@@ -86,7 +86,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/assign/{clueId}/{userId}")
-    public Result<Void> assignClue(@PathVariable Integer clueId, @PathVariable Integer userId) {
+    public Result<Void> assignClue(@PathVariable Long clueId, @PathVariable Long userId) {
         log.info("分配线索: 线索ID={}, 用户ID={}", clueId, userId);
         clueService.assignClue(clueId, userId);
         return Result.success();
@@ -108,7 +108,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/false/{id}")
-    public Result<Void> markFalseClue(@PathVariable Integer id, @RequestBody MarkFalseClueDto markFalseClueDto) {
+    public Result<Void> markFalseClue(@PathVariable Long id, @RequestBody MarkFalseClueDto markFalseClueDto) {
         log.info("将线索标记为伪线索, id: {}, 原因: {}", id, markFalseClueDto);
         clueService.markFalseClue(id, markFalseClueDto);
         return Result.success();
@@ -119,7 +119,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/toBusiness/{id}")
-    public Result<Void> convertToBusiness(@PathVariable Integer id) {
+    public Result<Void> convertToBusiness(@PathVariable Long id) {
         log.info("将线索转为商机, id: {}", id);
         clueService.convertToBusiness(id);
         return Result.success();

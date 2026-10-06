@@ -1,7 +1,8 @@
 package com.qk.service;
 
-import com.qk.entity.Activity;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Activity;
+import com.qk.entity.vo.ActivityVO;
+import com.qk.entity.vo.PageResult;
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ public interface ActivityService {
      * @param pageSize       每页显示条数
      * @return 分页结果
      */
-    PageResult<Activity> findActivitiesByPage(Integer channel, Integer type,
+    PageResult<ActivityVO> findActivitiesByPage(Integer channel, Integer type,
                                               Integer activityStatus, Integer page, Integer pageSize);
 
     /**
@@ -36,7 +37,7 @@ public interface ActivityService {
      * @param id 活动id
      * @return 活动信息
      */
-    Activity findById(Integer id);
+    ActivityVO findById(Long id);
 
     /**
      * 根据id修改活动信息
@@ -50,7 +51,7 @@ public interface ActivityService {
      *
      * @param id 活动id
      */
-    void deleteById(Integer id);
+    void deleteById(Long id);
 
     /**
      * 查询指定类型的所有活动，不分页
@@ -58,5 +59,5 @@ public interface ActivityService {
      * @param type 活动类型
      * @return 活动列表
      */
-    List<Activity> findByType(Integer type);
+    List<ActivityVO> findByType(Integer type);
 }

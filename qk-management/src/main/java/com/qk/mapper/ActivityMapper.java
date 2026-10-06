@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Activity;
+import com.qk.entity.po.Activity;
 import com.qk.entity.enums.ActivityStatus;
 import org.apache.ibatis.annotations.Mapper;
 

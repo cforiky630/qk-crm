@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class ActivitySaveDto {
 
     /** 活动ID：修改时必填，新增时忽略 */
-    private Integer id;
+    private Long id;
 
     @NotNull(message = "活动渠道不能为空")
     private Integer channel;

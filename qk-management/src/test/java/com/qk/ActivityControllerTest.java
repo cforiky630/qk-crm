@@ -29,8 +29,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Activity;
-import com.qk.entity.Clue;
+import com.qk.entity.po.Activity;
+import com.qk.entity.po.Clue;
 import com.qk.entity.enums.ClueStatus;
 
 /**
@@ -78,7 +78,7 @@ class ActivityControllerTest {
     }
 
     /** 造一条关联指定活动的线索，用于验证「活动被引用时不可删除」 */
-    private Clue insertClue(Integer activityId) {
+    private Clue insertClue(Long activityId) {
         int seq = SEQ.incrementAndGet();
         Clue clue = new Clue();
         clue.setPhone("150" + String.format("%08d", seq));
@@ -126,22 +126,23 @@ class ActivityControllerTest {
         // 1 未开始
         mockMvc.perform(get("/activities").param("activityStatus", "1").param("pageSize", "200"))
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(notStarted.getId())))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId()))));
+        // JsonPath 把 JSON 数字解析为 Integer，主键是 Long，比较前先取 intValue()
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(notStarted.getId().intValue())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId().intValue()))));
 
         // 2 进行中
         mockMvc.perform(get("/activities").param("activityStatus", "2").param("pageSize", "200"))
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(inProgress.getId())))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(notStarted.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId()))));
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(inProgress.getId().intValue())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(notStarted.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(finished.getId().intValue()))));
 
         // 3 已结束
         mockMvc.perform(get("/activities").param("activityStatus", "3").param("pageSize", "200"))
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(finished.getId())))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId()))));
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(finished.getId().intValue())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(inProgress.getId().intValue()))));
 
         // 非法状态码给出明确提示，而不是静默返回全量数据
         mockMvc.perform(get("/activities").param("activityStatus", "9"))

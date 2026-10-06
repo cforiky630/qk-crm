@@ -12,9 +12,6 @@ import cn.hutool.crypto.digest.DigestUtil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.UUID;
 
 @Component
 public class OssTemplate {
@@ -36,7 +33,7 @@ public class OssTemplate {
      * @param inputStream 文件流
      * @return 可直接访问的 https 地址
      */
-    public String upload(Integer userId, String fileName, InputStream inputStream) {
+    public String upload(Long userId, String fileName, InputStream inputStream) {
         int dotIndex = fileName == null ? -1 : fileName.lastIndexOf(".");
         if (dotIndex < 0) {
             throw new BusinessException("文件名缺少扩展名，无法识别图片格式");
@@ -66,7 +63,7 @@ public class OssTemplate {
      * <p>
      * 相同的上传人 + 相同的图片内容 → 同一个对象名，这正是上传幂等的实现方式。
      */
-    static String buildObjectName(Integer userId, String suffix, byte[] content) {
+    static String buildObjectName(Long userId, String suffix, byte[] content) {
         String userPath = userId == null ? "anonymous" : String.valueOf(userId);
         return "images/" + userPath + "/" + DigestUtil.md5Hex(content) + suffix;
     }

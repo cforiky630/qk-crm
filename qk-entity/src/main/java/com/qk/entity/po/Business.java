@@ -1,4 +1,4 @@
-package com.qk.entity;
+package com.qk.entity.po;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -18,7 +18,7 @@ public class Business {
 
     /** 商机ID，主键 */
     @TableId
-    private Integer id;
+    private Long id;
 
     /** 客户姓名 */
     private String name;
@@ -42,7 +42,7 @@ public class Business {
     private Integer subject;
 
     /** 意向课程，课程ID */
-    private Integer courseId;
+    private Long courseId;
 
     /** 学历，1:高中, 2:中专, 3:大专, 4:本科, 5:硕士, 6:博士, 7:其他 */
     private Integer degree;
@@ -60,10 +60,10 @@ public class Business {
     private Integer status;
 
     /** 归属人ID，关联用户表主键 */
-    private Integer userId;
+    private Long userId;
 
     /** 关联线索ID */
-    private Integer clueId;
+    private Long clueId;
 
     /** 下次跟进时间 */
     private LocalDateTime nextTime;

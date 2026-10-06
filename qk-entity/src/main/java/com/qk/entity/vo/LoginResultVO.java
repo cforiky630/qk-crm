@@ -9,10 +9,10 @@ import lombok.Data;
  * 注意：这里刻意不包含 password，避免密码摘要被序列化返回给前端。
  */
 @Data
-public class LoginResultVo {
+public class LoginResultVO {
 
     /** 用户ID */
-    private Integer id;
+    private Long id;
 
     /** 用户名 */
     private String username;

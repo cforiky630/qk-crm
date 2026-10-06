@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qk.entity.enums.ClueStatus;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.CourseMapper;
+import com.qk.mapper.DeptMapper;
 import com.qk.mapper.OperateLogMapper;
 import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -31,10 +33,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Clue;
-import com.qk.entity.Course;
-import com.qk.entity.OperateLog;
-import com.qk.entity.User;
+import com.qk.entity.po.Clue;
+import com.qk.entity.po.Course;
+import com.qk.entity.po.Dept;
+import com.qk.entity.po.OperateLog;
+import com.qk.entity.po.User;
 
 /**
  * 上线前的安全与健壮性守护测试
@@ -54,6 +57,12 @@ class HardeningTest {
 
     @Autowired
     private CourseMapper courseMapper;
+
+    @Autowired
+    private DeptMapper deptMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private OperateLogMapper operateLogMapper;
@@ -364,5 +373,91 @@ class HardeningTest {
                                 """.formatted(course.getId())))
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("学科取值必须在 1~7 之间"));
+    }
+
+    /**
+     * 逻辑删除必须同时满足三件事，缺一都会造成线上事故：
+     * <ol>
+     *   <li>接口视角看不到该行（与物理删除的表现完全一致）；</li>
+     *   <li>库里的行还在，且 is_deleted 被置为 1；</li>
+     *   <li>唯一值被释放：同名数据可以重新创建，反复删除同名记录也不会撞唯一键。</li>
+     * </ol>
+     * 第 3 条靠函数唯一索引 if(is_deleted = 0, 唯一列, NULL) 实现：已删除行的索引键为 NULL，
+     * MySQL 视 NULL 互不相同，因此既不占用唯一值，也不会在反复删除时互相冲突。
+     */
+    @Test
+    void softDeleteHidesRowButKeepsItAndFreesUniqueValue() throws Exception {
+        String name = "软删部门" + System.currentTimeMillis() % 1000000;
+
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"name":"%s","status":0}
+                                """.formatted(name)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        List<Dept> created = deptMapper.selectList(
+                new LambdaQueryWrapper<Dept>().eq(Dept::getName, name).orderByDesc(Dept::getId));
+        Assertions.assertFalse(created.isEmpty(), "新增的部门应能查到");
+        Long id = created.get(0).getId();
+
+        // deleted 是内部列，不能出现在任何对外报文里
+        mockMvc.perform(get("/depts/{id}", id))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.deleted").doesNotExist());
+
+        mockMvc.perform(delete("/depts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        // 1) 接口视角已经查不到
+        Assertions.assertNull(deptMapper.selectById(id), "逻辑删除后接口视角应查不到该部门");
+        // 2) 库里那行还在，且 is_deleted 被置为 1
+        Integer isDeleted = jdbcTemplate.queryForObject("SELECT is_deleted FROM dept WHERE id = ?", Integer.class, id);
+        Assertions.assertEquals(1, isDeleted, "逻辑删除应把 is_deleted 置为 1");
+
+        // 3) 同名可以重新创建
+        mockMvc.perform(post("/depts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("""
+                                {"name":"%s","status":0}
+                                """.formatted(name)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        List<Dept> recreated = deptMapper.selectList(
+                new LambdaQueryWrapper<Dept>().eq(Dept::getName, name).orderByDesc(Dept::getId));
+        Assertions.assertFalse(recreated.isEmpty(), "同名部门应能重新创建");
+        // 再次删除同名记录：deleted 存 id，所以不会与上一次删除的记录撞唯一键
+        mockMvc.perform(delete("/depts/{id}", recreated.get(0).getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+    }
+
+    /**
+     * 详情接口对不存在的 id 必须统一返回 code = 0 + 「XXX不存在」
+     * <p>
+     * 历史上 dept/role/course/activity 会返回 code = 1 并省略 data，与 users/clues 的 code = 0 不一致。
+     * 现在这四个接口改为复用各自的 requireXxx 守卫，行为与其他详情接口对齐。
+     */
+    @Test
+    void detailEndpointsReportMissingDataConsistently() throws Exception {
+        String[][] cases = {
+                {"/depts/999999", "部门不存在"},
+                {"/roles/999999", "角色不存在"},
+                {"/courses/999999", "课程不存在"},
+                {"/activities/999999", "活动不存在"},
+                {"/users/999999", "用户不存在"},
+                {"/clues/999999", "线索不存在"},
+        };
+        for (String[] item : cases) {
+            mockMvc.perform(get(item[0]))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(0))
+                    .andExpect(jsonPath("$.msg").value(item[1]));
+        }
     }
 }

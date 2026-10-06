@@ -10,7 +10,7 @@ import lombok.Data;
 public class BusinessPoolDto {
 
     /** 商机ID */
-    private Integer businessId;
+    private Long businessId;
 
     /** 手机号 */
     private String phone;

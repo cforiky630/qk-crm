@@ -32,9 +32,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Business;
-import com.qk.entity.Clue;
-import com.qk.entity.User;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.Clue;
+import com.qk.entity.po.User;
 
 /**
  * 其他接口测试，校验 9. 接口文档-其他接口.md 中的日志列表与首页概览
@@ -83,8 +83,8 @@ class OtherControllerTest {
         operator.setPassword("x");
         operator.setGender(1);
         operator.setStatus(1);
-        operator.setDeptId(1);
-        operator.setRoleId(1);
+        operator.setDeptId(1L);
+        operator.setRoleId(1L);
         userMapper.insert(operator);
 
         String token = jwtUtil.generateToken(Map.of("id", operator.getId(), "username", operator.getUsername()));
@@ -107,13 +107,13 @@ class OtherControllerTest {
                                 """.formatted(activityName)))
                 .andExpect(jsonPath("$.code").value(1));
 
-        List<com.qk.entity.OperateLog> logs = operateLogMapper.selectList(
-                new LambdaQueryWrapper<com.qk.entity.OperateLog>()
-                        .eq(com.qk.entity.OperateLog::getMethodName, "addActivity")
-                        .eq(com.qk.entity.OperateLog::getClassName, "com.qk.controller.ActivityController"));
+        List<com.qk.entity.po.OperateLog> logs = operateLogMapper.selectList(
+                new LambdaQueryWrapper<com.qk.entity.po.OperateLog>()
+                        .eq(com.qk.entity.po.OperateLog::getMethodName, "addActivity")
+                        .eq(com.qk.entity.po.OperateLog::getClassName, "com.qk.controller.ActivityController"));
 
         org.junit.jupiter.api.Assertions.assertEquals(1, logs.size(), "增删改接口应记录一条操作日志");
-        com.qk.entity.OperateLog log = logs.get(0);
+        com.qk.entity.po.OperateLog log = logs.get(0);
         // 操作人来自 JWT 中的用户ID（令牌里放的就是上面自建的 operator）
         org.junit.jupiter.api.Assertions.assertEquals(operator.getId(), log.getOperateUserId());
         org.junit.jupiter.api.Assertions.assertNotNull(log.getOperateTime());

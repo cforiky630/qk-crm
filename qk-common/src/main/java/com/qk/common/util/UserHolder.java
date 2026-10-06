@@ -9,16 +9,16 @@ package com.qk.common.util;
 public class UserHolder {
 
     /** 当前登录用户ID */
-    private static final ThreadLocal<Integer> CURRENT_USER = new ThreadLocal<>();
+    private static final ThreadLocal<Long> CURRENT_USER = new ThreadLocal<>();
 
     private UserHolder() {
     }
 
-    public static void setCurrentUser(Integer userId) {
+    public static void setCurrentUser(Long userId) {
         CURRENT_USER.set(userId);
     }
 
-    public static Integer getCurrentUser() {
+    public static Long getCurrentUser() {
         return CURRENT_USER.get();
     }
 

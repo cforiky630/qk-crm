@@ -31,10 +31,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Dept;
-import com.qk.entity.Role;
-import com.qk.entity.User;
-import com.qk.entity.Clue;
+import com.qk.entity.po.Dept;
+import com.qk.entity.po.Role;
+import com.qk.entity.po.User;
+import com.qk.entity.po.Clue;
 import com.qk.entity.enums.ClueStatus;
 import com.qk.entity.enums.EnableStatus;
 
@@ -50,8 +50,8 @@ class UserControllerTest {
     private static final AtomicInteger SEQ = new AtomicInteger();
 
     /** 测试用部门与角色，对应 sql/reset_and_seed.sql 的最小数据集（1=市场部，1=admin） */
-    private static final Integer TEST_DEPT_ID = 1;
-    private static final Integer TEST_ROLE_ID = 1;
+    private static final Long TEST_DEPT_ID = 1L;
+    private static final Long TEST_ROLE_ID = 1L;
 
     @Autowired
     private WebApplicationContext wac;
@@ -97,7 +97,7 @@ class UserControllerTest {
     }
 
     /** 造一条归属于指定用户的线索，用于验证「用户被业务数据引用时不可删除」 */
-    private Clue insertClue(Integer userId) {
+    private Clue insertClue(Long userId) {
         int seq = SEQ.incrementAndGet();
         Clue clue = new Clue();
         clue.setPhone("151" + String.format("%08d", seq));

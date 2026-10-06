@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-126%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-133%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -73,11 +73,12 @@
 ```
 qk-parent
 ├── qk-common/          通用能力（包根 com.qk.common）
-│   └── com.qk.common   Result / PageResult、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
+│   └── com.qk.common   Result / ResultCode、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
 ├── qk-entity/          实体 / DTO / VO / 枚举（包根 com.qk.entity）
-│   └── com.qk.entity   实体（Dept、User、Clue、Business…）
+│   └── com.qk.entity
+│       ├── po          表映射实体（Dept、User、Clue、Business…，与表一一对应）
 │       ├── dto         入参：XxxQueryDto、ClueTrackDto、MarkFalseClueDto…
-│       ├── vo          出参：UserVO、ClueVO、BusinessVO、OverviewVO…
+│       ├── vo          出参：UserVO、ClueVO、BusinessVO、CustomerVO、DeptVO、RoleVO、CourseVO、ActivityVO、OverviewVO、LoginResultVO、PageResult（分页外壳）
 │       └── enums       状态枚举：ClueStatus、BusinessStatus、ClueTrackType、ActivityStatus（查询用）
 ├── qk-management/      可启动模块（包根 com.qk）
 │   └── com.qk
@@ -89,7 +90,7 @@ qk-parent
 │       └── config      MyBatis-Plus、Jackson、Web、OSS 配置
 │   └── resources
 │       └── com/qk/mapper   Mapper XML（与接口同包同名、namespace 为接口全限定名）
-├── sql/                建表脚本 + 最小数据集脚本（+ _backup 备份目录）
+├── sql/                建表脚本 + 最小数据集脚本 + 增量迁移脚本（+ _backup 备份目录）
 └── docs/openapi.yaml   接口契约（36 个路径项 / 57 个操作）
 ```
 
@@ -220,14 +221,29 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 
 建表脚本在 [`sql/`](sql/)，最小数据集在 [`sql/reset_and_seed.sql`](sql/reset_and_seed.sql)。
 
+字段与索引遵循《阿里巴巴 Java 开发手册》数据库规约：
+
+| 规约 | 落地方式 |
+| --- | --- |
+| id 必为 `bigint unsigned` | 11 张表的主键与全部逻辑外键（`dept_id`/`role_id`/`user_id`/`course_id`/`activity_id`/`clue_id`/`business_id`/`operate_user_id`）统一 `bigint unsigned`，Java 侧对应 `Long` |
+| 索引命名 | 唯一索引 `uk_列名`（`uk_username`/`uk_phone`/`uk_email`/`uk_label`/`uk_name`），逻辑外键补 `idx_列名` 普通索引 |
+| 禁用外键与级联 | 全部表不使用物理外键，关联完整性由 Service 层的删除守卫保证 |
+| 时间字段兜底 | `create_time` 用 `DEFAULT CURRENT_TIMESTAMP`、`update_time` 用 `ON UPDATE CURRENT_TIMESTAMP`；业务仍由 Service 层显式写入，默认值只兜底绕过 Service 的裸 SQL |
+| 逻辑删除 | 部门/角色/用户/课程/活动加 `is_deleted`（`unsigned tinyint`，1 已删除 / 0 未删除——手册建表规约的原话正例）；Java 字段叫 `deleted`（手册命名风格：POJO 布尔变量不得加 `is` 前缀），用 `@TableField` 显式映射。唯一索引建成函数索引 `if(is_deleted = 0, 唯一列, NULL)`：已删除行的索引键是 NULL，MySQL 视 NULL 互不相同，因此不占用唯一值，删除后同名可重建、反复删除也不撞唯一键 |
+
+> **脚本按「全新安装」口径编写，不提供增量迁移。** 已有库请先 `mysqldump` 备份，再 `DROP DATABASE qk` 后重新执行上面的建表脚本；
+> 这也是项目一贯的从零启动约定，避免仓库里堆积只对某个历史版本有效的 ALTER。
+
 ## 测试
 
 ```bash
-mvn test                              # 全量：14 个测试类 / 126 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：16 个测试类 / 133 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
 - `*ControllerTest` 覆盖各模块的接口契约（状态码、字段、分页、筛选、状态流转）。
+- [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型。
+- [`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 守报文：把同一个 PO 分别以实体和 VO 序列化并逐字节比对，VO 漏抄字段即失败。
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
 - 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**，不依赖库里已有数据的规模与姓名。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
@@ -236,9 +252,10 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 **分层**
 
-- **entity** 只映射表列，不放 join 结果、不放请求参数；
-- **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`）；
-- **vo** 负责出参（`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段都在 VO 上）。
+- **po** 只映射表列，不放 join 结果、不放请求参数；**持久化对象不出现在接口契约里**——对外方法的返回值与参数一律是 DTO / VO，由 [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 从类型层面守卫（控制器内部仍可把请求 DTO 映射成实体再交给 Service，这是刻意的约定，不算破线）；
+- **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`、登录 `LoginDto`）；
+- **vo** 负责出参，**每张有查询接口的表都有自己的 VO**（`UserVO`、`ClueVO`、`DeptVO`、`RoleVO`、`CourseVO`、`ActivityVO`…），`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段也都在 VO 上；
+- **PO → VO 写成 VO 的静态工厂 `XxxVO.from(po)`，且逐个字段 setter，不用 `BeanUtil.copyProperties`**：前者漏抄或改名时编译期就报错，后者只会静默写入 null、悄悄改掉对外报文。[`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 逐字节比对 PO 与 VO 的序列化结果，锁死报文不变；
 - **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解；**控制器负责把 DTO 映射成实体**再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
 
@@ -247,8 +264,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - 响应码**只有两个取值**：`1` 成功、`0` 失败，属于对外契约，**不可更改**；业务失败同样返回 HTTP 200，由 `code` 区分，失败原因写在 `msg` 里。
 - 常规场景只用 `Result.success(...)` 与 `Result.error(msg)`。`Result.custom(ResultCode, msg, data)` 是逃生舱，**能不用就不用**。
 - 确需新增响应码时：先给 `ResultCode` 加带注释的枚举成员，再同步更新 `docs/openapi.yaml` 的状态码约定。`custom` 只接受 `ResultCode`、不接受裸数字，就是为了防止在调用处临时拼码值。
-- `data` 为 `null` 时字段依然存在，不会被省略。前端判定成功请用 `code === 1`，不要用 `code === 0` 判失败——前者在将来新增码值时依然正确。
-- `Result<T>` 为泛型，接口返回类型即数据类型；泛型只在编译期生效，JSON 结构固定为 `code` / `msg` / `data`，由 `ResultTest` 守卫。
+- `Result` 类上标注 `@JsonInclude(NON_NULL)`：`data` 为 `null` 时该字段**整个省略**，报文只剩 `code` 与 `msg`。判定成功请用 `code === 1`，不要用 `code === 0` 判失败，也不要用「有没有 `data` 字段」判断成功——前者在将来新增码值时依然正确，后者在无数据的成功响应上会误判。
+- `Result<T>` 为泛型，接口返回类型即数据类型；泛型只在编译期生效，JSON 结构固定为 `code` / `msg` / `data` 三个字段（`data` 为空时省略），由 `ResultTest` 守卫。
 
 **Mapper（wrapper 负责简单查询、XML 负责复杂 SQL）**
 
@@ -306,6 +323,9 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [x] AOP 操作日志（含密码脱敏）
 - [x] 实体 / DTO / VO 分层重构
 - [x] Mapper 分层：单表用 wrapper、多表 join 与聚合用 XML（去除第三方 join 依赖，XML 按官方约定与接口同包）
+- [x] 出参模型收口：dept/role/course/activity 补上 VO，PO 不再出现在任何接口契约里；登录入参由 `User` 改为 `LoginDto`
+- [x] 统一详情接口对不存在 id 的返回：dept/role/course/activity 对齐 users/clues，返回 `code = 0` + 「XXX不存在」
+- [x] 按《阿里巴巴 Java 开发手册》整改：主键/外键升 `bigint unsigned`、索引规约 `uk_`/`idx_`、实体迁入 `com.qk.entity.po`、`PageResult` 迁入 `qk-entity`、声明未声明的 Jackson 依赖
 - [ ] 密码哈希由 MD5 升级为 BCrypt（登录时平滑升级，需先确认前端提交的密码形态）
 - [ ] 用户名改为不可变标识（避免改名后旧密码失效）
 - [ ] 接口级权限控制（当前只校验登录，未区分角色）
@@ -323,6 +343,10 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 7. **两个「池」的口径与活动状态**：线索池只返回 `status = 4 伪线索`（与公海池只返回 `status = 4 回收` 一致）；`/clues`、`/businesses` 默认排除已关闭状态，但显式传 `status` 时按传入值筛选。活动状态（未开始/进行中/已结束）不落库，由 `/activities?activityStatus=` 按时间推算。
 8. **操作日志只记录增删改**：`@LogOperation` 只标注在写接口上，查询接口（GET）不写日志，因此日志列表里不会出现"查询部门/查询用户"这类记录。
 9. **上传**：仅校验扩展名与大小；对象为公共读，尚无孤儿对象清理机制。
+10. **只增表没有 `update_time`**：`clue_track_record`、`business_track_record`、`operate_log` 是只增表，只有创建时间（`operate_log` 叫 `operate_time`），严格来说不满足手册「表必备三字段」；时间列已补 `DEFAULT CURRENT_TIMESTAMP` 作为数据库侧兜底，业务写入仍以 Service 层为准。
+11. **列表检索使用全模糊**：各列表的手机号、姓名等条件为 `LIKE CONCAT('%', ?, '%')`，手册禁止左模糊与全模糊。改用前缀匹配或搜索引擎会改变检索结果，属于对外行为变更，故保留现状，待数据量上来后再评估。
+12. **0/1 语义字段未按 `is_xxx` 命名**：手册要求表达是与否的字段用 `is_xxx`，但 `job_status` 等字段改名会同时改变对外 JSON 字段名，属于破坏性契约变更，故保留（`status` 系列语义是「状态」而非布尔，不在该条款范围内）。
+13. **金额以整型存「元」**：`course.price`、`activity.voucher` 是 `int unsigned`（单位：元），不受手册「小数必须用 decimal」约束，但无法表达角、分。
 
 ## 说明
 

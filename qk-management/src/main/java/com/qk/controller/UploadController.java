@@ -46,7 +46,7 @@ public class UploadController {
         }
 
         // 对象名带上上传人，便于后续按用户追溯与清理孤儿对象
-        Integer userId = UserHolder.getCurrentUser();
+        Long userId = UserHolder.getCurrentUser();
         log.info("文件上传开始：{}，上传人：{}", originalFilename, userId);
         String url = ossTemplate.upload(userId, originalFilename, image.getInputStream());
         log.info("文件上传完成：{}", url);

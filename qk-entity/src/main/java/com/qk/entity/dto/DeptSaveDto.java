@@ -10,7 +10,7 @@ import lombok.Data;
 /**
  * 部门新增 / 修改入参
  * <p>
- * 不直接用 {@link com.qk.entity.Dept} 接参的原因：
+ * 不直接用 {@link com.qk.entity.po.Dept} 接参的原因：
  * <ol>
  *   <li>实体映射整张表，用它接参等于把所有列都开放为可写（客户端可以传 id、create_time 等）；</li>
  *   <li>校验规则可以声明式写在字段上，由 GlobalExceptionHandler 统一转成 code=0 + 中文提示；</li>
@@ -22,7 +22,7 @@ import lombok.Data;
 public class DeptSaveDto {
 
     /** 部门ID：修改时必填，新增时忽略，主键由数据库自增 */
-    private Integer id;
+    private Long id;
 
     @NotBlank(message = "部门名称不能为空")
     @Size(max = 10, message = "部门名称长度不能超过 10 个字符")

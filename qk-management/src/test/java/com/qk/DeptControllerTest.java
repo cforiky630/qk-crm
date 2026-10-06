@@ -32,8 +32,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Dept;
-import com.qk.entity.User;
+import com.qk.entity.po.Dept;
+import com.qk.entity.po.User;
 import com.qk.entity.enums.EnableStatus;
 
 /**
@@ -80,7 +80,7 @@ class DeptControllerTest {
     }
 
     /** 造一个引用指定部门的用户，用于验证「部门被引用时不可删除」 */
-    private User insertUser(Integer deptId) {
+    private User insertUser(Long deptId) {
         int seq = SEQ.incrementAndGet();
         User user = new User();
         user.setUsername("cs_dept_u" + seq);

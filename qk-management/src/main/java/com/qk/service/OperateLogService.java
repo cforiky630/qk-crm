@@ -1,7 +1,7 @@
 package com.qk.service;
 
-import com.qk.entity.OperateLog;
-import com.qk.common.PageResult;
+import com.qk.entity.po.OperateLog;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.LogQueryDto;
 import com.qk.entity.vo.OperateLogVO;
 

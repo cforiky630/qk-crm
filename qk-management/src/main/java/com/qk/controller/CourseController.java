@@ -1,9 +1,10 @@
 package com.qk.controller;
 
-import com.qk.entity.Course;
+import com.qk.entity.po.Course;
 import com.qk.entity.dto.CourseSaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.CourseVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.CourseService;
@@ -50,9 +51,9 @@ public class CourseController {
      * @return 分页查询结果
      */
     @GetMapping("/courses")
-    public Result<PageResult<Course>> listCourses(String name, Integer subject, Integer target, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
+    public Result<PageResult<CourseVO>> listCourses(String name, Integer subject, Integer target, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询课程, 参数: name={}, subject={}, target={}, page={}, pageSize={}", name, subject, target, page, pageSize);
-        PageResult<Course> pageResult = courseService.findCoursesByPage(name, subject, target, page, pageSize);
+        PageResult<CourseVO> pageResult = courseService.findCoursesByPage(name, subject, target, page, pageSize);
         return Result.success(pageResult);
     }
 
@@ -63,9 +64,9 @@ public class CourseController {
      * @return 查询结果
      */
     @GetMapping("/courses/{id}")
-    public Result<Course> findById(@PathVariable Integer id) {
+    public Result<CourseVO> findById(@PathVariable Long id) {
         log.info("查询课程ID为{}的课程信息", id);
-        Course course = courseService.findById(id);
+        CourseVO course = courseService.findById(id);
         return Result.success(course);
     }
 
@@ -98,7 +99,7 @@ public class CourseController {
      */
     @LogOperation
     @DeleteMapping("/courses/{id}")
-    public Result<Void> deleteCourse(@PathVariable("id") Integer id) {
+    public Result<Void> deleteCourse(@PathVariable("id") Long id) {
         log.info("删除课程：{}", id);
         courseService.deleteById(id);
         return Result.success();
@@ -110,9 +111,9 @@ public class CourseController {
      * @return 统一响应结果
      */
     @GetMapping("/courses/list")
-    public Result<List<Course>> listAllCourses() {
+    public Result<List<CourseVO>> listAllCourses() {
         log.info("查询所有课程");
-        List<Course> courses = courseService.findAll();
+        List<CourseVO> courses = courseService.findAll();
         return Result.success(courses);
     }
 
@@ -123,9 +124,9 @@ public class CourseController {
      * @return 统一响应结果
      */
     @GetMapping("/courses/subject/{subject}")
-    public Result<List<Course>> listCoursesBySubject(@PathVariable Integer subject) {
+    public Result<List<CourseVO>> listCoursesBySubject(@PathVariable Integer subject) {
         log.info("查询学科为{}的课程", subject);
-        List<Course> courses = courseService.findBySubject(subject);
+        List<CourseVO> courses = courseService.findBySubject(subject);
         return Result.success(courses);
     }
 }

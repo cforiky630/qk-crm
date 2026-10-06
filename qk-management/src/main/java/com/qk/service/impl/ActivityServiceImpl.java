@@ -3,10 +3,11 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Activity;
+import com.qk.entity.po.Activity;
 import com.qk.entity.enums.ActivityStatus;
 import com.qk.entity.enums.CodeEnum;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.ActivityVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.ActivityMapper;
 import com.qk.mapper.ClueMapper;
@@ -39,7 +40,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public PageResult<Activity> findActivitiesByPage(Integer channel, Integer type,
+    public PageResult<ActivityVO> findActivitiesByPage(Integer channel, Integer type,
                                                      Integer activityStatus, Integer page, Integer pageSize) {
         // 活动状态是查询条件而不是库里的列，取值必须先收敛到枚举，
         // 否则前端传 9 之类的脏值会被静默忽略，返回「没有筛选」的全量数据
@@ -47,12 +48,12 @@ public class ActivityServiceImpl implements ActivityService {
             throw new BusinessException("活动状态取值为 1（未开始）、2（进行中）、3（已结束）");
         }
         IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type, activityStatus);
-        return new PageResult<>(p.getTotal(), p.getRecords());
+        return new PageResult<>(p.getTotal(), p.getRecords().stream().map(ActivityVO::from).toList());
     }
 
     @Override
-    public Activity findById(Integer id) {
-        return activityMapper.selectById(id);
+    public ActivityVO findById(Long id) {
+        return ActivityVO.from(requireActivity(id));
     }
 
     @Override
@@ -62,7 +63,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public void deleteById(Integer id) {
+    public void deleteById(Long id) {
         requireActivity(id);
 
         // 守卫：仍被线索引用的活动不允许删除。
@@ -80,7 +81,7 @@ public class ActivityServiceImpl implements ActivityService {
      * 校验活动是否存在，不存在直接抛业务异常。
      * 原先删除接口缺少这道校验，删一个不存在的 id 也会返回「成功」。
      */
-    private Activity requireActivity(Integer id) {
+    private Activity requireActivity(Long id) {
         if (id == null) {
             throw new BusinessException("活动ID不能为空");
         }
@@ -92,7 +93,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public List<Activity> findByType(Integer type) {
-        return activityMapper.listByType(type);
+    public List<ActivityVO> findByType(Integer type) {
+        return activityMapper.listByType(type).stream().map(ActivityVO::from).toList();
     }
 }

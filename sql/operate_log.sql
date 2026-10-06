@@ -1,5 +1,5 @@
 -- 操作日志表
--- 对应实体类 com.qk.entity.OperateLog
+-- 对应实体类 com.qk.entity.po.OperateLog
 --
 -- 建表约定：
 --   1. 不使用物理外键约束（FOREIGN KEY），operate_user_id 通过逻辑约束关联用户表。
@@ -9,15 +9,16 @@
 --      （见 OperateLogMapper.xml 的 moduleExpr / typeExpr），避免为展示字段回填历史数据。
 CREATE TABLE IF NOT EXISTS `operate_log`
 (
-    `id`              int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID，主键',
-    `operate_user_id` int unsigned DEFAULT NULL COMMENT '操作用户ID',
-    `operate_time`    datetime     NOT NULL COMMENT '操作时间',
-    `class_name`      varchar(100) DEFAULT NULL COMMENT '操作的类名',
-    `method_name`     varchar(100) DEFAULT NULL COMMENT '操作的方法名',
-    `method_params`   varchar(1000) DEFAULT NULL COMMENT '方法参数',
-    `return_value`    varchar(2000) DEFAULT NULL COMMENT '返回值',
-    `cost_time`       bigint       DEFAULT NULL COMMENT '方法执行耗时，单位：ms',
-    PRIMARY KEY (`id`)
+    `id`              bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID，主键',
+    `operate_user_id` bigint unsigned DEFAULT NULL COMMENT '操作用户ID',
+    `operate_time`    datetime        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '操作时间',
+    `class_name`      varchar(100)    DEFAULT NULL COMMENT '操作的类名',
+    `method_name`     varchar(100)    DEFAULT NULL COMMENT '操作的方法名',
+    `method_params`   varchar(1000)   DEFAULT NULL COMMENT '方法参数',
+    `return_value`    varchar(2000)   DEFAULT NULL COMMENT '返回值',
+    `cost_time`       bigint          DEFAULT NULL COMMENT '方法执行耗时，单位：ms',
+    PRIMARY KEY (`id`),
+    KEY `idx_operate_user_id` (`operate_user_id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='操作日志表';

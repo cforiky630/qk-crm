@@ -1,8 +1,8 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.entity.Clue;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Clue;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CluePoolDto;
 import com.qk.entity.dto.ClueQueryDto;
 import com.qk.entity.dto.ClueTrackDto;
@@ -35,7 +35,7 @@ public interface ClueService extends IService<Clue> {
      * @param clueId 线索ID
      * @param userId 用户ID
      */
-    void assignClue(Integer clueId, Integer userId);
+    void assignClue(Long clueId, Long userId);
 
     /**
      * 根据ID查询线索详细信息（含跟进记录列表）
@@ -43,7 +43,7 @@ public interface ClueService extends IService<Clue> {
      * @param id 线索ID
      * @return 线索详细信息
      */
-    ClueVO getClueById(Integer id);
+    ClueVO getClueById(Long id);
 
     /**
      * 跟进线索：更新线索信息并新增一条跟进记录
@@ -58,14 +58,14 @@ public interface ClueService extends IService<Clue> {
      * @param id               线索ID
      * @param markFalseClueDto 伪线索原因与备注
      */
-    void markFalseClue(Integer id, MarkFalseClueDto markFalseClueDto);
+    void markFalseClue(Long id, MarkFalseClueDto markFalseClueDto);
 
     /**
      * 将线索转为商机
      *
      * @param id 线索ID
      */
-    void convertToBusiness(Integer id);
+    void convertToBusiness(Long id);
 
     /**
      * 线索池列表查询

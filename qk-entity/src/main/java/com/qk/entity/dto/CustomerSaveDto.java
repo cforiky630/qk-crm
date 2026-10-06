@@ -16,7 +16,7 @@ import lombok.Data;
 public class CustomerSaveDto {
 
     /** 客户ID：修改时必填，新增时忽略 */
-    private Integer id;
+    private Long id;
 
     @NotBlank(message = "手机号不能为空")
     private String phone;
@@ -40,5 +40,5 @@ public class CustomerSaveDto {
 
     private Integer subject;
 
-    private Integer courseId;
+    private Long courseId;
 }

@@ -1,5 +1,6 @@
 package com.qk.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -13,8 +14,9 @@ import java.util.Objects;
  * {@code Result<PageResult<ClueVO>>}。这样接口的返回类型自解释，
  * 调用方不需要再对 {@code data} 做强制类型转换。
  * <p>
- * 注意：泛型只作用于编译期，JSON 输出与原先完全一致
- * （字段仍是 {@code code}、{@code msg}、{@code data}）。
+ * 注意：泛型只作用于编译期，JSON 结构固定为 {@code code}、{@code msg}、{@code data}
+ * 三个字段；类上标注 {@code @JsonInclude(NON_NULL)}，因此 {@code data} 为 {@code null}
+ * 时该字段不会出现在报文里（调用方判断成功请用 {@code code == 1}）。
  * <p>
  * 本类<b>不可变</b>：字段全部 final、构造器私有、不提供 setter。
  * 实例只能由 {@link #success()}、{@link #success(Object)}、{@link #error(String)}、
@@ -26,6 +28,7 @@ import java.util.Objects;
 @Getter
 @ToString
 @EqualsAndHashCode
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> {
 
     /** 编码，取值见 {@link ResultCode}：1 成功，0 失败 */

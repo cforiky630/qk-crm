@@ -20,8 +20,8 @@ class OssTemplateTest {
     void sameUserWithSameContentProducesSameObjectName() {
         byte[] content = "fake-image-bytes".getBytes(StandardCharsets.UTF_8);
 
-        assertEquals(OssTemplate.buildObjectName(7, ".png", content),
-                OssTemplate.buildObjectName(7, ".png", content),
+        assertEquals(OssTemplate.buildObjectName(7L, ".png", content),
+                OssTemplate.buildObjectName(7L, ".png", content),
                 "重复上传同一张图必须落到同一个对象上");
     }
 
@@ -30,11 +30,11 @@ class OssTemplateTest {
         byte[] first = "a".getBytes(StandardCharsets.UTF_8);
         byte[] second = "b".getBytes(StandardCharsets.UTF_8);
 
-        assertNotEquals(OssTemplate.buildObjectName(7, ".png", first),
-                OssTemplate.buildObjectName(7, ".png", second));
-        assertNotEquals(OssTemplate.buildObjectName(7, ".png", first),
-                OssTemplate.buildObjectName(8, ".png", first), "不同用户之间不共享对象");
+        assertNotEquals(OssTemplate.buildObjectName(7L, ".png", first),
+                OssTemplate.buildObjectName(7L, ".png", second));
+        assertNotEquals(OssTemplate.buildObjectName(7L, ".png", first),
+                OssTemplate.buildObjectName(8L, ".png", first), "不同用户之间不共享对象");
         assertTrue(OssTemplate.buildObjectName(null, ".png", first).startsWith("images/anonymous/"));
-        assertTrue(OssTemplate.buildObjectName(7, ".png", first).endsWith(".png"));
+        assertTrue(OssTemplate.buildObjectName(7L, ".png", first).endsWith(".png"));
     }
 }

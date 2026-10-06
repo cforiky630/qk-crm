@@ -28,38 +28,45 @@ public class GlobalExceptionHandler {
         return Result.error(e.getMessage());
     }
 
-    @ExceptionHandler(DuplicateKeyException.class) // 处理DuplicateKeyException类型的异常
-    public Result<Void> handlerException(DuplicateKeyException e) {// 这个参数用于接收捕获到的异常
-        String message = e.getMessage(); // 异常信息中包含违反的唯一索引名称
-        if (message.contains("dept.name")) {
+    /**
+     * 唯一索引冲突：把数据库异常翻译成用户能看懂的提示
+     * <p>
+     * 唯一索引统一命名为 {@code uk_列名}，MySQL 的重复键报错里带的就是这个索引名，
+     * 形如 {@code Duplicate entry 'x' for key 'user.uk_username'}，
+     * 据此把冲突定位到具体字段，才能给出「用户名已存在」这类可读提示。
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<Void> handlerDuplicateKey(DuplicateKeyException e) {
+        String message = e.getMessage();
+        if (violatesUniqueKey(message, "dept", "name")) {
             log.error("部门名称已存在");
             return Result.error("部门名称已存在");
         }
-        if (message.contains("role.label")) {
+        if (violatesUniqueKey(message, "role", "label")) {
             log.error("角色标识已存在");
             return Result.error("角色标识已存在");
         }
-        if (message.contains("user.username")) {
+        if (violatesUniqueKey(message, "user", "username")) {
             log.error("用户名已存在");
             return Result.error("用户名已存在");
         }
-        if (message.contains("user.phone")) {
+        if (violatesUniqueKey(message, "user", "phone")) {
             log.error("手机号已存在");
             return Result.error("手机号已存在");
         }
-        if (message.contains("user.email")) {
+        if (violatesUniqueKey(message, "user", "email")) {
             log.error("邮箱已存在");
             return Result.error("邮箱已存在");
         }
-        if (message.contains("clue.phone")) {
+        if (violatesUniqueKey(message, "clue", "phone")) {
             log.error("该手机号已录入线索");
             return Result.error("该手机号已录入线索");
         }
-        if (message.contains("business.phone")) {
+        if (violatesUniqueKey(message, "business", "phone")) {
             log.error("该手机号已录入商机");
             return Result.error("该手机号已录入商机");
         }
-        if (message.contains("customer.phone")) {
+        if (violatesUniqueKey(message, "customer", "phone")) {
             log.error("该手机号已录入客户");
             return Result.error("该手机号已录入客户");
         }
@@ -114,6 +121,24 @@ public class GlobalExceptionHandler {
     public Result<Void> handlerMaxUploadSize(MaxUploadSizeExceededException e) {
         log.warn("上传文件超出大小限制: {}", e.getMessage());
         return Result.error("上传文件过大");
+    }
+
+    /**
+     * 判断异常信息里的唯一索引是否为 {@code 表.列}
+     * <p>
+     * 索引名形如 {@code uk_列名}；这里同时认不带前缀的写法，
+     * 避免索引改名后提示悄悄退化成「操作失败,请联系管理员」。
+     *
+     * @param message 数据库异常信息
+     * @param table   表名
+     * @param column  列名
+     * @return 命中的唯一索引属于该列时返回 true
+     */
+    private static boolean violatesUniqueKey(String message, String table, String column) {
+        if (message == null) {
+            return false;
+        }
+        return message.contains(table + "." + column) || message.contains(table + ".uk_" + column);
     }
 
     /**

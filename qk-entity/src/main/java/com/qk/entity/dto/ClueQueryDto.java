@@ -10,7 +10,7 @@ import lombok.Data;
 public class ClueQueryDto {
 
     /** 线索ID */
-    private Integer clueId;
+    private Long clueId;
 
     /** 手机号 */
     private String phone;

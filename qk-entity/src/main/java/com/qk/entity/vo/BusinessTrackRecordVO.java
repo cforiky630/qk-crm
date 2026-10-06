@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 public class BusinessTrackRecordVO {
 
     /** 跟进记录ID */
-    private Integer id;
+    private Long id;
 
     /** 商机ID */
-    private Integer businessId;
+    private Long businessId;
 
     /** 跟进人ID */
-    private Integer userId;
+    private Long userId;
 
     /** 跟进状态，1:接通, 2:拒绝, 3:无人接听 */
     private Integer trackStatus;
