@@ -79,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Optional<Long> authenticate(String token) {
+    public Optional<Principal> authenticate(String token) {
         // 签名与有效期由 JwtUtil 一并校验（内部把格式错误、签名不匹配、已过期都归为校验失败）
         if (!StringUtils.hasLength(token) || !jwtUtil.verify(token)) {
             log.debug("令牌为空、被篡改或已过期");
@@ -89,19 +89,15 @@ public class AuthServiceImpl implements AuthService {
         // 令牌通过签名校验不代表账号仍然可用：停用或删除账号后，已签发的令牌在有效期内
         // 依然能通过签名与过期校验，因此这里按主键查一次账号状态（走主键索引，代价很小）。
         Long userId = jwtUtil.getUserId(token);
-        if (!isActiveAccount(userId)) {
+        User user = userId == null ? null : userMapper.selectById(userId);
+        if (user == null || EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
             log.debug("令牌对应的账号不存在或已停用: userId={}", userId);
             return Optional.empty();
         }
-        return Optional.of(userId);
-    }
 
-    /** 账号必须存在且处于正常状态（status = 1）；逻辑删除的账号由 @TableLogic 自动排除 */
-    private boolean isActiveAccount(Long userId) {
-        if (userId == null) {
-            return false;
-        }
-        User user = userMapper.selectById(userId);
-        return user != null && !EnableStatus.DISABLED.getCode().equals(user.getStatus());
+        // 角色每次从库里取（不放进令牌）：给账号换角色要立即生效，与"停用立即失效"同一取舍。
+        // 自定义角色只是数据，不具备任何接口授权，因此这里返回的 label 可能不在保留角色之列。
+        Role role = user.getRoleId() == null ? null : roleMapper.selectById(user.getRoleId());
+        return Optional.of(new Principal(user.getId(), role == null ? null : role.getLabel()));
     }
 }

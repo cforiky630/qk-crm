@@ -15,9 +15,9 @@
 --      @JsonProperty(WRITE_ONLY)，任何响应都不会返回该字段。
 --
 -- 默认账号：
---   仅内置一个管理员账号，用户名 admin、密码 123。
---   该账号的 role_id 为空，登录后 roleLabel 为 null：角色需先通过 POST /roles 创建，
---   再通过 PUT /users 把 role_id 绑定到本账号。后端不校验角色，绑定只影响前端菜单渲染。
+--   仅内置一个管理员账号，用户名 admin、密码 123，并绑定内置的 admin 角色（role_id = 1）。
+--   接口授权依赖角色：管理类接口（用户、部门、角色、课程、活动）只有 admin 能调用，
+--   因此这个绑定必须随建表脚本一起写入，否则从零安装后无人能创建角色，系统会被锁死。
 use qk;
 
 -- 逻辑删除：is_deleted = 0 未删除、1 已删除。唯一索引建成函数索引
@@ -50,9 +50,9 @@ CREATE TABLE IF NOT EXISTS `user`
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='用户表';
 
--- 默认管理员：admin / 123
+-- 默认管理员：admin / 123，绑定内置 admin 角色（见 sql/role.sql）
 -- password = md5('admin' + '123')
 INSERT INTO `user` (`username`, `password`, `name`, `phone`, `email`, `gender`, `status`,
                     `dept_id`, `role_id`, `image`, `remark`, `create_time`, `update_time`)
 VALUES ('admin', '0192023a7bbd73250516f069df18b500', '管理员', '13800000000', 'admin@example.com',
-        1, 1, NULL, NULL, NULL, '系统管理员', NOW(), NOW());
+        1, 1, NULL, 1, NULL, '系统管理员', NOW(), NOW());

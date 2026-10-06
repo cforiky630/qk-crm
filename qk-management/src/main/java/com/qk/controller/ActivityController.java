@@ -3,11 +3,13 @@ package com.qk.controller;
 import com.qk.entity.po.Activity;
 import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.dto.ActivitySaveDto;
+import com.qk.entity.enums.RoleLabel;
 import com.qk.entity.vo.ActivityVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.ActivityService;
+import com.qk.interceptor.RequireRole;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,7 @@ public class ActivityController {
      * 新增活动
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PostMapping("/activities")
     public Result<Void> addActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
         log.info("新增活动,参数:{}", activityDto);
@@ -75,6 +78,7 @@ public class ActivityController {
      * 修改活动
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/activities")
     public Result<Void> updateActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
         log.info("修改活动信息：{}", activityDto);
@@ -106,6 +110,7 @@ public class ActivityController {
      * 删除活动
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @DeleteMapping("/activities/{id}")
     public Result<Void> deleteActivity(@PathVariable("id") Long id) {
         log.info("删除活动：{}", id);

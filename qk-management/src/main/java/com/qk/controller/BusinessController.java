@@ -8,7 +8,9 @@ import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.dto.BusinessTrackDto;
+import com.qk.entity.enums.RoleLabel;
 import com.qk.service.BusinessService;
+import com.qk.interceptor.RequireRole;
 import com.qk.entity.vo.BusinessVO;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
@@ -99,6 +101,7 @@ public class BusinessController {
      * 分配商机给指定用户
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/assign/{businessId}/{userId}")
     public Result<Void> assignBusiness(@PathVariable Long businessId, @PathVariable Long userId) {
         log.info("分配商机: 商机ID={}, 用户ID={}", businessId, userId);
@@ -110,6 +113,7 @@ public class BusinessController {
      * 将商机踢回公海
      */
     @LogOperation
+    @RequireRole({RoleLabel.ADMIN, RoleLabel.BUSINESS_OPERATOR})
     @PutMapping("/back/{id}")
     public Result<Void> backToPool(@PathVariable Long id) {
         log.info("将商机踢回公海, id: {}", id);
@@ -121,6 +125,7 @@ public class BusinessController {
      * 将商机转为客户
      */
     @LogOperation
+    @RequireRole({RoleLabel.ADMIN, RoleLabel.BUSINESS_OPERATOR})
     @PostMapping("/toCustomer/{id}")
     public Result<Void> convertToCustomer(@PathVariable Long id) {
         log.info("将商机转为客户, id: {}", id);
@@ -132,6 +137,7 @@ public class BusinessController {
      * 跟进商机
      */
     @LogOperation
+    @RequireRole({RoleLabel.ADMIN, RoleLabel.BUSINESS_OPERATOR})
     @PutMapping
     public Result<Void> trackBusiness(@Valid @RequestBody BusinessTrackDto businessTrackDto) {
         log.info("跟进商机: {}", businessTrackDto);

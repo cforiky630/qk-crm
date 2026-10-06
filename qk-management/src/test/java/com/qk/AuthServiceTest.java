@@ -4,8 +4,10 @@ import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.jwt.JWT;
 import com.qk.common.properties.JwtProperties;
 import com.qk.common.util.JwtUtil;
+import com.qk.entity.po.Role;
 import com.qk.entity.po.User;
 import com.qk.entity.vo.LoginResultVO;
+import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
 import com.qk.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,6 +49,9 @@ class AuthServiceTest {
     private UserMapper userMapper;
 
     @Autowired
+    private RoleMapper roleMapper;
+
+    @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
@@ -55,11 +59,15 @@ class AuthServiceTest {
 
     private User activeUser;
     private User disabledUser;
+    private String roleLabel;
 
     @BeforeEach
     void setUp() {
-        activeUser = insertUser(1);
-        disabledUser = insertUser(0);
+        // 自建角色，不依赖种子数据；标签唯一，顺便覆盖"认证结果带角色"这条链路
+        roleLabel = "auth_ut_role_" + SEQ.incrementAndGet();
+        Long roleId = insertRole(roleLabel);
+        activeUser = insertUser(1, roleId);
+        disabledUser = insertUser(0, roleId);
     }
 
     @Test
@@ -71,6 +79,7 @@ class AuthServiceTest {
         assertEquals(activeUser.getUsername(), result.getUsername());
         assertNotNull(result.getToken());
         assertEquals(activeUser.getId(), jwtUtil.getUserId(result.getToken()), "令牌里应带账号ID");
+        assertEquals(roleLabel, result.getRoleLabel(), "登录结果应带角色标识");
     }
 
     @Test
@@ -83,7 +92,10 @@ class AuthServiceTest {
 
     @Test
     void authenticateAcceptsTokenOfActiveAccount() {
-        assertEquals(Optional.of(activeUser.getId()), authService.authenticate(tokenFor(activeUser)));
+        AuthService.Principal principal = authService.authenticate(tokenFor(activeUser)).orElseThrow();
+
+        assertEquals(activeUser.getId(), principal.userId());
+        assertEquals(roleLabel, principal.roleLabel(), "角色随认证结果返回，接口授权靠它判断");
     }
 
     @Test
@@ -128,7 +140,16 @@ class AuthServiceTest {
     }
 
     /** 直接落库一个账号，密码摘要按生产规则计算（md5(用户名 + 明文密码)） */
-    private User insertUser(int status) {
+    private Long insertRole(String label) {
+        Role role = new Role();
+        role.setName("认证测试角色" + SEQ.get());
+        role.setLabel(label);
+        role.setRemark("单元测试数据");
+        roleMapper.insert(role);
+        return role.getId();
+    }
+
+    private User insertUser(int status, Long roleId) {
         int seq = SEQ.incrementAndGet();
         User user = new User();
         user.setUsername("auth_ut_" + seq);
@@ -139,7 +160,7 @@ class AuthServiceTest {
         user.setGender(1);
         user.setStatus(status);
         user.setDeptId(1L);
-        user.setRoleId(1L);
+        user.setRoleId(roleId);
         userMapper.insert(user);
         return user;
     }

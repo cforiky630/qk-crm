@@ -9,6 +9,10 @@
 --   3. 时间字段统一用 datetime NOT NULL，并加 DEFAULT CURRENT_TIMESTAMP（update_time 另有
 --      ON UPDATE CURRENT_TIMESTAMP）作为数据库侧兜底：绕过 Service 的裸 SQL 写入也会带上时间。
 --      业务写入仍以 Service 层为准，所以接口行为不变。
+--   4. label 是对外接口授权用的稳定标识（见 com.qk.entity.enums.RoleLabel）：
+--      其中 admin / clue_operator / business_operator 是系统保留标签，
+--      只有 admin 由本脚本内置（否则从零安装后没人能调用管理类接口，把自己锁在系统外），
+--      另外两个由管理员按需通过 POST /roles 创建，标签需与保留值一致。
 -- 逻辑删除：is_deleted = 0 未删除、1 已删除。唯一索引建成函数索引
 --           if(is_deleted = 0, 唯一列, NULL)：已删除行的索引键是 NULL，MySQL 视 NULL 互不相同，
 --           所以删除后同名数据可以重新创建，反复删除同名记录也不会撞唯一键。
@@ -26,3 +30,8 @@ CREATE TABLE IF NOT EXISTS `role`
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='角色信息表';
+
+-- 内置保留角色：管理员（拥有全部接口权限）。
+-- 必须由建表脚本创建，不能依赖接口：建库后第一个能调用 POST /roles 的账号就是它。
+INSERT INTO `role` (`id`, `name`, `label`, `remark`, `create_time`, `update_time`)
+VALUES (1, '管理员', 'admin', '内置角色：拥有全部接口权限', NOW(), NOW());

@@ -6,8 +6,10 @@ import com.qk.common.Result;
 import com.qk.entity.po.Role;
 import com.qk.entity.dto.RoleQueryDto;
 import com.qk.entity.dto.RoleSaveDto;
+import com.qk.entity.enums.RoleLabel;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.RoleService;
+import com.qk.interceptor.RequireRole;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ public class RoleController {
      * @return 操作结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PostMapping("/roles")
     public Result<Void> addRole(@Valid @RequestBody RoleSaveDto roleDto) {
         log.info("新增角色,参数:{}", roleDto);
@@ -72,6 +75,7 @@ public class RoleController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/roles")
     public Result<Void> updateRole(@Valid @RequestBody RoleSaveDto roleDto) {
         log.info("修改角色信息：{}", roleDto);
@@ -101,6 +105,7 @@ public class RoleController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @DeleteMapping("/roles/{id}")
     public Result<Void> deleteRole(@PathVariable("id") Long id) {
         log.info("删除角色：{}", id);

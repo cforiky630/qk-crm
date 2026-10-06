@@ -4,10 +4,12 @@ import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.DeptQueryDto;
 import com.qk.entity.dto.DeptSaveDto;
+import com.qk.entity.enums.RoleLabel;
 import com.qk.entity.po.Dept;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.service.DeptService;
+import com.qk.interceptor.RequireRole;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ public class DeptController {
      * @return 操作结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PostMapping("/depts") // 对应前端提交时用到的请求方式
     public Result<Void> addDept(@Valid @RequestBody DeptSaveDto deptDto) {
         log.info("新增部门,参数:{}", deptDto);
@@ -75,6 +78,7 @@ public class DeptController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/depts")
     public Result<Void> updateDept(@Valid @RequestBody DeptSaveDto deptDto) {
         log.info("修改部门信息：{}", deptDto);
@@ -106,6 +110,7 @@ public class DeptController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @DeleteMapping("/depts/{id}")
     public Result<Void> deleteDept(@PathVariable("id") Long id) {
         log.info("删除部门：{}", id);

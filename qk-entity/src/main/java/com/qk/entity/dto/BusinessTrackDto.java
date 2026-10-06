@@ -2,6 +2,7 @@ package com.qk.entity.dto;
 
 import lombok.Data;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -65,6 +66,7 @@ public class BusinessTrackDto {
     private LocalDateTime nextTime;
 
     /** 跟进状态，1:接通, 2:拒绝, 3:无人接听 */
+    @NotNull(message = "跟进状态不能为空")
     private Integer trackStatus;
 
     /** 沟通重点 */

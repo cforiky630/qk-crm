@@ -3,11 +3,13 @@ package com.qk.controller;
 import com.qk.entity.po.Course;
 import com.qk.entity.dto.CourseQueryDto;
 import com.qk.entity.dto.CourseSaveDto;
+import com.qk.entity.enums.RoleLabel;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.CourseService;
+import com.qk.interceptor.RequireRole;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,7 @@ public class CourseController {
      * @return 操作结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PostMapping("/courses")
     public Result<Void> addCourse(@Valid @RequestBody CourseSaveDto courseDto) {
         log.info("新增课程,参数:{}", courseDto);
@@ -72,6 +75,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/courses")
     public Result<Void> updateCourse(@Valid @RequestBody CourseSaveDto courseDto) {
         log.info("修改课程信息：{}", courseDto);
@@ -103,6 +107,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @LogOperation
+    @RequireRole(RoleLabel.ADMIN)
     @DeleteMapping("/courses/{id}")
     public Result<Void> deleteCourse(@PathVariable("id") Long id) {
         log.info("删除课程：{}", id);

@@ -132,6 +132,8 @@ public enum ErrorCode {
     PARAM_VALIDATION_FAILED("请求参数校验未通过"),
     /** 上传文件超出大小限制：{@code 上传文件过大} */
     UPLOAD_SIZE_EXCEEDED("上传文件过大"),
+    /** 已登录但角色不允许访问该接口：{@code 无权访问该接口，请联系管理员分配角色} */
+    FORBIDDEN("无权访问该接口，请联系管理员分配角色"),
     /** 请求了不存在的路径：{@code 请求的资源不存在} */
     RESOURCE_NOT_FOUND("请求的资源不存在"),
     /** 请求方法不被支持：{@code 请求方法不被支持} */
