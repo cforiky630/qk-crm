@@ -55,15 +55,18 @@ public interface BusinessMapper extends BaseMapper<Business> {
     }
 
     /**
-     * 清空某条商机的归属人（踢回公海时使用）
+     * 踢回公海：状态改为给定值，并同时解除归属人
      * <p>
-     * {@code updateById} 会忽略 null 字段，因此置空必须借助 UpdateWrapper 显式指定。
+     * 两件事必须在<b>同一条 UPDATE</b> 里完成：{@code updateById} 会忽略 null 字段、没法用它清空
+     * {@code user_id}，而分两次写会出现「状态已回收但归属人还在」的中间态。
+     * 状态取哪个值属于业务判断，由 Service 传入。
      *
      * @return 受影响行数
      */
-    default int clearAssignee(Long businessId) {
+    default int recycle(Long businessId, Integer status) {
         return update(null, new LambdaUpdateWrapper<Business>()
-                .eq(Business::getId, businessId)
-                .set(Business::getUserId, null));
+                .set(Business::getStatus, status)
+                .set(Business::getUserId, null)
+                .eq(Business::getId, businessId));
     }
 }

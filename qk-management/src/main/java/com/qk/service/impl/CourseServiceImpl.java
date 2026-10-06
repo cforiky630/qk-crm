@@ -7,6 +7,7 @@ import com.qk.entity.po.Course;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.CourseMapper;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.CustomerMapper;
@@ -49,7 +50,7 @@ public class CourseServiceImpl implements CourseService {
         // 这四列在库里是 NOT NULL：不在业务层校验的话，前端只能看到 500「系统繁忙」
         if (course.getSubject() == null || StrUtil.isBlank(course.getName())
                 || course.getPrice() == null || course.getTarget() == null) {
-            throw new BusinessException("课程名称、学科、价格、适用人群均不能为空");
+            throw new BusinessException(ErrorCode.COURSE_FIELDS_REQUIRED);
         }
         checkValueRange(course);
         courseMapper.insert(course);
@@ -72,7 +73,7 @@ public class CourseServiceImpl implements CourseService {
         // 修改是部分更新（null 字段不会参与 UPDATE），因此只校验前端实际传了的字段。
         // 注意：NOT NULL 拦不住空字符串，所以名称还要额外判空白
         if (course.getName() != null && StrUtil.isBlank(course.getName())) {
-            throw new BusinessException("课程名称不能为空");
+            throw new BusinessException(ErrorCode.COURSE_NAME_REQUIRED);
         }
         checkValueRange(course);
         courseMapper.updateById(course);
@@ -84,15 +85,15 @@ public class CourseServiceImpl implements CourseService {
      */
     private void checkValueRange(Course course) {
         if (course.getPrice() != null && course.getPrice() < 0) {
-            throw new BusinessException("价格不能为负数");
+            throw new BusinessException(ErrorCode.COURSE_PRICE_NEGATIVE);
         }
         if (course.getSubject() != null
                 && (course.getSubject() < MIN_SUBJECT || course.getSubject() > MAX_SUBJECT)) {
-            throw new BusinessException("学科取值必须在 " + MIN_SUBJECT + "~" + MAX_SUBJECT + " 之间");
+            throw new BusinessException(ErrorCode.COURSE_SUBJECT_RANGE, MIN_SUBJECT, MAX_SUBJECT);
         }
         if (course.getTarget() != null
                 && (course.getTarget() < MIN_TARGET || course.getTarget() > MAX_TARGET)) {
-            throw new BusinessException("适用人群取值必须在 " + MIN_TARGET + "~" + MAX_TARGET + " 之间");
+            throw new BusinessException(ErrorCode.COURSE_TARGET_RANGE, MIN_TARGET, MAX_TARGET);
         }
     }
 
@@ -114,7 +115,7 @@ public class CourseServiceImpl implements CourseService {
             if (customerRefs > 0) {
                 refs.add(customerRefs + " 条客户");
             }
-            throw new BusinessException("该课程已被 " + String.join("、", refs) + "引用，无法删除");
+            throw new BusinessException(ErrorCode.COURSE_STILL_REFERENCED, String.join("、", refs));
         }
 
         courseMapper.deleteById(id);
@@ -127,11 +128,11 @@ public class CourseServiceImpl implements CourseService {
      */
     private Course requireCourse(Long id) {
         if (id == null) {
-            throw new BusinessException("课程ID不能为空");
+            throw new BusinessException(ErrorCode.COURSE_ID_REQUIRED);
         }
         Course course = courseMapper.selectById(id);
         if (course == null) {
-            throw new BusinessException("课程不存在");
+            throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
         }
         return course;
     }

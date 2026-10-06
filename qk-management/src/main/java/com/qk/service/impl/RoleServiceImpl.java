@@ -6,6 +6,7 @@ import com.qk.entity.vo.PageResult;
 import com.qk.entity.vo.RoleVO;
 import com.qk.entity.po.Role;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
 import com.qk.service.RoleService;
@@ -59,7 +60,7 @@ public class RoleServiceImpl implements RoleService {
         // 否则登录时查不到角色，roleLabel 变成 null，前端菜单会渲染异常。
         long userCount = userMapper.countByRoleId(id);
         if (userCount > 0) {
-            throw new BusinessException("该角色下还有 " + userCount + " 名用户，无法删除");
+            throw new BusinessException(ErrorCode.ROLE_HAS_USERS, userCount);
         }
 
         roleMapper.deleteById(id);
@@ -72,11 +73,11 @@ public class RoleServiceImpl implements RoleService {
      */
     private Role requireRole(Long id) {
         if (id == null) {
-            throw new BusinessException("角色ID不能为空");
+            throw new BusinessException(ErrorCode.ROLE_ID_REQUIRED);
         }
         Role role = roleMapper.selectById(id);
         if (role == null) {
-            throw new BusinessException("角色不存在");
+            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
         }
         return role;
     }

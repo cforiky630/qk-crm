@@ -2,7 +2,6 @@ package com.qk.controller;
 
 import com.qk.entity.po.Course;
 import com.qk.entity.dto.CourseSaveDto;
-import cn.hutool.core.bean.BeanUtil;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
@@ -84,10 +83,20 @@ public class CourseController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private Course toCourse(CourseSaveDto dto) {
         Course course = new Course();
-        BeanUtil.copyProperties(dto, course);
+        course.setId(dto.getId());
+        course.setSubject(dto.getSubject());
+        course.setName(dto.getName());
+        course.setPrice(dto.getPrice());
+        course.setTarget(dto.getTarget());
+        course.setDescription(dto.getDescription());
         return course;
     }
 

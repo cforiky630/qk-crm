@@ -7,6 +7,7 @@ import com.qk.entity.po.Customer;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.CustomerMapper;
 import com.qk.service.CustomerService;
 import com.qk.entity.vo.CustomerVO;
@@ -38,7 +39,7 @@ public class CustomerServiceImpl implements CustomerService {
         // 手机号是库里的 NOT NULL + 唯一键，必须校验；
         // 渠道来源按页面原型（3.3 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
         if (StrUtil.isBlank(customer.getPhone())) {
-            throw new BusinessException("手机号不能为空");
+            throw new BusinessException(ErrorCode.PHONE_REQUIRED);
         }
         customer.setId(null);
         customerMapper.insert(customer);
@@ -52,7 +53,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public void updateCustomer(Customer customer) {
         if (customer.getId() == null || customerMapper.selectById(customer.getId()) == null) {
-            throw new BusinessException("客户不存在");
+            throw new BusinessException(ErrorCode.CUSTOMER_NOT_FOUND);
         }
         // businessId 由「商机转客户」写入，不允许通过修改接口篡改
         customer.setBusinessId(null);

@@ -2,7 +2,6 @@ package com.qk.controller;
 
 import com.qk.entity.po.Business;
 import com.qk.entity.dto.BusinessSaveDto;
-import cn.hutool.core.bean.BeanUtil;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
@@ -73,10 +72,27 @@ public class BusinessController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（status / userId / clueId 由 Service 赋值） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（status / userId / clueId 由 Service 赋值）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private Business toBusiness(BusinessSaveDto dto) {
         Business business = new Business();
-        BeanUtil.copyProperties(dto, business);
+        business.setName(dto.getName());
+        business.setPhone(dto.getPhone());
+        business.setGender(dto.getGender());
+        business.setAge(dto.getAge());
+        business.setWechat(dto.getWechat());
+        business.setQq(dto.getQq());
+        business.setSubject(dto.getSubject());
+        business.setCourseId(dto.getCourseId());
+        business.setDegree(dto.getDegree());
+        business.setJobStatus(dto.getJobStatus());
+        business.setChannel(dto.getChannel());
+        business.setRemark(dto.getRemark());
+        business.setNextTime(dto.getNextTime());
         return business;
     }
 

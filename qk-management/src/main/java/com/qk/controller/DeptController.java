@@ -1,15 +1,14 @@
 package com.qk.controller;
 
-import com.qk.entity.po.Dept;
+import com.qk.aspect.anno.LogOperation;
+import com.qk.common.Result;
 import com.qk.entity.dto.DeptSaveDto;
-import cn.hutool.core.bean.BeanUtil;
+import com.qk.entity.po.Dept;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
-import com.qk.common.Result;
-import com.qk.aspect.anno.LogOperation;
 import com.qk.service.DeptService;
-import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -92,10 +91,15 @@ public class DeptController {
      * <p>
      * 放在控制器而不是 Service：Service 不应依赖 Web 层的入参对象，
      * 否则接口字段一变，业务层就要跟着改。
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝，这里漏抄则编译期就报错。
      */
     private Dept toDept(DeptSaveDto dto) {
         Dept dept = new Dept();
-        BeanUtil.copyProperties(dto, dept);
+        dept.setId(dto.getId());
+        dept.setName(dto.getName());
+        dept.setStatus(dto.getStatus());
         return dept;
     }
 

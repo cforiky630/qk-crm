@@ -2,6 +2,8 @@ package com.qk.controller;
 
 import com.qk.common.Result;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
+import com.qk.common.util.FileNameUtil;
 import com.qk.common.util.OssTemplate;
 import com.qk.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -36,13 +38,14 @@ public class UploadController {
     @PostMapping("/upload")
     public Result<String> upload(MultipartFile image) throws IOException {
         if (image == null || image.isEmpty()) {
-            throw new BusinessException("请选择要上传的图片");
+            throw new BusinessException(ErrorCode.UPLOAD_IMAGE_REQUIRED);
         }
         String originalFilename = image.getOriginalFilename();
-        String suffix = originalFilename == null ? ""
-                : originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        // 白名单是小写，因此这里统一转小写再比；没有扩展名时得到空串，走同一个「格式不支持」提示，
+        // 而不是像原来那样在 substring(-1) 上抛 StringIndexOutOfBoundsException（会变成 500）
+        String suffix = FileNameUtil.extensionOf(originalFilename).toLowerCase();
         if (!ALLOWED_SUFFIX.contains(suffix)) {
-            throw new BusinessException("只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片");
+            throw new BusinessException(ErrorCode.UPLOAD_IMAGE_TYPE_UNSUPPORTED);
         }
 
         // 对象名带上上传人，便于后续按用户追溯与清理孤儿对象

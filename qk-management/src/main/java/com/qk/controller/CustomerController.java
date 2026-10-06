@@ -1,16 +1,15 @@
 package com.qk.controller;
 
-import com.qk.entity.po.Customer;
-import com.qk.entity.dto.CustomerSaveDto;
-import cn.hutool.core.bean.BeanUtil;
-import com.qk.entity.vo.PageResult;
-import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
+import com.qk.common.Result;
 import com.qk.entity.dto.CustomerQueryDto;
-import com.qk.service.CustomerService;
+import com.qk.entity.dto.CustomerSaveDto;
+import com.qk.entity.po.Customer;
 import com.qk.entity.vo.CustomerVO;
-import lombok.extern.slf4j.Slf4j;
+import com.qk.entity.vo.PageResult;
+import com.qk.service.CustomerService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -72,10 +71,26 @@ public class CustomerController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（businessId 由 Service 赋值） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（businessId 由 Service 赋值）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private Customer toCustomer(CustomerSaveDto dto) {
         Customer customer = new Customer();
-        BeanUtil.copyProperties(dto, customer);
+        customer.setId(dto.getId());
+        customer.setPhone(dto.getPhone());
+        customer.setChannel(dto.getChannel());
+        customer.setName(dto.getName());
+        customer.setGender(dto.getGender());
+        customer.setAge(dto.getAge());
+        customer.setWechat(dto.getWechat());
+        customer.setQq(dto.getQq());
+        customer.setDegree(dto.getDegree());
+        customer.setJobStatus(dto.getJobStatus());
+        customer.setSubject(dto.getSubject());
+        customer.setCourseId(dto.getCourseId());
         return customer;
     }
 }

@@ -1,6 +1,5 @@
 package com.qk.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -17,6 +16,7 @@ import com.qk.entity.enums.BusinessStatus;
 import com.qk.entity.enums.ClueStatus;
 import com.qk.entity.enums.ClueTrackType;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.ClueTrackRecordMapper;
@@ -52,7 +52,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     @Override
     public void addClue(Clue clue) {
         if (StrUtil.isBlank(clue.getPhone()) || clue.getChannel() == null) {
-            throw new BusinessException("手机号与线索来源不能为空");
+            throw new BusinessException(ErrorCode.CLUE_PHONE_CHANNEL_REQUIRED);
         }
         clue.setId(null);
         clue.setStatus(ClueStatus.WAIT_ALLOT.getCode());
@@ -70,7 +70,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         boolean assignable = ClueStatus.WAIT_ALLOT.getCode().equals(status)
                 || ClueStatus.FALSE_CLUE.getCode().equals(status);
         if (!assignable) {
-            throw new BusinessException("该线索当前状态不允许分配");
+            throw new BusinessException(ErrorCode.CLUE_STATUS_NOT_ALLOWED, "分配");
         }
 
         Clue clue = new Clue();
@@ -96,7 +96,20 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     public void trackClue(ClueTrackDto clueTrackDto) {
         requireActiveClue(clueTrackDto.getId(), "跟进");
         // 1. 更新线索：状态由服务端固定置为跟进中（前端即使传了 status 也不生效）
-        Clue clue = BeanUtil.copyProperties(clueTrackDto, Clue.class);
+        // 跟进时可以顺带更新客户资料，因此与线索同名的字段一并搬运；id 只用于定位
+        Clue clue = new Clue();
+        clue.setId(clueTrackDto.getId());
+        clue.setPhone(clueTrackDto.getPhone());
+        clue.setChannel(clueTrackDto.getChannel());
+        clue.setActivityId(clueTrackDto.getActivityId());
+        clue.setName(clueTrackDto.getName());
+        clue.setGender(clueTrackDto.getGender());
+        clue.setAge(clueTrackDto.getAge());
+        clue.setWechat(clueTrackDto.getWechat());
+        clue.setQq(clueTrackDto.getQq());
+        clue.setSubject(clueTrackDto.getSubject());
+        clue.setLevel(clueTrackDto.getLevel());
+        clue.setNextTime(clueTrackDto.getNextTime());
         clue.setStatus(ClueStatus.FOLLOWING.getCode());
         updateById(clue);
 
@@ -140,11 +153,16 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         clue.setStatus(ClueStatus.CONVERT_BUSINESS.getCode());
         updateById(clue);
 
-        // 2. 按线索信息创建商机：商机重新走分配流程，因此归属人、下次跟进时间都清空
-        Business business = BeanUtil.copyProperties(clue, Business.class);
-        business.setId(null);
-        business.setUserId(null);
-        business.setNextTime(null);
+        // 2. 按线索信息创建商机：只搬运客户资料，归属人/状态/下次跟进都不带（商机重新走分配流程）
+        Business business = new Business();
+        business.setName(clue.getName());
+        business.setPhone(clue.getPhone());
+        business.setGender(clue.getGender());
+        business.setAge(clue.getAge());
+        business.setWechat(clue.getWechat());
+        business.setQq(clue.getQq());
+        business.setSubject(clue.getSubject());
+        business.setChannel(clue.getChannel());
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
         business.setClueId(clue.getId());
         businessMapper.insert(business);
@@ -162,11 +180,11 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
      */
     private Clue requireClue(Long id) {
         if (id == null) {
-            throw new BusinessException("线索ID不能为空");
+            throw new BusinessException(ErrorCode.CLUE_ID_REQUIRED);
         }
         Clue clue = getById(id);
         if (clue == null) {
-            throw new BusinessException("线索不存在");
+            throw new BusinessException(ErrorCode.CLUE_NOT_FOUND);
         }
         return clue;
     }
@@ -184,7 +202,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         boolean active = ClueStatus.WAIT_FOLLOW.getCode().equals(status)
                 || ClueStatus.FOLLOWING.getCode().equals(status);
         if (!active) {
-            throw new BusinessException("该线索当前状态不允许" + action);
+            throw new BusinessException(ErrorCode.CLUE_STATUS_NOT_ALLOWED, action);
         }
         return clue;
     }

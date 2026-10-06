@@ -4,7 +4,6 @@ import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserSaveDto;
-import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.UserDto;
 import com.qk.service.UserService;
@@ -103,10 +102,25 @@ public class UserController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（password 不在 DTO 中，由 Service 决定） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（password 不在 DTO 中，由 Service 决定）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private User toUser(UserSaveDto dto) {
         User user = new User();
-        BeanUtil.copyProperties(dto, user);
+        user.setId(dto.getId());
+        user.setUsername(dto.getUsername());
+        user.setName(dto.getName());
+        user.setPhone(dto.getPhone());
+        user.setEmail(dto.getEmail());
+        user.setGender(dto.getGender());
+        user.setStatus(dto.getStatus());
+        user.setDeptId(dto.getDeptId());
+        user.setRoleId(dto.getRoleId());
+        user.setImage(dto.getImage());
+        user.setRemark(dto.getRemark());
         return user;
     }
 

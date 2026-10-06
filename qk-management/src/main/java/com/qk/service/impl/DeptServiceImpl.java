@@ -6,6 +6,7 @@ import com.qk.entity.po.Dept;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.mapper.DeptMapper;
 import com.qk.mapper.UserMapper;
@@ -60,7 +61,7 @@ public class DeptServiceImpl implements DeptService {
         // 守卫 1：启用状态的部门不允许直接删除，必须先停用。
         // 否则「正常部门」会凭空消失，前端下拉框与历史数据的引用都解释不通。
         if (EnableStatus.ENABLED.getCode().equals(dept.getStatus())) {
-            throw new BusinessException("部门处于启用状态，请先停用后再删除");
+            throw new BusinessException(ErrorCode.DEPT_ENABLED_CANNOT_DELETE);
         }
 
         // 守卫 2：仍被用户引用的部门不允许删除。
@@ -68,7 +69,7 @@ public class DeptServiceImpl implements DeptService {
         // 否则 user.dept_id 会留下悬空引用。
         long userCount = userMapper.countByDeptId(id);
         if (userCount > 0) {
-            throw new BusinessException("该部门下还有 " + userCount + " 名用户，无法删除");
+            throw new BusinessException(ErrorCode.DEPT_HAS_USERS, userCount);
         }
 
         deptMapper.deleteById(id);
@@ -81,11 +82,11 @@ public class DeptServiceImpl implements DeptService {
      */
     private Dept requireDept(Long id) {
         if (id == null) {
-            throw new BusinessException("部门ID不能为空");
+            throw new BusinessException(ErrorCode.DEPT_ID_REQUIRED);
         }
         Dept dept = deptMapper.selectById(id);
         if (dept == null) {
-            throw new BusinessException("部门不存在");
+            throw new BusinessException(ErrorCode.DEPT_NOT_FOUND);
         }
         return dept;
     }

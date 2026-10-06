@@ -5,7 +5,6 @@ import com.qk.entity.vo.RoleVO;
 import com.qk.common.Result;
 import com.qk.entity.po.Role;
 import com.qk.entity.dto.RoleSaveDto;
-import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.RoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -83,10 +82,18 @@ public class RoleController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private Role toRole(RoleSaveDto dto) {
         Role role = new Role();
-        BeanUtil.copyProperties(dto, role);
+        role.setId(dto.getId());
+        role.setName(dto.getName());
+        role.setLabel(dto.getLabel());
+        role.setRemark(dto.getRemark());
         return role;
     }
 

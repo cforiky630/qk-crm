@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-133%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-144%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -73,7 +73,7 @@
 ```
 qk-parent
 ├── qk-common/          通用能力（包根 com.qk.common）
-│   └── com.qk.common   Result / ResultCode、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
+│   └── com.qk.common   Result / ResultCode、ErrorCode 错误码、系统异常告警出口与默认实现、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
 ├── qk-entity/          实体 / DTO / VO / 枚举（包根 com.qk.entity）
 │   └── com.qk.entity
 │       ├── po          表映射实体（Dept、User、Clue、Business…，与表一一对应）
@@ -86,11 +86,12 @@ qk-parent
 │       ├── service     业务层（接口 + impl）
 │       ├── mapper      数据访问层（接口 + 同包同名 XML）
 │       ├── aspect      操作日志切面 + @LogOperation
+│       ├── handler     全局异常处理 + MyBatis-Plus 字段填充
 │       ├── interceptor 登录校验拦截器
 │       └── config      MyBatis-Plus、Jackson、Web、OSS 配置
 │   └── resources
 │       └── com/qk/mapper   Mapper XML（与接口同包同名、namespace 为接口全限定名）
-├── sql/                建表脚本 + 最小数据集脚本 + 增量迁移脚本（+ _backup 备份目录）
+├── sql/                建表脚本 + 最小数据集脚本（+ _backup 备份目录）
 └── docs/openapi.yaml   接口契约（36 个路径项 / 57 个操作）
 ```
 
@@ -237,13 +238,15 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：16 个测试类 / 133 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：19 个测试类 / 144 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
 - `*ControllerTest` 覆盖各模块的接口契约（状态码、字段、分页、筛选、状态流转）。
 - [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型。
 - [`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 守报文：把同一个 PO 分别以实体和 VO 序列化并逐字节比对，VO 漏抄字段即失败。
+- [`DateTimeFormatTest`](qk-management/src/test/java/com/qk/DateTimeFormatTest.java) 守时间契约：默认格式锁死 `yyyy-MM-dd HH:mm:ss`，同时证明字段级 `@JsonFormat` 能覆盖出参与入参。
+- [`GlobalExceptionHandlerTest`](qk-management/src/test/java/com/qk/GlobalExceptionHandlerTest.java) 守系统异常告警：走了一遍真实 MVC 处理链（兜底处理器带 `HttpServletRequest` 参数，直接调用测不出解析是否正常），并断言告警失败不影响 500 响应。
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
 - 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**，不依赖库里已有数据的规模与姓名。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
@@ -256,7 +259,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`、登录 `LoginDto`）；
 - **vo** 负责出参，**每张有查询接口的表都有自己的 VO**（`UserVO`、`ClueVO`、`DeptVO`、`RoleVO`、`CourseVO`、`ActivityVO`…），`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段也都在 VO 上；
 - **PO → VO 写成 VO 的静态工厂 `XxxVO.from(po)`，且逐个字段 setter，不用 `BeanUtil.copyProperties`**：前者漏抄或改名时编译期就报错，后者只会静默写入 null、悄悄改掉对外报文。[`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 逐字节比对 PO 与 VO 的序列化结果，锁死报文不变；
-- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解；**控制器负责把 DTO 映射成实体**再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
+- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解；**控制器负责把 DTO 映射成实体**（逐个字段赋值，不用 `BeanUtil` 反射拷贝：字段改名后会静默停止拷贝，逐个赋值则编译期报错）再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
 
 **统一响应（Result / ResultCode）**
@@ -265,6 +268,11 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - 常规场景只用 `Result.success(...)` 与 `Result.error(msg)`。`Result.custom(ResultCode, msg, data)` 是逃生舱，**能不用就不用**。
 - 确需新增响应码时：先给 `ResultCode` 加带注释的枚举成员，再同步更新 `docs/openapi.yaml` 的状态码约定。`custom` 只接受 `ResultCode`、不接受裸数字，就是为了防止在调用处临时拼码值。
 - `Result` 类上标注 `@JsonInclude(NON_NULL)`：`data` 为 `null` 时该字段**整个省略**，报文只剩 `code` 与 `msg`。判定成功请用 `code === 1`，不要用 `code === 0` 判失败，也不要用「有没有 `data` 字段」判断成功——前者在将来新增码值时依然正确，后者在无数据的成功响应上会误判。
+- 业务失败的**具体原因统一来自 `com.qk.common.exception.ErrorCode`**：枚举常量名是稳定 code，中文文案集中在枚举里维护，`BusinessException` 只接受错误码、不再接受散写字符串。新增业务规则提示时在枚举里加一条即可。
+- **业务异常与系统异常分开处理**：`BusinessException` 是预期内的失败（HTTP 200 + `code=0` + 具体提示）；兜底 `Exception` 是代码或依赖的缺陷（HTTP 500 + 固定提示「系统繁忙,请稍后重试」），并且**异步告警运维** —— 否则只有等用户投诉才会发现。
+- 告警能力整体在 `qk-common`（`com.qk.common.notify`）：[`SystemExceptionNotifier`](qk-common/src/main/java/com/qk/common/notify/SystemExceptionNotifier.java) 是出口契约、[`SystemAlert`](qk-common/src/main/java/com/qk/common/notify/SystemAlert.java) 是告警内容（只收纯值，不依赖 `HttpServletRequest`，非 Web 场景也能发起告警）、[`LoggingSystemExceptionNotifier`](qk-common/src/main/java/com/qk/common/notify/LoggingSystemExceptionNotifier.java) 是默认实现（只写日志）。接真实通道时在应用里实现接口并加 `@Primary` 即可，调用方一行不用改。，但异步结构已经搭好：单线程守护线程池 + 有界队列 256 + 队满记 WARN 丢弃，**绝不阻塞请求线程、绝不把异常抛回调用方**。接真实通道（钉钉/企业微信/邮件/webhook）只需替换它的 `send` 方法。
+- **错误码不进入响应体**：前端只按 `code`（0/1）判断成败、直接展示 `msg`，不按失败原因分支，因此对外契约保持 `{code, msg}` 不变，`ErrorCode` 只用于结构化日志与文案集中。将来需要按类型分支时再暴露——届时要把参数校验、坏 JSON、类型不匹配、上传超限、兜底 500 这几条路径也补上，否则会是一个时有时无的字段。
+- 唯一索引冲突的「表.唯一索引名 → 提示」是一张表（见 `GlobalExceptionHandler.UNIQUE_KEY_ERRORS`），新增唯一索引只需补一行。
 - `Result<T>` 为泛型，接口返回类型即数据类型；泛型只在编译期生效，JSON 结构固定为 `code` / `msg` / `data` 三个字段（`data` 为空时省略），由 `ResultTest` 守卫。
 
 **Mapper（wrapper 负责简单查询、XML 负责复杂 SQL）**
@@ -294,7 +302,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 **其他**
 
-- `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入兼容多种写法。
+- `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入额外兼容 `yyyy-MM-dd HH:mm`、`yyyy-MM-dd` 与 ISO 写法。个别字段需要别的格式时，在该字段上加 `@JsonFormat(pattern = "...")` 即可覆盖默认（入参同理，且字段格式解析不了时仍会回落到上面的兼容逻辑）。由 `DateTimeFormatTest` 守住。
 - 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType` / `ActivityStatus`），不散落裸数字；它们统一实现 `CodeEnum` 契约，可用 `CodeEnum.fromCode(XxxStatus.class, code)` 按码值反查，或用 `CodeEnum.codes(...)` 取全部码值。其中 `ActivityStatus`（未开始/进行中/已结束）由 `startTime`、`endTime` 与当前时间推算，**不落库**，只作为 `/activities` 的查询条件。
 - 列表排序按页面原型：部门/角色/课程/活动/用户按最后修改时间倒序，线索/商机/线索池/公海池按修改时间倒序，客户按创建时间倒序；排序末尾都补 `id`，避免排序键不唯一导致翻页重复或丢记录。
 - `GET /users/role/{roleLabel}`（分配线索/商机的人员下拉）只返回 `status = 1` 的用户：停用账号登录会被拒绝，分配给它等于这条数据没有归属人。

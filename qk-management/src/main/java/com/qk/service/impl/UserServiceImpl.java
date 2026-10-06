@@ -11,6 +11,7 @@ import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
 import com.qk.mapper.BusinessMapper;
@@ -25,11 +26,12 @@ import com.qk.entity.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 用户服务实现类
@@ -83,7 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setId(null);
         if (StrUtil.isBlank(user.getUsername()) || StrUtil.isBlank(user.getName())
                 || StrUtil.isBlank(user.getPhone()) || StrUtil.isBlank(user.getEmail())) {
-            throw new BusinessException("用户名、姓名、手机号、邮箱均不能为空");
+            throw new BusinessException(ErrorCode.USER_FIELDS_REQUIRED);
         }
         // 接口文档中新增用户不接收密码，这里统一使用默认密码：用户名 + 123，落库前做 MD5 加密
         if (StrUtil.isBlank(user.getPassword())) {
@@ -102,7 +104,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public void updateUser(User user) {
         if (user.getId() == null || getById(user.getId()) == null) {
-            throw new BusinessException("用户不存在");
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
         // 守卫：不允许把当前登录用户自己停用。
@@ -110,7 +112,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Long currentUserId = UserHolder.getCurrentUser();
         if (currentUserId != null && currentUserId.equals(user.getId())
                 && EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
-            throw new BusinessException("不能停用当前登录用户");
+            throw new BusinessException(ErrorCode.USER_CANNOT_DISABLE_SELF);
         }
 
         // 接口文档中修改用户不包含密码字段，密码修改走单独的重置流程，
@@ -128,26 +130,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public void deleteUsers(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
-            throw new BusinessException("待删除的用户ID不能为空");
+            throw new BusinessException(ErrorCode.USER_IDS_REQUIRED);
         }
         // 去重并剔除 null，避免同一个 id 传两次导致计数与提示失真
         List<Long> targetIds = ids.stream().filter(Objects::nonNull).distinct().toList();
         if (targetIds.isEmpty()) {
-            throw new BusinessException("待删除的用户ID不能为空");
+            throw new BusinessException(ErrorCode.USER_IDS_REQUIRED);
         }
 
         // 守卫 1：不允许删除当前登录用户自己，避免把自己锁在系统外
         Long currentUserId = UserHolder.getCurrentUser();
         if (currentUserId != null && targetIds.contains(currentUserId)) {
-            throw new BusinessException("不能删除当前登录用户");
+            throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
         }
 
         // 守卫 2：待删 ID 必须真实存在，否则明确报错而不是静默「删除成功」
         List<User> existing = listByIds(targetIds);
         if (existing.size() != targetIds.size()) {
-            List<Long> missing = new ArrayList<>(targetIds);
-            existing.forEach(user -> missing.remove(user.getId()));
-            throw new BusinessException("用户不存在: " + missing);
+            Set<Long> existingIds = existing.stream().map(User::getId).collect(Collectors.toSet());
+            List<Long> missing = targetIds.stream().filter(id -> !existingIds.contains(id)).toList();
+            throw new BusinessException(ErrorCode.USER_IDS_NOT_FOUND, missing);
         }
 
         // 守卫 3：仍被业务数据引用的用户不允许删除。
@@ -157,9 +159,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             long businessRefs = businessMapper.countByUserId(id);
             long trackRefs = clueTrackRecordMapper.countByUserId(id) + businessTrackRecordMapper.countByUserId(id);
             if (clueRefs > 0 || businessRefs > 0 || trackRefs > 0) {
-                throw new BusinessException("用户 " + id + " 仍被业务数据引用（线索 " + clueRefs
-                        + " 条、商机 " + businessRefs + " 条、跟进记录 " + trackRefs
-                        + " 条），无法删除；如不再使用请改为停用");
+                throw new BusinessException(ErrorCode.USER_STILL_REFERENCED, id, clueRefs, businessRefs, trackRefs);
             }
         }
 

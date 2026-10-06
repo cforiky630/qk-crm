@@ -1,6 +1,5 @@
 package com.qk.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,6 +13,7 @@ import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.dto.BusinessTrackDto;
 import com.qk.entity.enums.BusinessStatus;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
 import com.qk.mapper.CustomerMapper;
@@ -51,7 +51,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         // 手机号是库里的 NOT NULL + 唯一键，必须校验；
         // 渠道来源按页面原型（2.11 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
         if (StrUtil.isBlank(business.getPhone())) {
-            throw new BusinessException("手机号不能为空");
+            throw new BusinessException(ErrorCode.PHONE_REQUIRED);
         }
         business.setId(null);
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
@@ -68,7 +68,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         boolean assignable = BusinessStatus.WAIT_ALLOT.getCode().equals(status)
                 || BusinessStatus.RECYCLED.getCode().equals(status);
         if (!assignable) {
-            throw new BusinessException("该商机当前状态不允许分配");
+            throw new BusinessException(ErrorCode.BUSINESS_STATUS_NOT_ALLOWED, "分配");
         }
 
         Business business = new Business();
@@ -81,13 +81,8 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Override
     public void backToPool(Long id) {
         requireActiveBusiness(id, "踢回公海");
-        Business business = new Business();
-        business.setId(id);
-        business.setStatus(BusinessStatus.RECYCLED.getCode());
-        // 踢回公海，需要同时解除归属人
-        updateById(business);
-        // updateById 默认忽略 null 字段，因此清空归属人交给 Mapper 显式置 null
-        baseMapper.clearAssignee(id);
+        // 状态与归属人在同一条 UPDATE 里改完，中途失败不会留下半成品状态；也少一次数据库往返
+        baseMapper.recycle(id, BusinessStatus.RECYCLED.getCode());
     }
 
     @Override
@@ -98,9 +93,19 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
         updateById(business);
 
-        // 2. 按商机信息创建客户，并记录来源商机
-        Customer customer = BeanUtil.copyProperties(business, Customer.class);
-        customer.setId(null);
+        // 2. 按商机信息创建客户，并记录来源商机：只搬运客户资料，状态/归属人都不带
+        Customer customer = new Customer();
+        customer.setName(business.getName());
+        customer.setPhone(business.getPhone());
+        customer.setGender(business.getGender());
+        customer.setAge(business.getAge());
+        customer.setWechat(business.getWechat());
+        customer.setQq(business.getQq());
+        customer.setSubject(business.getSubject());
+        customer.setCourseId(business.getCourseId());
+        customer.setDegree(business.getDegree());
+        customer.setJobStatus(business.getJobStatus());
+        customer.setChannel(business.getChannel());
         customer.setBusinessId(business.getId());
         customerMapper.insert(customer);
     }
@@ -121,7 +126,22 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     public void trackBusiness(BusinessTrackDto businessTrackDto) {
         requireActiveBusiness(businessTrackDto.getId(), "跟进");
         // 1. 更新商机：状态由服务端固定置为跟进中
-        Business business = BeanUtil.copyProperties(businessTrackDto, Business.class);
+        // 跟进时可以顺带更新客户资料，因此与商机同名的字段一并搬运；id 只用于定位
+        Business business = new Business();
+        business.setId(businessTrackDto.getId());
+        business.setName(businessTrackDto.getName());
+        business.setPhone(businessTrackDto.getPhone());
+        business.setGender(businessTrackDto.getGender());
+        business.setAge(businessTrackDto.getAge());
+        business.setWechat(businessTrackDto.getWechat());
+        business.setQq(businessTrackDto.getQq());
+        business.setSubject(businessTrackDto.getSubject());
+        business.setCourseId(businessTrackDto.getCourseId());
+        business.setDegree(businessTrackDto.getDegree());
+        business.setJobStatus(businessTrackDto.getJobStatus());
+        business.setChannel(businessTrackDto.getChannel());
+        business.setRemark(businessTrackDto.getRemark());
+        business.setNextTime(businessTrackDto.getNextTime());
         business.setStatus(BusinessStatus.FOLLOWING.getCode());
         updateById(business);
 
@@ -149,11 +169,11 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
      */
     private Business requireBusiness(Long id) {
         if (id == null) {
-            throw new BusinessException("商机ID不能为空");
+            throw new BusinessException(ErrorCode.BUSINESS_ID_REQUIRED);
         }
         Business business = getById(id);
         if (business == null) {
-            throw new BusinessException("商机不存在");
+            throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }
         return business;
     }
@@ -170,7 +190,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         boolean active = BusinessStatus.WAIT_FOLLOW.getCode().equals(status)
                 || BusinessStatus.FOLLOWING.getCode().equals(status);
         if (!active) {
-            throw new BusinessException("该商机当前状态不允许" + action);
+            throw new BusinessException(ErrorCode.BUSINESS_STATUS_NOT_ALLOWED, action);
         }
         return business;
     }

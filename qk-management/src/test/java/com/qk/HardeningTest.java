@@ -460,4 +460,20 @@ class HardeningTest {
                     .andExpect(jsonPath("$.msg").value(item[1]));
         }
     }
+    /**
+     * 没有扩展名的文件必须被友好拒绝，而不是 500
+     * <p>
+     * 旧实现在 {@code lastIndexOf(".") == -1} 时直接 {@code substring(-1)}，
+     * 抛的是 StringIndexOutOfBoundsException（兜底处理器转成 500），而不是「格式不支持」。
+     */
+    @Test
+    void uploadRejectsFileWithoutExtension() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("image", "noextension", "image/png",
+                "x".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/upload").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片"));
+    }
 }

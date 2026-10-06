@@ -9,6 +9,7 @@ import com.qk.entity.enums.CodeEnum;
 import com.qk.entity.vo.ActivityVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.ActivityMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.service.ActivityService;
@@ -34,7 +35,7 @@ public class ActivityServiceImpl implements ActivityService {
         activity.setId(null);
         if (StrUtil.isBlank(activity.getName()) || activity.getChannel() == null
                 || activity.getType() == null || activity.getStartTime() == null || activity.getEndTime() == null) {
-            throw new BusinessException("活动名称、渠道、类型、开始与结束时间均不能为空");
+            throw new BusinessException(ErrorCode.ACTIVITY_FIELDS_REQUIRED);
         }
         activityMapper.insert(activity);
     }
@@ -45,7 +46,7 @@ public class ActivityServiceImpl implements ActivityService {
         // 活动状态是查询条件而不是库里的列，取值必须先收敛到枚举，
         // 否则前端传 9 之类的脏值会被静默忽略，返回「没有筛选」的全量数据
         if (activityStatus != null && CodeEnum.fromCode(ActivityStatus.class, activityStatus).isEmpty()) {
-            throw new BusinessException("活动状态取值为 1（未开始）、2（进行中）、3（已结束）");
+            throw new BusinessException(ErrorCode.ACTIVITY_STATUS_INVALID);
         }
         IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type, activityStatus);
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(ActivityVO::from).toList());
@@ -71,7 +72,7 @@ public class ActivityServiceImpl implements ActivityService {
         // 只能由 Service 层兜底，否则线索的来源活动会变成悬空引用。
         long clueRefs = clueMapper.countByActivityId(id);
         if (clueRefs > 0) {
-            throw new BusinessException("该活动已关联 " + clueRefs + " 条线索，无法删除");
+            throw new BusinessException(ErrorCode.ACTIVITY_HAS_CLUES, clueRefs);
         }
 
         activityMapper.deleteById(id);
@@ -83,11 +84,11 @@ public class ActivityServiceImpl implements ActivityService {
      */
     private Activity requireActivity(Long id) {
         if (id == null) {
-            throw new BusinessException("活动ID不能为空");
+            throw new BusinessException(ErrorCode.ACTIVITY_ID_REQUIRED);
         }
         Activity activity = activityMapper.selectById(id);
         if (activity == null) {
-            throw new BusinessException("活动不存在");
+            throw new BusinessException(ErrorCode.ACTIVITY_NOT_FOUND);
         }
         return activity;
     }

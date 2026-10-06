@@ -34,7 +34,7 @@ info:
     | `500` | 服务端异常（代码缺陷） | `Result`，`code = 0`，`msg` 为「系统繁忙,请稍后重试」，堆栈只进服务端日志 |
 
     ### 时间格式
-    输出固定为 `yyyy-MM-dd HH:mm:ss`；输入额外兼容 `yyyy-MM-dd HH:mm`、`yyyy-MM-dd`
+    输出默认固定为 `yyyy-MM-dd HH:mm:ss`；输入额外兼容 `yyyy-MM-dd HH:mm`、`yyyy-MM-dd`
     （按当天 00:00:00 处理）与 ISO 格式 `yyyy-MM-ddTHH:mm:ss`。
     `createTime`、`updateTime` 由服务端自动填充为服务器时间，请求中传入的值会被忽略。
 

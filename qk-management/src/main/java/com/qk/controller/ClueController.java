@@ -1,19 +1,14 @@
 package com.qk.controller;
 
-import com.qk.entity.po.Clue;
-import com.qk.entity.dto.ClueSaveDto;
-import cn.hutool.core.bean.BeanUtil;
-import com.qk.entity.vo.PageResult;
-import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.entity.dto.CluePoolDto;
-import com.qk.entity.dto.ClueQueryDto;
-import com.qk.entity.dto.ClueTrackDto;
-import com.qk.entity.dto.MarkFalseClueDto;
-import com.qk.service.ClueService;
+import com.qk.common.Result;
+import com.qk.entity.dto.*;
+import com.qk.entity.po.Clue;
 import com.qk.entity.vo.ClueVO;
-import lombok.extern.slf4j.Slf4j;
+import com.qk.entity.vo.PageResult;
+import com.qk.service.ClueService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -74,10 +69,25 @@ public class ClueController {
         return Result.success();
     }
 
-    /** 协议适配：请求 DTO → 领域实体（status / userId 由 Service 赋值） */
+    /**
+     * 协议适配：请求 DTO → 领域实体（status / userId 由 Service 赋值）
+     * <p>
+     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
+     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     */
     private Clue toClue(ClueSaveDto dto) {
         Clue clue = new Clue();
-        BeanUtil.copyProperties(dto, clue);
+        clue.setPhone(dto.getPhone());
+        clue.setChannel(dto.getChannel());
+        clue.setActivityId(dto.getActivityId());
+        clue.setName(dto.getName());
+        clue.setGender(dto.getGender());
+        clue.setAge(dto.getAge());
+        clue.setWechat(dto.getWechat());
+        clue.setQq(dto.getQq());
+        clue.setSubject(dto.getSubject());
+        clue.setLevel(dto.getLevel());
+        clue.setNextTime(dto.getNextTime());
         return clue;
     }
 

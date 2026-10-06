@@ -2,6 +2,11 @@ package com.qk.handler;
 
 import com.qk.common.Result;
 import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
+import com.qk.common.util.UserHolder;
+import com.qk.common.notify.SystemAlert;
+import com.qk.common.notify.SystemExceptionNotifier;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -13,64 +18,61 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final SystemExceptionNotifier systemExceptionNotifier;
+
+    public GlobalExceptionHandler(SystemExceptionNotifier systemExceptionNotifier) {
+        this.systemExceptionNotifier = systemExceptionNotifier;
+    }
+
     /**
      * 业务异常：属于「预期内的失败」，HTTP 状态保持 200，由响应体 code=0 表达
      */
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handlerBusinessException(BusinessException e) {
-        log.warn("业务校验未通过: {}", e.getMessage());
+        log.warn("业务校验未通过: [{}] {}", e.getErrorCode(), e.getMessage());
         return Result.error(e.getMessage());
     }
 
+    /** 「表.唯一索引名」→ 冲突提示；键即 MySQL 报错里的索引全名 */
+    private static final Map<String, ErrorCode> UNIQUE_KEY_ERRORS = Map.ofEntries(
+            Map.entry("dept.uk_name", ErrorCode.DEPT_NAME_EXISTS),
+            Map.entry("role.uk_label", ErrorCode.ROLE_LABEL_EXISTS),
+            Map.entry("user.uk_username", ErrorCode.USER_USERNAME_EXISTS),
+            Map.entry("user.uk_phone", ErrorCode.USER_PHONE_EXISTS),
+            Map.entry("user.uk_email", ErrorCode.USER_EMAIL_EXISTS),
+            Map.entry("clue.uk_phone", ErrorCode.CLUE_PHONE_EXISTS),
+            Map.entry("business.uk_phone", ErrorCode.BUSINESS_PHONE_EXISTS),
+            Map.entry("customer.uk_phone", ErrorCode.CUSTOMER_PHONE_EXISTS));
+
     /**
-     * 唯一索引冲突：把数据库异常翻译成用户能看懂的提示
+     * 唯一索引冲突：「表.唯一索引名」→ 用户能看懂的提示
      * <p>
      * 唯一索引统一命名为 {@code uk_列名}，MySQL 的重复键报错里带的就是这个索引名，
-     * 形如 {@code Duplicate entry 'x' for key 'user.uk_username'}，
-     * 据此把冲突定位到具体字段，才能给出「用户名已存在」这类可读提示。
+     * 形如 {@code Duplicate entry 'x' for key 'user.uk_username'}。
+     * 新增一个唯一索引时，只需要在下面这张表里补一行。
      */
     @ExceptionHandler(DuplicateKeyException.class)
     public Result<Void> handlerDuplicateKey(DuplicateKeyException e) {
         String message = e.getMessage();
-        if (violatesUniqueKey(message, "dept", "name")) {
-            log.error("部门名称已存在");
-            return Result.error("部门名称已存在");
+        if (message != null) {
+            for (Map.Entry<String, ErrorCode> entry : UNIQUE_KEY_ERRORS.entrySet()) {
+                if (message.contains(entry.getKey())) {
+                    ErrorCode errorCode = entry.getValue();
+                    log.error("唯一索引冲突 [{}]: {}", entry.getKey(), errorCode.getMessage());
+                    return Result.error(errorCode.getMessage());
+                }
+            }
         }
-        if (violatesUniqueKey(message, "role", "label")) {
-            log.error("角色标识已存在");
-            return Result.error("角色标识已存在");
-        }
-        if (violatesUniqueKey(message, "user", "username")) {
-            log.error("用户名已存在");
-            return Result.error("用户名已存在");
-        }
-        if (violatesUniqueKey(message, "user", "phone")) {
-            log.error("手机号已存在");
-            return Result.error("手机号已存在");
-        }
-        if (violatesUniqueKey(message, "user", "email")) {
-            log.error("邮箱已存在");
-            return Result.error("邮箱已存在");
-        }
-        if (violatesUniqueKey(message, "clue", "phone")) {
-            log.error("该手机号已录入线索");
-            return Result.error("该手机号已录入线索");
-        }
-        if (violatesUniqueKey(message, "business", "phone")) {
-            log.error("该手机号已录入商机");
-            return Result.error("该手机号已录入商机");
-        }
-        if (violatesUniqueKey(message, "customer", "phone")) {
-            log.error("该手机号已录入客户");
-            return Result.error("该手机号已录入客户");
-        }
-        return Result.error("操作失败,请联系管理员");
+        // 没识别出来说明库里有没登记的唯一索引，日志留证，对外只给通用提示
+        log.error("未识别的唯一索引冲突: {}", message);
+        return Result.error(ErrorCode.UNKNOWN_FAILURE.getMessage());
     }
 
     /**
@@ -80,7 +82,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handlerMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("请求体解析失败: {}", e.getMessage());
-        return Result.error("请求参数格式不正确");
+        return Result.error(ErrorCode.PARAM_FORMAT_INVALID.getMessage());
     }
 
     /**
@@ -90,7 +92,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handlerTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("请求参数类型不匹配: {} = {}", e.getName(), e.getValue());
-        return Result.error("请求参数类型不正确");
+        return Result.error(ErrorCode.PARAM_TYPE_INVALID.getMessage());
     }
 
     /**
@@ -108,7 +110,7 @@ public class GlobalExceptionHandler {
                 .map(fieldError -> Objects.toString(fieldError.getDefaultMessage(), null))
                 .filter(Objects::nonNull)
                 .findFirst()
-                .orElse("请求参数校验未通过");
+                .orElse(ErrorCode.PARAM_VALIDATION_FAILED.getMessage());
         log.warn("参数校验未通过: {}", message);
         return Result.error(message);
     }
@@ -120,25 +122,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<Void> handlerMaxUploadSize(MaxUploadSizeExceededException e) {
         log.warn("上传文件超出大小限制: {}", e.getMessage());
-        return Result.error("上传文件过大");
-    }
-
-    /**
-     * 判断异常信息里的唯一索引是否为 {@code 表.列}
-     * <p>
-     * 索引名形如 {@code uk_列名}；这里同时认不带前缀的写法，
-     * 避免索引改名后提示悄悄退化成「操作失败,请联系管理员」。
-     *
-     * @param message 数据库异常信息
-     * @param table   表名
-     * @param column  列名
-     * @return 命中的唯一索引属于该列时返回 true
-     */
-    private static boolean violatesUniqueKey(String message, String table, String column) {
-        if (message == null) {
-            return false;
-        }
-        return message.contains(table + "." + column) || message.contains(table + ".uk_" + column);
+        return Result.error(ErrorCode.UPLOAD_SIZE_EXCEEDED.getMessage());
     }
 
     /**
@@ -149,8 +133,29 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Result<Void> handlerException(Exception e) {
+    public Result<Void> handlerException(Exception e, HttpServletRequest request) {
         log.error("服务器发生异常", e);
-        return Result.error("系统繁忙,请稍后重试");
+        alertSystemException(e, request);
+        return Result.error(ErrorCode.SYSTEM_ERROR.getMessage());
+    }
+
+    /**
+     * 异步告警运维
+     * <p>
+     * 业务异常是预期内的失败，返回提示即可；系统异常是代码或依赖的缺陷，必须让运维知道 ——
+     * 否则只有等用户投诉才会发现。这里把异常交给告警出口就返回，不等结果、不看结果。
+     * <p>
+     * {@link SystemExceptionNotifier#notify} 约定不抛异常，这里仍再包一层：
+     * 兜底处理器是最后一道防线，它自己抛出异常会连 500 的响应体都丢掉，多一层 try 是廉价的保险。
+     */
+    private void alertSystemException(Exception e, HttpServletRequest request) {
+        try {
+            systemExceptionNotifier.notify(SystemAlert.of(e,
+                    request == null ? null : request.getMethod(),
+                    request == null ? null : request.getRequestURI(),
+                    UserHolder.getCurrentUser()));
+        } catch (Exception alertFailure) {
+            log.warn("系统异常告警发送失败", alertFailure);
+        }
     }
 }
