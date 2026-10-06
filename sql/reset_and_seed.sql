@@ -23,8 +23,8 @@ TRUNCATE TABLE clue;
 TRUNCATE TABLE customer;
 TRUNCATE TABLE activity;
 TRUNCATE TABLE course;
-TRUNCATE TABLE `user`;
-TRUNCATE TABLE `role`;
+TRUNCATE TABLE user;
+TRUNCATE TABLE role;
 TRUNCATE TABLE dept;
 
 -- ---------- 部门 ----------
@@ -34,13 +34,13 @@ INSERT INTO dept (id, name, status, create_time, update_time) VALUES
 (3, '客服部', 1, NOW(), NOW());
 
 -- ---------- 角色 ----------
-INSERT INTO `role` (id, name, label, remark, create_time, update_time) VALUES
+INSERT INTO role (id, name, label, remark, create_time, update_time) VALUES
 (1, '管理员', 'admin', '拥有全部权限', NOW(), NOW()),
 (2, '线索专员', 'clue_operator', '负责跟进线索', NOW(), NOW()),
 (3, '商机专员', 'business_operator', '负责跟进商机', NOW(), NOW());
 
 -- ---------- 用户（密码统一 123）----------
-INSERT INTO `user` (id, username, password, name, phone, email, gender, status, dept_id, role_id, image, remark, create_time, update_time) VALUES
+INSERT INTO user (id, username, password, name, phone, email, gender, status, dept_id, role_id, image, remark, create_time, update_time) VALUES
 (1, 'admin', '0192023a7bbd73250516f069df18b500', '管理员', '13800000001', 'admin@qk.test', 1, 1, 1, 1, NULL, '系统管理员', NOW(), NOW()),
 (2, 'zhangsan', '4e7bdb88640b376ac6646b8f1ecfb558', '张三', '13800000002', 'zhangsan@qk.test', 1, 1, 2, 2, NULL, '线索专员', NOW(), NOW()),
 (3, 'lisi', 'c3cb6d12c40908943b64bc0681af47db', '李四', '13800000003', 'lisi@qk.test', 1, 1, 3, 3, NULL, '商机专员', NOW(), NOW());
@@ -69,7 +69,7 @@ INSERT INTO business (id, name, phone, gender, age, wechat, qq, subject, course_
 (2, '周小八', '13900000004', 2, 28, 'wxzhouxb', '600500400', 1, 1, 4, 1, 1, '价格偏高，先回收', 4, 3, NULL, NULL, NOW(), NOW());
 
 INSERT INTO business_track_record (id, business_id, user_id, track_status, key_items, next_time, record, create_time) VALUES
-(1, 2, 3, 2, '[价格]', NULL, '觉得价格偏高，先放回公海池', NOW());
+(1, 2, 3, 2, '[价格]', NULL, '觉得价格偏高，先回公海池', NOW());
 
 -- ---------- 客户 ----------
 INSERT INTO customer (id, phone, channel, name, gender, age, wechat, qq, degree, job_status, subject, course_id, business_id, create_time, update_time) VALUES
