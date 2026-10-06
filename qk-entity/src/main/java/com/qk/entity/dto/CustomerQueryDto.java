@@ -7,7 +7,7 @@ import lombok.Data;
  * 对应 /customers?phone=13309091111&name=赵&channel=1&subject=1&page=1&pageSize=10
  */
 @Data
-public class CustomerQueryDto {
+public class CustomerQueryDto extends PageQuery {
 
     /** 手机号 */
     private String phone;
@@ -20,10 +20,4 @@ public class CustomerQueryDto {
 
     /** 意向学科 */
     private Integer subject;
-
-    /** 页码，默认第一页 */
-    private Integer page = 1;
-
-    /** 每页记录数，默认10条 */
-    private Integer pageSize = 10;
 }

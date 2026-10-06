@@ -1,6 +1,7 @@
 package com.qk.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -16,11 +17,14 @@ public class RoleSaveDto {
     private Long id;
 
     @NotBlank(message = "角色名称不能为空")
+    @Size(max = 20, message = "角色名称长度不能超过 20 个字符")
     private String name;
 
     @NotBlank(message = "角色标识不能为空")
+    @Size(max = 30, message = "角色标识长度不能超过 30 个字符")
     private String label;
 
     /** 备注说明，可空 */
+    @Size(max = 100, message = "备注说明长度不能超过 100 个字符")
     private String remark;
 }

@@ -1,6 +1,5 @@
 package com.qk.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
 import com.qk.entity.po.Business;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
@@ -11,7 +10,7 @@ import com.qk.entity.vo.BusinessVO;
 /**
  * 商机管理Service接口
  */
-public interface BusinessService extends IService<Business> {
+public interface BusinessService {
 
     /**
      * 商机列表查询

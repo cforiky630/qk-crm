@@ -1,6 +1,8 @@
 package com.qk.entity.dto;
 
 import lombok.Data;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,9 +21,11 @@ public class BusinessTrackDto {
     private Long id;
 
     /** 客户姓名 */
+    @Size(max = 20, message = "客户姓名长度不能超过 20 个字符")
     private String name;
 
     /** 手机号 */
+    @Pattern(regexp = ValidationPatterns.PHONE, message = "手机号格式不正确")
     private String phone;
 
     /** 性别 */
@@ -31,9 +35,11 @@ public class BusinessTrackDto {
     private Integer age;
 
     /** 微信号 */
+    @Size(max = 50, message = "微信号长度不能超过 50 个字符")
     private String wechat;
 
     /** QQ号 */
+    @Size(max = 20, message = "QQ号长度不能超过 20 个字符")
     private String qq;
 
     /** 意向学科 */
@@ -52,6 +58,7 @@ public class BusinessTrackDto {
     private Integer channel;
 
     /** 备注 */
+    @Size(max = 50, message = "备注长度不能超过 50 个字符")
     private String remark;
 
     /** 下次跟进时间 */
@@ -64,5 +71,6 @@ public class BusinessTrackDto {
     private List<String> keyItems;
 
     /** 沟通纪要 */
+    @Size(max = 100, message = "沟通纪要长度不能超过 100 个字符")
     private String record;
 }

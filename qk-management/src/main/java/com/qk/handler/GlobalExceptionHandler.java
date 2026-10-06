@@ -8,15 +8,24 @@ import com.qk.common.notify.SystemAlert;
 import com.qk.common.notify.SystemExceptionNotifier;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.ErrorResponseException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 import java.util.Objects;
@@ -106,13 +115,90 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handlerValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> Objects.toString(fieldError.getDefaultMessage(), null))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(ErrorCode.PARAM_VALIDATION_FAILED.getMessage());
+        String message = firstFieldMessage(e.getBindingResult());
         log.warn("参数校验未通过: {}", message);
         return Result.error(message);
+    }
+
+    /**
+     * 查询参数（{@code @ModelAttribute} 风格的对象入参）校验失败
+     * <p>
+     * {@code @RequestBody} 的校验失败抛 {@link MethodArgumentNotValidException}，
+     * 查询对象的校验失败抛 {@link BindException} —— 两者都是「入参不合法」，
+     * 因此共用同一套提示逻辑（前者是后者的子类，Spring 会优先命中更具体的处理器）。
+     * <p>
+     * 分页参数（{@code ?page=} 传空串、{@code page=0}、{@code pageSize=99999}）就走这条路径：
+     * 改造前它会变成 500 或静默返回空列表，现在返回 code = 0 + 具体字段提示。
+     */
+    @ExceptionHandler(BindException.class)
+    public Result<Void> handlerBindException(BindException e) {
+        String message = firstFieldMessage(e.getBindingResult());
+        log.warn("参数绑定校验未通过: {}", message);
+        return Result.error(message);
+    }
+
+    /**
+     * 数据库完整性约束不满足（列超长、非空、类型不匹配等）
+     * <p>
+     * 根因是「入参超出了库里的约束」，属于可预期的客户端输入问题，不该变成 500 并触发运维告警。
+     * {@link DuplicateKeyException} 是它的子类，已有更具体的处理器，不会走到这里。
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<Void> handlerDataIntegrityViolation(DataIntegrityViolationException e) {
+        log.warn("数据完整性约束不满足: {}", e.getMostSpecificCause().getMessage());
+        return Result.error(ErrorCode.DATA_INTEGRITY_VIOLATION.getMessage());
+    }
+
+    /**
+     * 请求了不存在的路径：返回 404，而不是兜底的 500
+     * <p>
+     * 兜底处理器 {@code @ExceptionHandler(Exception.class)} 的优先级高于 Spring 默认的
+     * {@code DefaultHandlerExceptionResolver}，如果不显式接住，任何 404 都会变成
+     * 「500 + 系统繁忙」并触发运维告警 —— 客户端写错 URL 不该算服务端故障。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handlerNoResourceFound(NoResourceFoundException e) {
+        log.warn("请求的资源不存在: {} {}", e.getHttpMethod(), e.getResourcePath());
+        return Result.error(ErrorCode.RESOURCE_NOT_FOUND.getMessage());
+    }
+
+    /** 请求方法不被支持（例如对 {@code /login} 发 GET）：返回 405 */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public Result<Void> handlerMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("请求方法不被支持: {}", e.getMethod());
+        return Result.error(ErrorCode.METHOD_NOT_ALLOWED.getMessage());
+    }
+
+    /** 请求头 Content-Type 不被支持（例如给 JSON 接口发 text/plain）：返回 415 */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public Result<Void> handlerMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        log.warn("请求的 Content-Type 不被支持: {}", e.getContentType());
+        return Result.error(ErrorCode.CONTENT_TYPE_UNSUPPORTED.getMessage());
+    }
+
+    /** 缺少必填的请求参数：返回 400 */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handlerMissingParameter(MissingServletRequestParameterException e) {
+        log.warn("缺少请求参数: {}", e.getParameterName());
+        return Result.error(ErrorCode.PARAM_MISSING.format(e.getParameterName()));
+    }
+
+    /**
+     * 其它带状态码的框架异常：保留框架给出的状态码，不要统一降级成 500
+     * <p>
+     * Spring 的 {@code ErrorResponse} 体系（{@code ResponseStatusException} 等）已经表达了
+     * 正确的 4xx/5xx 语义，兜底处理器不应把它们抹平成「500 + 系统繁忙」。
+     */
+    @ExceptionHandler(ErrorResponseException.class)
+    public ResponseEntity<Result<Void>> handlerErrorResponse(ErrorResponseException e) {
+        int status = e.getStatusCode().value();
+        log.warn("请求被框架拒绝: {} {}", status, e.getBody().getDetail());
+        ErrorCode code = status >= 500 ? ErrorCode.SYSTEM_ERROR : ErrorCode.PARAM_VALIDATION_FAILED;
+        return ResponseEntity.status(e.getStatusCode()).body(Result.error(code.getMessage()));
     }
 
     /**
@@ -157,5 +243,14 @@ public class GlobalExceptionHandler {
         } catch (Exception alertFailure) {
             log.warn("系统异常告警发送失败", alertFailure);
         }
+    }
+
+    /** 取第一条字段级校验提示；没有字段提示时回落到统一文案 */
+    private static String firstFieldMessage(BindingResult bindingResult) {
+        return bindingResult.getFieldErrors().stream()
+                .map(fieldError -> Objects.toString(fieldError.getDefaultMessage(), null))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(ErrorCode.PARAM_VALIDATION_FAILED.getMessage());
     }
 }

@@ -33,7 +33,7 @@ public class CustomerController {
      * 客户列表查询
      */
     @GetMapping
-    public Result<PageResult<CustomerVO>> listCustomers(CustomerQueryDto customerQueryDto) {
+    public Result<PageResult<CustomerVO>> listCustomers(@Valid CustomerQueryDto customerQueryDto) {
         log.info("客户列表查询, 参数: {}", customerQueryDto);
         PageResult<CustomerVO> pageResult = customerService.listCustomers(customerQueryDto);
         return Result.success(pageResult);
@@ -56,8 +56,7 @@ public class CustomerController {
     @GetMapping("/{id}")
     public Result<CustomerVO> getCustomerById(@PathVariable Long id) {
         log.info("根据ID查询客户, id: {}", id);
-        CustomerVO customer = customerService.getCustomerById(id);
-        return customer != null ? Result.success(customer) : Result.error("客户不存在");
+        return Result.success(customerService.getCustomerById(id));
     }
 
     /**

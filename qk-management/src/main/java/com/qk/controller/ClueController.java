@@ -32,7 +32,7 @@ public class ClueController {
      * 线索列表查询
      */
     @GetMapping
-    public Result<PageResult<ClueVO>> listClues(ClueQueryDto clueQueryDto) {
+    public Result<PageResult<ClueVO>> listClues(@Valid ClueQueryDto clueQueryDto) {
         log.info("线索列表查询, 参数: {}", clueQueryDto);
         PageResult<ClueVO> pageResult = clueService.listClues(clueQueryDto);
         return Result.success(pageResult);
@@ -42,7 +42,7 @@ public class ClueController {
      * 线索池列表查询
      */
     @GetMapping("/pool")
-    public Result<PageResult<ClueVO>> getPoolClues(CluePoolDto cluePoolDto) {
+    public Result<PageResult<ClueVO>> getPoolClues(@Valid CluePoolDto cluePoolDto) {
         log.info("线索池列表查询, 参数: {}", cluePoolDto);
         PageResult<ClueVO> pageResult = clueService.getPoolClues(cluePoolDto);
         return Result.success(pageResult);
@@ -54,8 +54,7 @@ public class ClueController {
     @GetMapping("/{id}")
     public Result<ClueVO> getClueById(@PathVariable Long id) {
         log.info("根据ID查询线索详细信息, id: {}", id);
-        ClueVO clue = clueService.getClueById(id);
-        return clue != null ? Result.success(clue) : Result.error("线索不存在");
+        return Result.success(clueService.getClueById(id));
     }
 
     /**
@@ -107,7 +106,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping
-    public Result<Void> trackClue(@RequestBody ClueTrackDto clueTrackDto) {
+    public Result<Void> trackClue(@Valid @RequestBody ClueTrackDto clueTrackDto) {
         log.info("跟进线索: {}", clueTrackDto);
         clueService.trackClue(clueTrackDto);
         return Result.success();
@@ -118,7 +117,7 @@ public class ClueController {
      */
     @LogOperation
     @PutMapping("/false/{id}")
-    public Result<Void> markFalseClue(@PathVariable Long id, @RequestBody MarkFalseClueDto markFalseClueDto) {
+    public Result<Void> markFalseClue(@PathVariable Long id, @Valid @RequestBody MarkFalseClueDto markFalseClueDto) {
         log.info("将线索标记为伪线索, id: {}, 原因: {}", id, markFalseClueDto);
         clueService.markFalseClue(id, markFalseClueDto);
         return Result.success();

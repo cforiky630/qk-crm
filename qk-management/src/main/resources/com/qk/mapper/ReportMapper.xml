@@ -3,25 +3,21 @@
 <mapper namespace="com.qk.mapper.ReportMapper">
 
     <!--
-      首页概览：一次查询返回 12 个统计值。
-      count(if(status = n, 1, null)) 表示「只有状态匹配的行才计数」（count 会忽略 null），
-      相当于按状态分组统计后合并成一行，比 12 次独立查询少 11 次数据库往返。
-      注意：这里的状态编码与 ClueStatus / BusinessStatus 必须保持一致，
-      由 OtherControllerTest#getOverview（每种状态各插一条 + 求和等于总数）守卫。
+      首页概览：SQL 只做「按状态分组计数」，不再把 1~5 这些状态码抄进 SQL。
+      「哪个状态落到概览的哪个字段」由 ReportServiceImpl 按 ClueStatus / BusinessStatus 组装，
+      因此新增状态时只需要改枚举与组装逻辑，SQL 不会与枚举脱节。
+      总数 = 各分组之和（status 列 NOT NULL，每行必属于某个分组），与改造前的 COUNT(*) 等价。
     -->
-    <select id="getOverview" resultType="com.qk.entity.vo.OverviewVO">
-        SELECT (SELECT COUNT(*) FROM clue)                                 AS clue_total,
-               (SELECT COUNT(IF(status = 1, 1, NULL)) FROM clue)           AS clue_wait_allot,
-               (SELECT COUNT(IF(status = 2, 1, NULL)) FROM clue)           AS clue_wait_follow,
-               (SELECT COUNT(IF(status = 3, 1, NULL)) FROM clue)           AS clue_following,
-               (SELECT COUNT(IF(status = 4, 1, NULL)) FROM clue)           AS clue_false,
-               (SELECT COUNT(IF(status = 5, 1, NULL)) FROM clue)           AS clue_convert_business,
-               (SELECT COUNT(*) FROM business)                             AS business_total,
-               (SELECT COUNT(IF(status = 1, 1, NULL)) FROM business)       AS business_wait_allot,
-               (SELECT COUNT(IF(status = 2, 1, NULL)) FROM business)       AS business_wait_follow,
-               (SELECT COUNT(IF(status = 3, 1, NULL)) FROM business)       AS business_following,
-               (SELECT COUNT(IF(status = 4, 1, NULL)) FROM business)       AS business_false,
-               (SELECT COUNT(IF(status = 5, 1, NULL)) FROM business)       AS business_convert_customer
+    <select id="countClueByStatus" resultType="com.qk.entity.vo.StatusCountVO">
+        SELECT status, COUNT(*) AS total
+        FROM clue
+        GROUP BY status
+    </select>
+
+    <select id="countBusinessByStatus" resultType="com.qk.entity.vo.StatusCountVO">
+        SELECT status, COUNT(*) AS total
+        FROM business
+        GROUP BY status
     </select>
 
 </mapper>

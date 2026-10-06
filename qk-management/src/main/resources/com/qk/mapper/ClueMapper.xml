@@ -30,7 +30,9 @@
                     AND c.status = #{clueQueryDto.status}
                 </when>
                 <otherwise>
-                    AND c.status NOT IN (4, 5)
+                    <!-- 已关闭状态由 ClueLifecycle 传入（同源于 ClueStatus.CLOSED_CODES），不写裸数字 -->
+                    AND c.status NOT IN
+                    <foreach collection="closedCodes" item="code" open="(" separator="," close=")">#{code}</foreach>
                 </otherwise>
             </choose>
             <if test="clueQueryDto.clueId != null">
@@ -63,7 +65,7 @@
     <select id="getPoolClues" resultType="com.qk.entity.vo.ClueVO">
         <include refid="poolSelect"/>
         <where>
-            AND c.status = 4
+            AND c.status = #{poolStatus}
             <if test="cluePoolDto.clueId != null">
                 AND c.id = #{cluePoolDto.clueId}
             </if>
@@ -75,6 +77,13 @@
             </if>
         </where>
         ORDER BY c.update_time DESC, c.id DESC
+    </select>
+
+    <!-- 状态流转用的行锁读取：SELECT ... FOR UPDATE（只在 Service 的写路径使用，必须在事务内） -->
+    <select id="lockById" resultType="com.qk.entity.po.Clue">
+        SELECT *
+        FROM clue
+        WHERE id = #{id} FOR UPDATE
     </select>
 
 </mapper>

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -29,6 +30,7 @@ public class CourseSaveDto {
     private Integer subject;
 
     @NotBlank(message = "课程名称不能为空")
+    @Size(max = 50, message = "课程名称长度不能超过 50 个字符")
     private String name;
 
     @NotNull(message = "价格不能为空")
@@ -41,5 +43,6 @@ public class CourseSaveDto {
     private Integer target;
 
     /** 课程介绍，可空 */
+    @Size(max = 255, message = "课程介绍长度不能超过 255 个字符")
     private String description;
 }

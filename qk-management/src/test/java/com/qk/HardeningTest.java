@@ -278,7 +278,7 @@ class HardeningTest {
                         .characterEncoding("UTF-8")
                         .content("""
                                 {"username":"%s","name":"脱敏测试","phone":"199%08d","email":"%s@qk.test",
-                                 "password":"%s","gender":1,"status":1,"deptId":6,"roleId":1}
+                                 "password":"%s","gender":1,"status":1,"deptId":1,"roleId":1}
                                 """.formatted(username, Integer.parseInt(suffix), username, rawPassword)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));

@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-144%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-171%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -77,14 +77,15 @@ qk-parent
 ├── qk-entity/          实体 / DTO / VO / 枚举（包根 com.qk.entity）
 │   └── com.qk.entity
 │       ├── po          表映射实体（Dept、User、Clue、Business…，与表一一对应）
-│       ├── dto         入参：XxxQueryDto、ClueTrackDto、MarkFalseClueDto…
-│       ├── vo          出参：UserVO、ClueVO、BusinessVO、CustomerVO、DeptVO、RoleVO、CourseVO、ActivityVO、OverviewVO、LoginResultVO、PageResult（分页外壳）
+│       ├── dto         入参：PageQuery（分页基类）+ XxxQueryDto、ClueTrackDto、MarkFalseClueDto…
+│       ├── vo          出参：UserVO、ClueVO、BusinessVO、CustomerVO、DeptVO、RoleVO、CourseVO、ActivityVO、OverviewVO、LoginResultVO、StatusCountVO、PageResult（分页外壳）
 │       └── enums       状态枚举：ClueStatus、BusinessStatus、ClueTrackType、ActivityStatus（查询用）
 ├── qk-management/      可启动模块（包根 com.qk）
 │   └── com.qk
 │       ├── controller  接口层
 │       ├── service     业务层（接口 + impl）
 │       ├── mapper      数据访问层（接口 + 同包同名 XML）
+│       ├── domain      领域规则：ClueLifecycle / BusinessLifecycle 状态机
 │       ├── aspect      操作日志切面 + @LogOperation
 │       ├── handler     全局异常处理 + MyBatis-Plus 字段填充
 │       ├── interceptor 登录校验拦截器
@@ -204,7 +205,8 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 **通用约定**
 
 - 统一响应 `Result`：`code` 为 `1` 成功、`0` 失败（业务失败同样返回 HTTP 200，按 `code` 判断）；分页统一 `{ total, rows }`，`pageSize` 单页上限 200。
-- 状态码语义：`200` 成功或业务失败 · `400` 请求体/参数格式错误 · `401` 未登录（响应体为空）· `500` 服务端异常。
+- 状态码语义：`200` 成功或业务失败 · `400` 请求体/参数处理失败 · `401` 未登录或令牌对应的账号不可用（响应体为空）· `404` 路径不存在 · `405` 请求方法不支持 · `415` 请求的 Content-Type 不支持 · `500` 服务端异常。
+- 框架层错误不再降级成 500：`GlobalExceptionHandler` 显式接住 404 / 405 / 415 / 400，只有真正的代码或依赖缺陷才返回 `500 + 「系统繁忙,请稍后重试」` 并触发运维告警。
 - 除 `POST /login` 外都要带请求头 `token`（JWT，默认 24 小时有效）。
 
 ## 数据库
@@ -238,7 +240,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：19 个测试类 / 144 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：21 个测试类 / 171 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -248,7 +250,9 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [`DateTimeFormatTest`](qk-management/src/test/java/com/qk/DateTimeFormatTest.java) 守时间契约：默认格式锁死 `yyyy-MM-dd HH:mm:ss`，同时证明字段级 `@JsonFormat` 能覆盖出参与入参。
 - [`GlobalExceptionHandlerTest`](qk-management/src/test/java/com/qk/GlobalExceptionHandlerTest.java) 守系统异常告警：走了一遍真实 MVC 处理链（兜底处理器带 `HttpServletRequest` 参数，直接调用测不出解析是否正常），并断言告警失败不影响 500 响应。
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
-- 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**，不依赖库里已有数据的规模与姓名。
+- [`ApiRobustnessTest`](qk-management/src/test/java/com/qk/ApiRobustnessTest.java) 守接口边界：404/405/415 不再变 500、分页参数校验、字段长度与手机号格式、悬空引用（把线索分配给不存在的用户等）、停用/未知账号的令牌被拒、状态流转守卫。
+- [`LifecycleTest`](qk-management/src/test/java/com/qk/LifecycleTest.java) 守状态机：不连数据库直接验证「哪些状态允许哪个动作」与提示语。
+- 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**（唯一例外是 `HardeningTest` 里验证「摘要不能当密码登录」的那条，它需要库里已知密码的种子账号 `zhangsan`）。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
 
 ## 项目约定
@@ -259,7 +263,9 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`、登录 `LoginDto`）；
 - **vo** 负责出参，**每张有查询接口的表都有自己的 VO**（`UserVO`、`ClueVO`、`DeptVO`、`RoleVO`、`CourseVO`、`ActivityVO`…），`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段也都在 VO 上；
 - **PO → VO 写成 VO 的静态工厂 `XxxVO.from(po)`，且逐个字段 setter，不用 `BeanUtil.copyProperties`**：前者漏抄或改名时编译期就报错，后者只会静默写入 null、悄悄改掉对外报文。[`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 逐字节比对 PO 与 VO 的序列化结果，锁死报文不变；
-- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解；**控制器负责把 DTO 映射成实体**（逐个字段赋值，不用 `BeanUtil` 反射拷贝：字段改名后会静默停止拷贝，逐个赋值则编译期报错）再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
+- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解（长度与 DDL 列宽一致、手机号/邮箱带格式校验）；**控制器负责把 DTO 映射成实体**（逐个字段赋值，不用 `BeanUtil` 反射拷贝：字段改名后会静默停止拷贝，逐个赋值则编译期报错）再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
+- **分页参数只有一处定义**：所有查询 DTO 继承 `PageQuery`（`page` / `pageSize` 的默认值与上下限），控制器入参加 `@Valid`。因此 `?page=`（空串）、`page=0`、`pageSize=0`、`pageSize=99999` 都会返回 `code = 0` + 字段提示，而不是 500 或静默返回空列表；上限 `PageQuery.MAX_PAGE_SIZE` 同时被 MyBatis-Plus 分页插件引用，两处口径不会漂移。
+- **超长字段不会变成 500**：DTO 上的 `@Size` 是第一道防线；`GlobalExceptionHandler` 另有 `DataIntegrityViolationException` 兜底（列超长、非空、类型不匹配等），把漏网的完整性错误转成 `code = 0`，不会触发运维告警。
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
 
 **统一响应（Result / ResultCode）**
@@ -284,7 +290,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
   因此 **不需要配置 `mapper-locations`**（MyBatis 会按接口路径自动加载同名 XML）；
 - XML 内用 `<sql>` 片段复用公共字段/表连接，动态条件用 `<where>` + `<if>`，返回类型直接指向 VO；
 - 一对多详情 → 拆成两次查询由 Service 组装（线索/商机 + 各自跟进记录），避免 join 产生重复行；
-- 状态编码（如"列表排除 4 伪线索、5 转商机"）在 XML 里有注释标注对应的枚举，并由测试守卫。
+- 列表口径的**状态编码由状态机传入 XML**：`com.qk.domain.ClueLifecycle.closedCodes()` / `poolStatus()` 与 `BusinessLifecycle` 的同名方法取值，XML 用 `<foreach>` 拼 `IN`，不再出现 `status NOT IN (4, 5)` 这类裸数字（枚举与 SQL 不会脱节）。
+- 首页概览的聚合 SQL 只做 `GROUP BY status` 计数，「哪个状态落到哪个字段」由 `ReportServiceImpl` 按枚举组装，12 个硬编码状态码一次性消除。
 
 **删除接口的守卫**
 
@@ -300,12 +307,27 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 不再使用的数据应改为**停用**（`status = 0`），而不是删除。引用计数统一放在 Mapper 的具名方法里（如 `UserMapper.countByDeptId`），Service 只负责业务判断，不感知 ORM 的查询 DSL。
 
+**写入路径的引用守卫与并发**
+
+「不使用物理外键」意味着**所有**写入路径都要自己校验引用，不只是删除：
+
+| 入口 | 守卫 |
+| --- | --- |
+| `PUT /clues/assign/{clueId}/{userId}`、`PUT /businesses/assign/{businessId}/{userId}` | 归属人必须存在且 `status = 1`（停用账号无法登录，分给它等于没有归属人） |
+| `POST /clues` | `activityId` 非空时必须存在 |
+| `POST /businesses`、`POST /customers`、`PUT /customers` | `courseId` 非空时必须存在 |
+| `POST /users`、`PUT /users` | `deptId` / `roleId` 非空时必须存在（修改是部分更新，没传的字段不校验） |
+
+状态流转（分配 / 跟进 / 标伪 / 转商机 / 踢回公海 / 转客户）都是「先读状态再写状态」，因此在事务内用 `SELECT ... FOR UPDATE` 锁住目标行（`ClueMapper.lockById` / `BusinessMapper.lockById`），再交给 `ClueLifecycle` / `BusinessLifecycle` 判断。这样重复点击或网络重试只会让第二次请求收到「当前状态不允许…」，而不会重复生成商机、客户或跟进记录。
+
 **其他**
 
 - `createTime` / `updateTime` 由 `MyMetaObjectHandler` 自动填充；时间输出统一 `yyyy-MM-dd HH:mm:ss`，输入额外兼容 `yyyy-MM-dd HH:mm`、`yyyy-MM-dd` 与 ISO 写法。个别字段需要别的格式时，在该字段上加 `@JsonFormat(pattern = "...")` 即可覆盖默认（入参同理，且字段格式解析不了时仍会回落到上面的兼容逻辑）。由 `DateTimeFormatTest` 守住。
 - 状态编码集中在枚举（`ClueStatus` / `BusinessStatus` / `ClueTrackType` / `ActivityStatus`），不散落裸数字；它们统一实现 `CodeEnum` 契约，可用 `CodeEnum.fromCode(XxxStatus.class, code)` 按码值反查，或用 `CodeEnum.codes(...)` 取全部码值。其中 `ActivityStatus`（未开始/进行中/已结束）由 `startTime`、`endTime` 与当前时间推算，**不落库**，只作为 `/activities` 的查询条件。
+- **状态流转规则只有一处定义**：`com.qk.domain.ClueLifecycle` / `BusinessLifecycle` 用「动作 → 允许的前置状态」表达状态机，Service 只调用 `ensure(action, status)`；动作名直接拼进既有提示语（如「该线索当前状态不允许转商机」），列表口径也取自同一个类，由 `LifecycleTest` 守卫。
 - 列表排序按页面原型：部门/角色/课程/活动/用户按最后修改时间倒序，线索/商机/线索池/公海池按修改时间倒序，客户按创建时间倒序；排序末尾都补 `id`，避免排序键不唯一导致翻页重复或丢记录。
 - `GET /users/role/{roleLabel}`（分配线索/商机的人员下拉）只返回 `status = 1` 的用户：停用账号登录会被拒绝，分配给它等于这条数据没有归属人。
+- 登录拦截器不只看签名：令牌通过校验后还会按主键查一次账号，账号不存在或 `status = 0` 直接 401 —— 停用或删除账号后，已签发的令牌不会在剩余有效期内继续可用。
 - 「操作日志」页面上的**操作模块**与**操作类型**不落库，由 `class_name` / `method_name` 在查询时映射（见 `OperateLogMapper.xml` 的 `moduleExpr` / `typeExpr`），`/logs` 支持 `operateModule`、`operateType` 模糊搜索。
 - 增删改接口标注 `@LogOperation`，由切面写入 `operate_log`（密码字段落库前脱敏为 `***`）。
 
@@ -355,6 +377,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 11. **列表检索使用全模糊**：各列表的手机号、姓名等条件为 `LIKE CONCAT('%', ?, '%')`，手册禁止左模糊与全模糊。改用前缀匹配或搜索引擎会改变检索结果，属于对外行为变更，故保留现状，待数据量上来后再评估。
 12. **0/1 语义字段未按 `is_xxx` 命名**：手册要求表达是与否的字段用 `is_xxx`，但 `job_status` 等字段改名会同时改变对外 JSON 字段名，属于破坏性契约变更，故保留（`status` 系列语义是「状态」而非布尔，不在该条款范围内）。
 13. **金额以整型存「元」**：`course.price`、`activity.voucher` 是 `int unsigned`（单位：元），不受手册「小数必须用 decimal」约束，但无法表达角、分。
+14. **操作日志的「操作模块 / 操作类型」尚未落库**：目前仍由 `OperateLogMapper.xml` 的 `CASE` 表达式在查询时从 `class_name` / `method_name` 翻译，`operateModule` / `operateType` 的模糊检索因此无法走索引，`operate_log` 增长后 `/logs` 会退化成全表扫描。彻底做法是在写入时把两个标签落成独立列并建索引（需要一次建表脚本变更），本次未一并处理。
+15. **未接入静态检查**：`BeanUtil` 之类的约定目前只靠注释与测试守卫，尚未接入 Alibaba P3C / SpotBugs 规则集，`Hutool` 也仍是 `hutool-all`（本地依赖仓库只有全量包，替换为 `hutool-core` / `hutool-crypto` / `hutool-jwt` 需要联网拉取）。
 
 ## 说明
 

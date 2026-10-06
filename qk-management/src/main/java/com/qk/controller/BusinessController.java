@@ -35,7 +35,7 @@ public class BusinessController {
      * 商机列表查询
      */
     @GetMapping
-    public Result<PageResult<BusinessVO>> listBusinesses(BusinessQueryDto businessQueryDto) {
+    public Result<PageResult<BusinessVO>> listBusinesses(@Valid BusinessQueryDto businessQueryDto) {
         log.info("商机列表查询, 参数: {}", businessQueryDto);
         PageResult<BusinessVO> pageResult = businessService.listBusinesses(businessQueryDto);
         return Result.success(pageResult);
@@ -45,7 +45,7 @@ public class BusinessController {
      * 公海池列表查询
      */
     @GetMapping("/pool")
-    public Result<PageResult<BusinessVO>> getPoolBusinesses(BusinessPoolDto businessPoolDto) {
+    public Result<PageResult<BusinessVO>> getPoolBusinesses(@Valid BusinessPoolDto businessPoolDto) {
         log.info("公海池列表查询, 参数: {}", businessPoolDto);
         PageResult<BusinessVO> pageResult = businessService.getPoolBusinesses(businessPoolDto);
         return Result.success(pageResult);
@@ -57,8 +57,7 @@ public class BusinessController {
     @GetMapping("/{id}")
     public Result<BusinessVO> getBusinessById(@PathVariable Long id) {
         log.info("根据ID查询商机详细信息, id: {}", id);
-        BusinessVO business = businessService.getBusinessById(id);
-        return business != null ? Result.success(business) : Result.error("商机不存在");
+        return Result.success(businessService.getBusinessById(id));
     }
 
     /**
@@ -134,7 +133,7 @@ public class BusinessController {
      */
     @LogOperation
     @PutMapping
-    public Result<Void> trackBusiness(@RequestBody BusinessTrackDto businessTrackDto) {
+    public Result<Void> trackBusiness(@Valid @RequestBody BusinessTrackDto businessTrackDto) {
         log.info("跟进商机: {}", businessTrackDto);
         businessService.trackBusiness(businessTrackDto);
         return Result.success();

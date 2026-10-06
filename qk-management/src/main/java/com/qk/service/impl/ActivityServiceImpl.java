@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.po.Activity;
+import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.enums.ActivityStatus;
 import com.qk.entity.enums.CodeEnum;
 import com.qk.entity.vo.ActivityVO;
@@ -15,6 +16,7 @@ import com.qk.mapper.ClueMapper;
 import com.qk.service.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -31,6 +33,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addActivity(Activity activity) {
         activity.setId(null);
         if (StrUtil.isBlank(activity.getName()) || activity.getChannel() == null
@@ -41,14 +44,15 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public PageResult<ActivityVO> findActivitiesByPage(Integer channel, Integer type,
-                                                     Integer activityStatus, Integer page, Integer pageSize) {
+    public PageResult<ActivityVO> findActivitiesByPage(ActivityQueryDto query) {
         // 活动状态是查询条件而不是库里的列，取值必须先收敛到枚举，
         // 否则前端传 9 之类的脏值会被静默忽略，返回「没有筛选」的全量数据
+        Integer activityStatus = query.getActivityStatus();
         if (activityStatus != null && CodeEnum.fromCode(ActivityStatus.class, activityStatus).isEmpty()) {
             throw new BusinessException(ErrorCode.ACTIVITY_STATUS_INVALID);
         }
-        IPage<Activity> p = activityMapper.pageActivities(new Page<>(page, pageSize), channel, type, activityStatus);
+        IPage<Activity> p = activityMapper.pageActivities(new Page<>(query.getPage(), query.getPageSize()),
+                query.getChannel(), query.getType(), activityStatus);
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(ActivityVO::from).toList());
     }
 
@@ -58,12 +62,14 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateById(Activity activity) {
         requireActivity(activity.getId());
         activityMapper.updateById(activity);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         requireActivity(id);
 

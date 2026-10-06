@@ -4,6 +4,7 @@ import com.qk.entity.vo.PageResult;
 import com.qk.entity.vo.RoleVO;
 import com.qk.common.Result;
 import com.qk.entity.po.Role;
+import com.qk.entity.dto.RoleQueryDto;
 import com.qk.entity.dto.RoleSaveDto;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.RoleService;
@@ -42,17 +43,13 @@ public class RoleController {
     /**
      * 条件分页查询角色
      *
-     * @param name     角色名称
-     * @param label    角色标识
-     * @param page     页码
-     * @param pageSize 每页记录数
+     * @param query 查询条件（含分页参数）
      * @return 分页查询结果
      */
     @GetMapping("/roles")
-    public Result<PageResult<RoleVO>> listRoles(String name, String label, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("分页查询角色, 参数: name={}, label={}, page={}, pageSize={}", name, label, page, pageSize);
-        PageResult<RoleVO> pageResult = roleService.findRolesByPage(name, label, page, pageSize);
-        return Result.success(pageResult);
+    public Result<PageResult<RoleVO>> listRoles(@Valid RoleQueryDto query) {
+        log.info("分页查询角色, 参数: {}", query);
+        return Result.success(roleService.findRolesByPage(query));
     }
 
     /**

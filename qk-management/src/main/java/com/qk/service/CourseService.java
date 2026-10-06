@@ -1,6 +1,7 @@
 package com.qk.service;
 
 import com.qk.entity.po.Course;
+import com.qk.entity.dto.CourseQueryDto;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 
@@ -17,14 +18,10 @@ public interface CourseService {
     /**
      * 分页查询课程
      *
-     * @param name     课程名称
-     * @param subject  学科
-     * @param target   适用人群
-     * @param page     当前页码
-     * @param pageSize 每页显示条数
+     * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<CourseVO> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize);
+    PageResult<CourseVO> findCoursesByPage(CourseQueryDto query);
 
     /**
      * 根据id查询课程

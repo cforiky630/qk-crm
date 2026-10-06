@@ -183,7 +183,7 @@ class UserControllerTest {
                         .characterEncoding("UTF-8")
                         .content("""
                                 {"username":"%s","name":"测试新增","phone":"198%08d","email":"%s@qk.test",
-                                 "gender":2,"status":1,"deptId":6,"roleId":1,"remark":"新增测试"}
+                                 "gender":2,"status":1,"deptId":1,"roleId":1,"remark":"新增测试"}
                                 """.formatted(username, seq, username)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
@@ -208,7 +208,7 @@ class UserControllerTest {
                         .characterEncoding("UTF-8")
                         .content("""
                                 {"id":%d,"username":"cs_update","name":"测试修改后","phone":"%s",
-                                 "email":"%s","gender":1,"status":1,"deptId":6,"roleId":1}
+                                 "email":"%s","gender":1,"status":1,"deptId":1,"roleId":1}
                                 """.formatted(user.getId(), user.getPhone(), user.getEmail())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));

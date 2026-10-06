@@ -2,6 +2,7 @@ package com.qk.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ public class ActivitySaveDto {
     private Integer channel;
 
     @NotBlank(message = "活动名称不能为空")
+    @Size(max = 50, message = "活动名称长度不能超过 50 个字符")
     private String name;
 
     @NotNull(message = "活动开始时间不能为空")
@@ -32,6 +34,7 @@ public class ActivitySaveDto {
     private LocalDateTime endTime;
 
     /** 活动简介，可空 */
+    @Size(max = 255, message = "活动简介长度不能超过 255 个字符")
     private String description;
 
     @NotNull(message = "活动类型不能为空")

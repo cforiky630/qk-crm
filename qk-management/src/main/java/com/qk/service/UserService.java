@@ -1,6 +1,5 @@
 package com.qk.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
@@ -12,7 +11,7 @@ import java.util.List;
 /**
  * 用户管理Service接口
  */
-public interface UserService extends IService<User> {
+public interface UserService {
 
     /**
      * 条件分页查询用户列表（含部门名称、角色名称）
@@ -33,7 +32,7 @@ public interface UserService extends IService<User> {
      * 根据ID查询用户（含部门名称、角色名称，用于修改回显）
      *
      * @param id 用户ID
-     * @return 用户信息，不存在时返回 null
+     * @return 用户信息；不存在时抛业务异常（对外是 code = 0 + 「用户不存在」）
      */
     UserVO getUserById(Long id);
 

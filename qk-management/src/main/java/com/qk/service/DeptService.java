@@ -1,6 +1,7 @@
 package com.qk.service;
 
 import com.qk.entity.po.Dept;
+import com.qk.entity.dto.DeptQueryDto;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
 
@@ -17,13 +18,10 @@ public interface DeptService {
     /**
      * 分页查询部门
      *
-     * @param name     部门名称
-     * @param status   部门状态
-     * @param page     当前页码
-     * @param pageSize 每页显示条数
+     * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<DeptVO> findDeptsByPage(String name, Integer status, Integer page, Integer pageSize);
+    PageResult<DeptVO> findDeptsByPage(DeptQueryDto query);
 
     /**
      * 根据id查询部门

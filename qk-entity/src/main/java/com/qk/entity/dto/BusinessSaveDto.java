@@ -1,6 +1,8 @@
 package com.qk.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -16,17 +18,21 @@ import java.time.LocalDateTime;
 public class BusinessSaveDto {
 
     @NotBlank(message = "客户姓名不能为空")
+    @Size(max = 20, message = "客户姓名长度不能超过 20 个字符")
     private String name;
 
     @NotBlank(message = "手机号不能为空")
+    @Pattern(regexp = ValidationPatterns.PHONE, message = "手机号格式不正确")
     private String phone;
 
     private Integer gender;
 
     private Integer age;
 
+    @Size(max = 50, message = "微信号长度不能超过 50 个字符")
     private String wechat;
 
+    @Size(max = 20, message = "QQ号长度不能超过 20 个字符")
     private String qq;
 
     private Integer subject;
@@ -39,6 +45,7 @@ public class BusinessSaveDto {
 
     private Integer channel;
 
+    @Size(max = 50, message = "备注长度不能超过 50 个字符")
     private String remark;
 
     private LocalDateTime nextTime;

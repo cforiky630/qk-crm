@@ -1,6 +1,5 @@
 package com.qk.service;
 
-import com.baomidou.mybatisplus.spring.service.IService;
 import com.qk.entity.po.Clue;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CluePoolDto;
@@ -12,7 +11,7 @@ import com.qk.entity.vo.ClueVO;
 /**
  * 线索管理Service接口
  */
-public interface ClueService extends IService<Clue> {
+public interface ClueService {
 
     /**
      * 线索列表查询

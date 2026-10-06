@@ -1,6 +1,8 @@
 package com.qk.controller;
 
 import com.qk.common.Result;
+import com.qk.common.exception.BusinessException;
+import com.qk.common.exception.ErrorCode;
 import com.qk.entity.dto.LoginDto;
 import com.qk.service.UserService;
 import com.qk.entity.vo.LoginResultVO;
@@ -32,6 +34,10 @@ public class LoginController {
         // 只打印用户名，禁止把整个入参对象（含密码）写进日志
         log.info("用户登录请求: {}", loginDto.getUsername());
         LoginResultVO loginResult = userService.login(loginDto.getUsername(), loginDto.getPassword());
-        return loginResult != null ? Result.success(loginResult) : Result.error("用户名或密码错误");
+        if (loginResult == null) {
+            // 文案集中在 ErrorCode 里维护，对外仍是 code = 0 + 「用户名或密码错误」
+            throw new BusinessException(ErrorCode.LOGIN_FAILED);
+        }
+        return Result.success(loginResult);
     }
 }

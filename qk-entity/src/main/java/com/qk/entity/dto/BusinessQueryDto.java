@@ -7,7 +7,7 @@ import lombok.Data;
  * 对应 /businesses?businessId=21&name=李&phone=138012&status=1&assignName=张三&page=1&pageSize=10
  */
 @Data
-public class BusinessQueryDto {
+public class BusinessQueryDto extends PageQuery {
 
     /** 商机ID */
     private Long businessId;
@@ -23,10 +23,4 @@ public class BusinessQueryDto {
 
     /** 归属人姓名 */
     private String assignName;
-
-    /** 页码，默认第一页 */
-    private Integer page = 1;
-
-    /** 每页记录数，默认10条 */
-    private Integer pageSize = 10;
 }

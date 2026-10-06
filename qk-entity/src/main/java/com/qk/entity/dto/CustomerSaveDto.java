@@ -1,6 +1,8 @@
 package com.qk.entity.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -19,19 +21,23 @@ public class CustomerSaveDto {
     private Long id;
 
     @NotBlank(message = "手机号不能为空")
+    @Pattern(regexp = ValidationPatterns.PHONE, message = "手机号格式不正确")
     private String phone;
 
     /** 渠道来源，1:线上活动, 2:推广介绍；选填 */
     private Integer channel;
 
+    @Size(max = 20, message = "客户姓名长度不能超过 20 个字符")
     private String name;
 
     private Integer gender;
 
     private Integer age;
 
+    @Size(max = 50, message = "微信号长度不能超过 50 个字符")
     private String wechat;
 
+    @Size(max = 20, message = "QQ号长度不能超过 20 个字符")
     private String qq;
 
     private Integer degree;

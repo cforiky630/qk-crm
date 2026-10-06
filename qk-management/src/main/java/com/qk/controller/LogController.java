@@ -5,6 +5,7 @@ import com.qk.common.Result;
 import com.qk.entity.dto.LogQueryDto;
 import com.qk.service.OperateLogService;
 import com.qk.entity.vo.OperateLogVO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +30,7 @@ public class LogController {
      * 操作日志列表查询
      */
     @GetMapping("/logs")
-    public Result<PageResult<OperateLogVO>> listLogs(LogQueryDto logQueryDto) {
+    public Result<PageResult<OperateLogVO>> listLogs(@Valid LogQueryDto logQueryDto) {
         log.info("查询操作日志, 参数: {}", logQueryDto);
         PageResult<OperateLogVO> pageResult = operateLogService.listLogs(logQueryDto);
         return Result.success(pageResult);

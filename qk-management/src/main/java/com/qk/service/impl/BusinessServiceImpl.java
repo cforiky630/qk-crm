@@ -7,16 +7,21 @@ import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.po.Business;
 import com.qk.entity.po.BusinessTrackRecord;
 import com.qk.entity.po.Customer;
+import com.qk.entity.po.User;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.dto.BusinessTrackDto;
 import com.qk.entity.enums.BusinessStatus;
+import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
+import com.qk.domain.BusinessLifecycle;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
+import com.qk.mapper.CourseMapper;
 import com.qk.mapper.CustomerMapper;
+import com.qk.mapper.UserMapper;
 import com.qk.service.BusinessService;
 import com.qk.common.util.UserHolder;
 import com.qk.entity.vo.BusinessVO;
@@ -24,35 +29,48 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 商机管理Service实现
  */
 @Service
 public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> implements BusinessService {
 
+    /** business_track_record.key_items 的列宽，超出时给出明确提示而不是让它变成 500 */
+    private static final int MAX_KEY_ITEMS_LENGTH = 50;
+
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
     private final CustomerMapper customerMapper;
+    private final UserMapper userMapper;
+    private final CourseMapper courseMapper;
 
     @Autowired
-    public BusinessServiceImpl(BusinessTrackRecordMapper businessTrackRecordMapper, CustomerMapper customerMapper) {
+    public BusinessServiceImpl(BusinessTrackRecordMapper businessTrackRecordMapper, CustomerMapper customerMapper,
+                               UserMapper userMapper, CourseMapper courseMapper) {
         this.businessTrackRecordMapper = businessTrackRecordMapper;
         this.customerMapper = customerMapper;
+        this.userMapper = userMapper;
+        this.courseMapper = courseMapper;
     }
 
     @Override
     public PageResult<BusinessVO> listBusinesses(BusinessQueryDto businessQueryDto) {
         Page<BusinessVO> page = new Page<>(businessQueryDto.getPage(), businessQueryDto.getPageSize());
-        IPage<BusinessVO> businessPage = baseMapper.listBusinesses(page, businessQueryDto);
+        IPage<BusinessVO> businessPage = baseMapper.listBusinesses(page, businessQueryDto,
+                BusinessLifecycle.closedCodes());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addBusiness(Business business) {
         // 手机号是库里的 NOT NULL + 唯一键，必须校验；
         // 渠道来源按页面原型（2.11 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
         if (StrUtil.isBlank(business.getPhone())) {
             throw new BusinessException(ErrorCode.PHONE_REQUIRED);
         }
+        requireExistingCourse(business.getCourseId());
         business.setId(null);
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
         business.setUserId(null);
@@ -60,16 +78,12 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void assignBusiness(Long businessId, Long userId) {
-        Business existing = requireBusiness(businessId);
-
-        // 守卫：只有「待分配」或「已回收（回公海后重新分配）」的商机才能分配
-        Integer status = existing.getStatus();
-        boolean assignable = BusinessStatus.WAIT_ALLOT.getCode().equals(status)
-                || BusinessStatus.RECYCLED.getCode().equals(status);
-        if (!assignable) {
-            throw new BusinessException(ErrorCode.BUSINESS_STATUS_NOT_ALLOWED, "分配");
-        }
+        // 加行锁读取：并发重复分配时后到的请求会被状态机拒绝，避免归属人被静默覆盖
+        Business existing = lockBusiness(businessId);
+        BusinessLifecycle.ensure(BusinessLifecycle.Action.ASSIGN, existing.getStatus());
+        requireAssignableUser(userId);
 
         Business business = new Business();
         business.setId(businessId);
@@ -79,8 +93,10 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void backToPool(Long id) {
-        requireActiveBusiness(id, "踢回公海");
+        Business existing = lockBusiness(id);
+        BusinessLifecycle.ensure(BusinessLifecycle.Action.BACK_TO_POOL, existing.getStatus());
         // 状态与归属人在同一条 UPDATE 里改完，中途失败不会留下半成品状态；也少一次数据库往返
         baseMapper.recycle(id, BusinessStatus.RECYCLED.getCode());
     }
@@ -89,7 +105,8 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Transactional(rollbackFor = Exception.class)
     public void convertToCustomer(Long id) {
         // 1. 更新商机：状态置为转客户
-        Business business = requireActiveBusiness(id, "转客户");
+        Business business = lockBusiness(id);
+        BusinessLifecycle.ensure(BusinessLifecycle.Action.CONVERT_TO_CUSTOMER, business.getStatus());
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
         updateById(business);
 
@@ -114,7 +131,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     public BusinessVO getBusinessById(Long id) {
         BusinessVO business = baseMapper.getBusinessById(id);
         if (business == null) {
-            return null;
+            throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }
         // 一对多拆成两次查询：先查商机，再按 businessId 查跟进记录
         business.setTrackRecords(businessTrackRecordMapper.listTrackRecords(id));
@@ -124,7 +141,8 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void trackBusiness(BusinessTrackDto businessTrackDto) {
-        requireActiveBusiness(businessTrackDto.getId(), "跟进");
+        Business existing = lockBusiness(businessTrackDto.getId());
+        BusinessLifecycle.ensure(BusinessLifecycle.Action.TRACK, existing.getStatus());
         // 1. 更新商机：状态由服务端固定置为跟进中
         // 跟进时可以顺带更新客户资料，因此与商机同名的字段一并搬运；id 只用于定位
         Business business = new Business();
@@ -150,8 +168,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         trackRecord.setBusinessId(businessTrackDto.getId());
         trackRecord.setUserId(UserHolder.getCurrentUser());
         trackRecord.setTrackStatus(businessTrackDto.getTrackStatus());
-        trackRecord.setKeyItems(businessTrackDto.getKeyItems() == null
-                ? "[]" : businessTrackDto.getKeyItems().toString());
+        trackRecord.setKeyItems(toKeyItems(businessTrackDto.getKeyItems()));
         trackRecord.setNextTime(businessTrackDto.getNextTime());
         trackRecord.setRecord(businessTrackDto.getRecord());
         businessTrackRecordMapper.insert(trackRecord);
@@ -160,18 +177,22 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Override
     public PageResult<BusinessVO> getPoolBusinesses(BusinessPoolDto businessPoolDto) {
         Page<BusinessVO> page = new Page<>(businessPoolDto.getPage(), businessPoolDto.getPageSize());
-        IPage<BusinessVO> businessPage = baseMapper.getPoolBusinesses(page, businessPoolDto);
+        IPage<BusinessVO> businessPage = baseMapper.getPoolBusinesses(page, businessPoolDto,
+                BusinessLifecycle.poolStatus());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
 
     /**
-     * 校验商机是否存在，不存在直接抛业务异常
+     * 按主键加行锁读取商机，不存在直接抛业务异常
+     * <p>
+     * 必须在事务内调用，理由与 {@code ClueServiceImpl#lockClue} 相同：
+     * 状态流转是「先读状态再写状态」，不加锁时并发请求会同时通过守卫。
      */
-    private Business requireBusiness(Long id) {
+    private Business lockBusiness(Long id) {
         if (id == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ID_REQUIRED);
         }
-        Business business = getById(id);
+        Business business = baseMapper.lockById(id);
         if (business == null) {
             throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }
@@ -179,19 +200,35 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     /**
-     * 守卫：只有「待跟进」或「跟进中」的商机才能继续流转（跟进 / 踢回公海 / 转客户）。
-     * <p>
-     * 与线索同样的思路：这是重复提交的第二道防线，避免重复生成跟进记录，
-     * 或把同一条商机重复转成客户（后者原先只能靠客户手机号唯一索引挡下）。
+     * 意向课程必须真实存在（项目不使用物理外键，business.course_id 的完整性由 Service 兜底）
      */
-    private Business requireActiveBusiness(Long id, String action) {
-        Business business = requireBusiness(id);
-        Integer status = business.getStatus();
-        boolean active = BusinessStatus.WAIT_FOLLOW.getCode().equals(status)
-                || BusinessStatus.FOLLOWING.getCode().equals(status);
-        if (!active) {
-            throw new BusinessException(ErrorCode.BUSINESS_STATUS_NOT_ALLOWED, action);
+    private void requireExistingCourse(Long courseId) {
+        if (courseId != null && courseMapper.selectById(courseId) == null) {
+            throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
         }
-        return business;
+    }
+
+    /**
+     * 归属人必须是存在且启用（status = 1）的用户，理由见 {@code ClueServiceImpl#requireAssignableUser}
+     */
+    private void requireAssignableUser(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_ASSIGNABLE);
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null || EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
+            throw new BusinessException(ErrorCode.USER_NOT_ASSIGNABLE);
+        }
+    }
+
+    /**
+     * 沟通重点以列表形式提交，落库前拼成字符串；列宽固定，超长时给出可读提示
+     */
+    private String toKeyItems(List<String> keyItems) {
+        String joined = keyItems == null ? "[]" : keyItems.toString();
+        if (joined.length() > MAX_KEY_ITEMS_LENGTH) {
+            throw new BusinessException(ErrorCode.BUSINESS_KEY_ITEMS_TOO_LONG, MAX_KEY_ITEMS_LENGTH);
+        }
+        return joined;
     }
 }

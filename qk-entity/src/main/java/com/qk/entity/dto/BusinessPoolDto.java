@@ -7,7 +7,7 @@ import lombok.Data;
  * 对应 /businesses/pool?businessId=15&name=赵&phone=13344432121&subject=1&page=1&pageSize=10
  */
 @Data
-public class BusinessPoolDto {
+public class BusinessPoolDto extends PageQuery {
 
     /** 商机ID */
     private Long businessId;
@@ -20,10 +20,4 @@ public class BusinessPoolDto {
 
     /** 意向学科 */
     private Integer subject;
-
-    /** 页码，默认第一页 */
-    private Integer page = 1;
-
-    /** 每页记录数，默认10条 */
-    private Integer pageSize = 10;
 }

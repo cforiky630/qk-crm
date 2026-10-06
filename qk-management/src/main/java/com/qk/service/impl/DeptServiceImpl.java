@@ -3,6 +3,7 @@ package com.qk.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.po.Dept;
+import com.qk.entity.dto.DeptQueryDto;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
@@ -13,6 +14,7 @@ import com.qk.mapper.UserMapper;
 import com.qk.service.DeptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -30,6 +32,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addDept(Dept dept) {
         // 主键由数据库自增，禁止客户端指定
         dept.setId(null);
@@ -37,9 +40,10 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public PageResult<DeptVO> findDeptsByPage(String name, Integer status, Integer page, Integer pageSize) {
+    public PageResult<DeptVO> findDeptsByPage(DeptQueryDto query) {
         // 查询条件与排序由 Mapper 负责，Service 只做参数传递与结果包装
-        IPage<Dept> p = deptMapper.pageDepts(new Page<>(page, pageSize), name, status);
+        IPage<Dept> p = deptMapper.pageDepts(new Page<>(query.getPage(), query.getPageSize()),
+                query.getName(), query.getStatus());
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(DeptVO::from).toList());
     }
 
@@ -49,12 +53,14 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateById(Dept dept) {
         requireDept(dept.getId());
         deptMapper.updateById(dept);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         Dept dept = requireDept(id);
 

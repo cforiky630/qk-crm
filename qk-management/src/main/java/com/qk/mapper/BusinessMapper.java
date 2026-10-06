@@ -12,6 +12,8 @@ import com.qk.entity.vo.BusinessVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 商机数据访问接口
  * <p>
@@ -26,7 +28,8 @@ public interface BusinessMapper extends BaseMapper<Business> {
      * 不传 status 时只查询未关闭的商机（排除 4 回收、5 转客户）；
      * 显式传 status 时按传入值筛选，对应前端状态下拉里的全部选项。
      */
-    IPage<BusinessVO> listBusinesses(Page<BusinessVO> page, @Param("businessQueryDto") BusinessQueryDto businessQueryDto);
+    IPage<BusinessVO> listBusinesses(Page<BusinessVO> page, @Param("businessQueryDto") BusinessQueryDto businessQueryDto,
+                                     @Param("closedCodes") List<Integer> closedCodes);
 
     /**
      * 根据ID查询商机基本信息（不含跟进记录）
@@ -36,7 +39,11 @@ public interface BusinessMapper extends BaseMapper<Business> {
     /**
      * 公海池列表（回收的商机）
      */
-    IPage<BusinessVO> getPoolBusinesses(Page<BusinessVO> page, @Param("businessPoolDto") BusinessPoolDto businessPoolDto);
+    IPage<BusinessVO> getPoolBusinesses(Page<BusinessVO> page, @Param("businessPoolDto") BusinessPoolDto businessPoolDto,
+                                        @Param("poolStatus") Integer poolStatus);
+
+    /** 按主键加行锁读取商机（{@code SELECT ... FOR UPDATE}），必须在事务内调用，理由见 ClueMapper#lockById */
+    Business lockById(@Param("id") Long id);
 
     /**
      * 统计引用某课程的商机数（用于删除课程前的引用校验）

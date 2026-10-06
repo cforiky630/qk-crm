@@ -2,6 +2,7 @@ package com.qk.controller;
 
 import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
+import com.qk.entity.dto.DeptQueryDto;
 import com.qk.entity.dto.DeptSaveDto;
 import com.qk.entity.po.Dept;
 import com.qk.entity.vo.DeptVO;
@@ -42,19 +43,14 @@ public class DeptController {
     /**
      * 条件分页查询部门
      *
-     * @param name     部门名称
-     * @param status   状态
-     * @param page     页码
-     * @param pageSize 每页记录数
+     * @param query 查询条件（含分页参数）
      * @return 分页查询结果
      */
     @GetMapping("/depts") // 接收前端发送的GET请求
-    // 当前端使用(?参数)方式提交请求参数时, 后端需要使用   @RequestParam(可以省略) 参数变量  的方式接收
-    // @RequestParam注解的defaultValue属性可以设置默认值
-    public Result<PageResult<DeptVO>> listDepts(String name, Integer status, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("分页查询部门, 参数: name={}, status={}, page={}, pageSize={}", name, status, page, pageSize);
-        PageResult<DeptVO> pageResult = deptService.findDeptsByPage(name, status, page, pageSize);
-        return Result.success(pageResult);
+    // 当前端使用(?参数)方式提交请求参数时，Spring 会按字段名绑定到查询 DTO
+    public Result<PageResult<DeptVO>> listDepts(@Valid DeptQueryDto query) {
+        log.info("分页查询部门, 参数: {}", query);
+        return Result.success(deptService.findDeptsByPage(query));
     }
 
     /**

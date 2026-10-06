@@ -1,6 +1,7 @@
 package com.qk.service;
 
 import com.qk.entity.po.Activity;
+import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.vo.ActivityVO;
 import com.qk.entity.vo.PageResult;
 
@@ -21,15 +22,10 @@ public interface ActivityService {
     /**
      * 分页查询活动
      *
-     * @param channel        渠道来源
-     * @param type           活动类型
-     * @param activityStatus 活动状态（1 未开始 / 2 进行中 / 3 已结束），为空表示不筛选
-     * @param page           当前页码
-     * @param pageSize       每页显示条数
+     * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<ActivityVO> findActivitiesByPage(Integer channel, Integer type,
-                                              Integer activityStatus, Integer page, Integer pageSize);
+    PageResult<ActivityVO> findActivitiesByPage(ActivityQueryDto query);
 
     /**
      * 根据id查询活动

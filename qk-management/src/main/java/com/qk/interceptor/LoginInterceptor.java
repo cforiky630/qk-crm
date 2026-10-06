@@ -2,6 +2,9 @@ package com.qk.interceptor;
 
 import com.qk.common.util.JwtUtil;
 import com.qk.common.util.UserHolder;
+import com.qk.entity.enums.EnableStatus;
+import com.qk.entity.po.User;
+import com.qk.mapper.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -20,9 +23,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LoginInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
+    private final UserMapper userMapper;
 
-    public LoginInterceptor(JwtUtil jwtUtil) {
+    public LoginInterceptor(JwtUtil jwtUtil, UserMapper userMapper) {
         this.jwtUtil = jwtUtil;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -35,8 +40,27 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        UserHolder.setCurrentUser(jwtUtil.getUserId(token));
+        Long userId = jwtUtil.getUserId(token);
+        // 令牌通过签名校验不代表账号仍然可用：账号被停用或删除后，已签发的令牌在有效期内
+        // 依然能通过签名与过期校验。这里按主键查一次状态（走主键索引，代价很小）把这种令牌拒掉。
+        if (!isActiveAccount(userId)) {
+            log.info("令牌对应的账号不存在或已停用，拒绝访问: {} {}，用户ID={}",
+                    request.getMethod(), request.getRequestURI(), userId);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        UserHolder.setCurrentUser(userId);
         return true;
+    }
+
+    /** 账号必须存在且处于正常状态（status = 1）；逻辑删除的账号由 @TableLogic 自动排除 */
+    private boolean isActiveAccount(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        User user = userMapper.selectById(userId);
+        return user != null && !EnableStatus.DISABLED.getCode().equals(user.getStatus());
     }
 
     @Override

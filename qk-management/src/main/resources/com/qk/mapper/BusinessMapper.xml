@@ -22,7 +22,9 @@
                     AND b.status = #{businessQueryDto.status}
                 </when>
                 <otherwise>
-                    AND b.status NOT IN (4, 5)
+                    <!-- 已关闭状态由 BusinessLifecycle 传入（同源于 BusinessStatus.CLOSED_CODES），不写裸数字 -->
+                    AND b.status NOT IN
+                    <foreach collection="closedCodes" item="code" open="(" separator="," close=")">#{code}</foreach>
                 </otherwise>
             </choose>
             <if test="businessQueryDto.businessId != null">
@@ -57,7 +59,7 @@
     <select id="getPoolBusinesses" resultType="com.qk.entity.vo.BusinessVO">
         <include refid="listSelect"/>
         <where>
-            AND b.status = 4
+            AND b.status = #{poolStatus}
             <if test="businessPoolDto.businessId != null">
                 AND b.id = #{businessPoolDto.businessId}
             </if>
@@ -72,6 +74,13 @@
             </if>
         </where>
         ORDER BY b.update_time DESC, b.id DESC
+    </select>
+
+    <!-- 状态流转用的行锁读取：SELECT ... FOR UPDATE（只在 Service 的写路径使用，必须在事务内） -->
+    <select id="lockById" resultType="com.qk.entity.po.Business">
+        SELECT *
+        FROM business
+        WHERE id = #{id} FOR UPDATE
     </select>
 
 </mapper>

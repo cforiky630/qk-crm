@@ -14,6 +14,7 @@ import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
+import com.qk.mapper.DeptMapper;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
 import com.qk.mapper.ClueMapper;
@@ -25,6 +26,7 @@ import com.qk.entity.vo.LoginResultVO;
 import com.qk.entity.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +43,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
+    private final DeptMapper deptMapper;
     private final JwtUtil jwtUtil;
     private final ClueMapper clueMapper;
     private final BusinessMapper businessMapper;
@@ -48,12 +51,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
 
     @Autowired
-    public UserServiceImpl(UserMapper userMapper, RoleMapper roleMapper, JwtUtil jwtUtil,
+    public UserServiceImpl(UserMapper userMapper, RoleMapper roleMapper, DeptMapper deptMapper, JwtUtil jwtUtil,
                            ClueMapper clueMapper, BusinessMapper businessMapper,
                            ClueTrackRecordMapper clueTrackRecordMapper,
                            BusinessTrackRecordMapper businessTrackRecordMapper) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
+        this.deptMapper = deptMapper;
         this.jwtUtil = jwtUtil;
         this.clueMapper = clueMapper;
         this.businessMapper = businessMapper;
@@ -80,6 +84,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addUser(User user) {
         // 主键由数据库自增，禁止客户端指定
         user.setId(null);
@@ -87,6 +92,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 || StrUtil.isBlank(user.getPhone()) || StrUtil.isBlank(user.getEmail())) {
             throw new BusinessException(ErrorCode.USER_FIELDS_REQUIRED);
         }
+        requireExistingDeptAndRole(user.getDeptId(), user.getRoleId());
         // 接口文档中新增用户不接收密码，这里统一使用默认密码：用户名 + 123，落库前做 MD5 加密
         if (StrUtil.isBlank(user.getPassword())) {
             user.setPassword(DigestUtil.md5Hex(user.getUsername() + "123"));
@@ -98,14 +104,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserVO getUserById(Long id) {
-        return userMapper.getUserById(id);
+        UserVO userVO = userMapper.getUserById(id);
+        if (userVO == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+        return userVO;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateUser(User user) {
         if (user.getId() == null || getById(user.getId()) == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+        requireExistingDeptAndRole(user.getDeptId(), user.getRoleId());
 
         // 守卫：不允许把当前登录用户自己停用。
         // 登录会拒绝 status=0 的账号，一旦把自己停用，就再也进不来了（与「不能删除自己」同类）。
@@ -128,6 +140,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 也没有任何校验：删自己不拦、删不存在的 id 静默成功、删还有业务数据的用户会留下悬空引用。
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteUsers(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException(ErrorCode.USER_IDS_REQUIRED);
@@ -217,5 +230,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         claims.put("name", user.getName());
         vo.setToken(jwtUtil.generateToken(claims));
         return vo;
+    }
+
+    /**
+     * 所属部门与角色必须真实存在。
+     * <p>
+     * 项目不使用物理外键（见 sql/user.sql 注释），user.dept_id / user.role_id 的引用完整性
+     * 只能由 Service 层兜底，否则会留下悬空引用：列表里 deptName / roleName 变成 null，
+     * 前端下拉框选中的部门或角色也对不上。字段为空时不校验——修改接口是部分更新，
+     * 没传的字段不参与更新。
+     */
+    private void requireExistingDeptAndRole(Long deptId, Long roleId) {
+        if (deptId != null && deptMapper.selectById(deptId) == null) {
+            throw new BusinessException(ErrorCode.DEPT_NOT_FOUND);
+        }
+        if (roleId != null && roleMapper.selectById(roleId) == null) {
+            throw new BusinessException(ErrorCode.ROLE_NOT_FOUND);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.qk.controller;
 
 import com.qk.entity.po.Course;
+import com.qk.entity.dto.CourseQueryDto;
 import com.qk.entity.dto.CourseSaveDto;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
@@ -42,18 +43,13 @@ public class CourseController {
     /**
      * 条件分页查询课程
      *
-     * @param name     课程名称
-     * @param subject  学科
-     * @param target   适用人群
-     * @param page     页码
-     * @param pageSize 每页记录数
+     * @param query 查询条件（含分页参数）
      * @return 分页查询结果
      */
     @GetMapping("/courses")
-    public Result<PageResult<CourseVO>> listCourses(String name, Integer subject, Integer target, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("分页查询课程, 参数: name={}, subject={}, target={}, page={}, pageSize={}", name, subject, target, page, pageSize);
-        PageResult<CourseVO> pageResult = courseService.findCoursesByPage(name, subject, target, page, pageSize);
-        return Result.success(pageResult);
+    public Result<PageResult<CourseVO>> listCourses(@Valid CourseQueryDto query) {
+        log.info("分页查询课程, 参数: {}", query);
+        return Result.success(courseService.findCoursesByPage(query));
     }
 
     /**

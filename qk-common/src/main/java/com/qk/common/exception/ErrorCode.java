@@ -52,6 +52,8 @@ public enum ErrorCode {
     USER_CANNOT_DELETE_SELF("不能删除当前登录用户"),
     /** 批量删除时列出不存在的 id，参数为 id 列表：{@code 用户不存在: %s} */
     USER_IDS_NOT_FOUND("用户不存在: %s"),
+    /** 分配线索/商机时目标用户不可用：{@code 归属人不存在或已停用，请重新选择} */
+    USER_NOT_ASSIGNABLE("归属人不存在或已停用，请重新选择"),
     /** 用户删除守卫，参数依次为用户ID、线索数、商机数、跟进记录数：{@code 用户 %d 仍被业务数据引用（线索 %d 条、商机 %d 条、跟进记录 %d 条），无法删除；如不再使用请改为停用} */
     USER_STILL_REFERENCED("用户 %d 仍被业务数据引用（线索 %d 条、商机 %d 条、跟进记录 %d 条），无法删除；如不再使用请改为停用"),
 
@@ -72,6 +74,8 @@ public enum ErrorCode {
     BUSINESS_ID_REQUIRED("商机ID不能为空"),
     /** 商机状态守卫，参数为被拒绝的动作名：{@code 该商机当前状态不允许%s} */
     BUSINESS_STATUS_NOT_ALLOWED("该商机当前状态不允许%s"),
+    /** 商机跟进记录「沟通重点」超出列宽，参数为列宽上限：{@code 沟通重点最多 %d 个字符，请精简后重试} */
+    BUSINESS_KEY_ITEMS_TOO_LONG("沟通重点最多 %d 个字符，请精简后重试"),
 
     // ---------- 客户 ----------
     /** 客户：{@code 客户不存在} */
@@ -113,7 +117,10 @@ public enum ErrorCode {
     /** 上传扩展名校验：{@code 只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片} */
     UPLOAD_IMAGE_TYPE_UNSUPPORTED("只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片"),
 
-    // ---------- OSS ----------
+    // ---------- 登录 ----------
+    /** 登录失败：账号不存在、密码错误、账号已停用共用同一句提示，避免暴露账号是否存在 */
+    LOGIN_FAILED("用户名或密码错误"),
+
     // ---------- 请求与系统（框架层）----------
     /** 请求体不是合法 JSON：{@code 请求参数格式不正确} */
     PARAM_FORMAT_INVALID("请求参数格式不正确"),
@@ -123,6 +130,16 @@ public enum ErrorCode {
     PARAM_VALIDATION_FAILED("请求参数校验未通过"),
     /** 上传文件超出大小限制：{@code 上传文件过大} */
     UPLOAD_SIZE_EXCEEDED("上传文件过大"),
+    /** 请求了不存在的路径：{@code 请求的资源不存在} */
+    RESOURCE_NOT_FOUND("请求的资源不存在"),
+    /** 请求方法不被支持：{@code 请求方法不被支持} */
+    METHOD_NOT_ALLOWED("请求方法不被支持"),
+    /** 请求头 Content-Type 不被支持：{@code 请求的 Content-Type 不被支持} */
+    CONTENT_TYPE_UNSUPPORTED("请求的 Content-Type 不被支持"),
+    /** 缺少必填的请求参数，参数为参数名：{@code 缺少请求参数：%s} */
+    PARAM_MISSING("缺少请求参数：%s"),
+    /** 数据库完整性约束不满足（列超长、非空、类型不匹配等）：{@code 提交的数据不符合约束，请检查后重试} */
+    DATA_INTEGRITY_VIOLATION("提交的数据不符合约束，请检查后重试"),
     /** 未被识别的系统异常（代码或依赖缺陷）：{@code 系统繁忙,请稍后重试} */
     SYSTEM_ERROR("系统繁忙,请稍后重试"),
 
@@ -148,6 +165,7 @@ public enum ErrorCode {
     /** 无法归类的失败：{@code 操作失败,请联系管理员} */
     UNKNOWN_FAILURE("操作失败,请联系管理员"),
 
+    // ---------- OSS ----------
     /** OSS 对象名需要扩展名：{@code 文件名缺少扩展名，无法识别图片格式} */
     OSS_FILENAME_NO_EXTENSION("文件名缺少扩展名，无法识别图片格式"),
     /** 读取上传流失败，根因随异常一起带出：{@code 读取上传文件失败} */

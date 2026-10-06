@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.vo.RoleVO;
 import com.qk.entity.po.Role;
+import com.qk.entity.dto.RoleQueryDto;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
 import com.qk.mapper.RoleMapper;
@@ -12,6 +13,7 @@ import com.qk.mapper.UserMapper;
 import com.qk.service.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -29,14 +31,16 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addRole(Role role) {
         role.setId(null);
         roleMapper.insert(role);
     }
 
     @Override
-    public PageResult<RoleVO> findRolesByPage(String name, String label, Integer page, Integer pageSize) {
-        IPage<Role> p = roleMapper.pageRoles(new Page<>(page, pageSize), name, label);
+    public PageResult<RoleVO> findRolesByPage(RoleQueryDto query) {
+        IPage<Role> p = roleMapper.pageRoles(new Page<>(query.getPage(), query.getPageSize()),
+                query.getName(), query.getLabel());
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(RoleVO::from).toList());
     }
 
@@ -46,12 +50,14 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateById(Role role) {
         requireRole(role.getId());
         roleMapper.updateById(role);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         requireRole(id);
 

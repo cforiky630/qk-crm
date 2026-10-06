@@ -35,7 +35,7 @@ public class UserController {
      * 条件分页查询用户列表
      */
     @GetMapping
-    public Result<PageResult<UserVO>> getUsers(UserDto userDto) {
+    public Result<PageResult<UserVO>> getUsers(@Valid UserDto userDto) {
         log.info("条件分页查询用户: {}", userDto);
         PageResult<UserVO> pageResult = userService.getUsers(userDto);
         return Result.success(pageResult);
@@ -87,8 +87,7 @@ public class UserController {
     @GetMapping("/{id}")
     public Result<UserVO> getUserById(@PathVariable Long id) {
         log.info("根据ID查询用户: {}", id);
-        UserVO userVO = userService.getUserById(id);
-        return userVO != null ? Result.success(userVO) : Result.error("用户不存在");
+        return Result.success(userService.getUserById(id));
     }
 
     /**

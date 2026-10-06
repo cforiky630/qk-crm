@@ -1,6 +1,7 @@
 package com.qk.controller;
 
 import com.qk.entity.po.Activity;
+import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.dto.ActivitySaveDto;
 import com.qk.entity.vo.ActivityVO;
 import com.qk.entity.vo.PageResult;
@@ -43,17 +44,12 @@ public class ActivityController {
     /**
      * 条件分页查询活动
      *
-     * @param activityStatus 活动状态（1 未开始 / 2 进行中 / 3 已结束），按开始/结束时间推算，为空表示不筛选
+     * @param query 查询条件（含分页参数）；活动状态按开始/结束时间推算，为空表示不筛选
      */
     @GetMapping("/activities")
-    public Result<PageResult<ActivityVO>> listActivities(Integer channel, Integer type, Integer activityStatus,
-                                 @RequestParam(defaultValue = "1") Integer page,
-                                 @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("分页查询活动, 参数: channel={}, type={}, activityStatus={}, page={}, pageSize={}",
-                channel, type, activityStatus, page, pageSize);
-        PageResult<ActivityVO> pageResult =
-                activityService.findActivitiesByPage(channel, type, activityStatus, page, pageSize);
-        return Result.success(pageResult);
+    public Result<PageResult<ActivityVO>> listActivities(@Valid ActivityQueryDto query) {
+        log.info("分页查询活动, 参数: {}", query);
+        return Result.success(activityService.findActivitiesByPage(query));
     }
 
     /**

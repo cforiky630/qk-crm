@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.po.Course;
+import com.qk.entity.dto.CourseQueryDto;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
@@ -14,6 +15,7 @@ import com.qk.mapper.CustomerMapper;
 import com.qk.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -45,6 +47,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void addCourse(Course course) {
         course.setId(null);
         // 这四列在库里是 NOT NULL：不在业务层校验的话，前端只能看到 500「系统繁忙」
@@ -57,8 +60,9 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public PageResult<CourseVO> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize) {
-        IPage<Course> p = courseMapper.pageCourses(new Page<>(page, pageSize), name, subject, target);
+    public PageResult<CourseVO> findCoursesByPage(CourseQueryDto query) {
+        IPage<Course> p = courseMapper.pageCourses(new Page<>(query.getPage(), query.getPageSize()),
+                query.getName(), query.getSubject(), query.getTarget());
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(CourseVO::from).toList());
     }
 
@@ -68,6 +72,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void updateById(Course course) {
         requireCourse(course.getId());
         // 修改是部分更新（null 字段不会参与 UPDATE），因此只校验前端实际传了的字段。
@@ -98,6 +103,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         requireCourse(id);
 

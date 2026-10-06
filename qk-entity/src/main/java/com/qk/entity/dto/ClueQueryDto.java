@@ -7,7 +7,7 @@ import lombok.Data;
  * 对应 /clues?clueId=55&phone=13309091233&status=1&channel=1&assignName=张三&page=1&pageSize=5
  */
 @Data
-public class ClueQueryDto {
+public class ClueQueryDto extends PageQuery {
 
     /** 线索ID */
     private Long clueId;
@@ -23,10 +23,4 @@ public class ClueQueryDto {
 
     /** 线索归属人姓名 */
     private String assignName;
-
-    /** 页码，默认第一页 */
-    private Integer page = 1;
-
-    /** 每页记录数，默认10条 */
-    private Integer pageSize = 10;
 }
