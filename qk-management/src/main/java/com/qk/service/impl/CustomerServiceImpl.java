@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.po.Customer;
+import com.qk.entity.po.Business;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.common.exception.BusinessException;
@@ -49,6 +50,27 @@ public class CustomerServiceImpl implements CustomerService {
         requireExistingCourse(customer.getCourseId());
         customer.setId(null);
         customerMapper.insert(customer);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void createFromBusiness(Business business) {
+        Customer customer = new Customer();
+        customer.setName(business.getName());
+        customer.setPhone(business.getPhone());
+        customer.setGender(business.getGender());
+        customer.setAge(business.getAge());
+        customer.setWechat(business.getWechat());
+        customer.setQq(business.getQq());
+        customer.setSubject(business.getSubject());
+        customer.setCourseId(business.getCourseId());
+        customer.setDegree(business.getDegree());
+        customer.setJobStatus(business.getJobStatus());
+        customer.setChannel(business.getChannel());
+        // 来源商机由服务端写入：客户接口不允许外部伪造 businessId
+        customer.setBusinessId(business.getId());
+        // 走普通新增，复用同一套校验（手机号必填、意向课程必须存在）
+        addCustomer(customer);
     }
 
     @Override

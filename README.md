@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-187%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-189%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -240,7 +240,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：23 个测试类 / 187 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：23 个测试类 / 189 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -308,6 +308,11 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 | `DELETE /users/{ids}` | 必须存在；不能删当前登录用户；仍被线索、商机或跟进记录引用不可删 |
 
 不再使用的数据应改为**停用**（`status = 0`），而不是删除。引用计数统一放在 Mapper 的具名方法里（如 `UserMapper.countByDeptId`），Service 只负责业务判断，不感知 ORM 的查询 DSL。
+
+**跨聚合的读写边界**
+
+- **只读的引用查询可以直接调对方的 Mapper**：`UserMapper.countByDeptId`、`ClueMapper.countByUserId` 这类单表、无规则可绕过的存在性与计数查询，改走 Service 会立刻造出双向依赖（`UserService ↔ ClueService`、`CourseService ↔ BusinessService`、`DeptService ↔ UserService`），收益只是形式上的分层。
+- **写入必须走拥有该聚合的 Service**：线索转商机调 `BusinessService.createFromClue`，商机转客户调 `CustomerService.createFromBusiness`。以前这两处直接 `businessMapper.insert` / `customerMapper.insert`，等于绕过 `addBusiness` / `addCustomer` —— 在新增路径上补的校验与默认值，转换链路会静默漏掉。
 
 **写入路径的引用守卫与并发**
 

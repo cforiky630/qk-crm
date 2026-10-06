@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.po.Business;
 import com.qk.entity.po.BusinessTrackRecord;
-import com.qk.entity.po.Customer;
+import com.qk.entity.po.Clue;
 import com.qk.entity.po.User;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
@@ -20,9 +20,9 @@ import com.qk.domain.BusinessLifecycle;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
 import com.qk.mapper.CourseMapper;
-import com.qk.mapper.CustomerMapper;
 import com.qk.mapper.UserMapper;
 import com.qk.service.BusinessService;
+import com.qk.service.CustomerService;
 import com.qk.common.util.UserHolder;
 import com.qk.entity.vo.BusinessVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,15 +41,15 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     private static final int MAX_KEY_ITEMS_LENGTH = 50;
 
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
-    private final CustomerMapper customerMapper;
+    private final CustomerService customerService;
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
 
     @Autowired
-    public BusinessServiceImpl(BusinessTrackRecordMapper businessTrackRecordMapper, CustomerMapper customerMapper,
+    public BusinessServiceImpl(BusinessTrackRecordMapper businessTrackRecordMapper, CustomerService customerService,
                                UserMapper userMapper, CourseMapper courseMapper) {
         this.businessTrackRecordMapper = businessTrackRecordMapper;
-        this.customerMapper = customerMapper;
+        this.customerService = customerService;
         this.userMapper = userMapper;
         this.courseMapper = courseMapper;
     }
@@ -75,6 +75,25 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
         business.setUserId(null);
         save(business);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void createFromClue(Clue clue) {
+        Business business = new Business();
+        business.setName(clue.getName());
+        business.setPhone(clue.getPhone());
+        business.setGender(clue.getGender());
+        business.setAge(clue.getAge());
+        business.setWechat(clue.getWechat());
+        business.setQq(clue.getQq());
+        business.setSubject(clue.getSubject());
+        business.setChannel(clue.getChannel());
+        // 来源线索由服务端写入：商机接口不允许外部伪造 clueId
+        business.setClueId(clue.getId());
+        // 走普通新增，复用同一套规则（编号自增、状态待分配、无归属人、校验手机号与意向课程）；
+        // 归属人与下次跟进时间刻意不搬运，商机重新走分配流程
+        addBusiness(business);
     }
 
     @Override
@@ -110,21 +129,8 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
         updateById(business);
 
-        // 2. 按商机信息创建客户，并记录来源商机：只搬运客户资料，状态/归属人都不带
-        Customer customer = new Customer();
-        customer.setName(business.getName());
-        customer.setPhone(business.getPhone());
-        customer.setGender(business.getGender());
-        customer.setAge(business.getAge());
-        customer.setWechat(business.getWechat());
-        customer.setQq(business.getQq());
-        customer.setSubject(business.getSubject());
-        customer.setCourseId(business.getCourseId());
-        customer.setDegree(business.getDegree());
-        customer.setJobStatus(business.getJobStatus());
-        customer.setChannel(business.getChannel());
-        customer.setBusinessId(business.getId());
-        customerMapper.insert(customer);
+        // 2. 按商机信息创建客户：交给客户模块，复用它的新增规则并记录来源商机
+        customerService.createFromBusiness(business);
     }
 
     @Override

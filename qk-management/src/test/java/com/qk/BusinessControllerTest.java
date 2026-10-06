@@ -3,6 +3,7 @@ package com.qk;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.CustomerMapper;
 import com.qk.mapper.UserMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qk.entity.enums.BusinessStatus;
 import com.qk.common.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -118,6 +119,33 @@ class BusinessControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("该商机当前状态不允许踢回公海"));
+    }
+
+    /**
+     * 商机转客户必须沿用「新增客户」的规则，并记录来源商机
+     * <p>
+     * 转换链路以前直接往 customer 表插数据，绕过了 addCustomer；
+     * 现在走 CustomerService.createFromBusiness，规则与校验只有一处。
+     */
+    @Test
+    void convertToCustomerFollowsCreationRules() throws Exception {
+        Business business = insertBusiness("转客户规则商机", BusinessStatus.WAIT_FOLLOW.getCode());
+
+        mockMvc.perform(post("/businesses/toCustomer/{id}", business.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        Business converted = businessMapper.selectById(business.getId());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                BusinessStatus.CONVERT_CUSTOMER.getCode(), converted.getStatus());
+
+        Customer created = customerMapper.selectOne(
+                new LambdaQueryWrapper<Customer>().eq(Customer::getBusinessId, business.getId()));
+        org.junit.jupiter.api.Assertions.assertNotNull(created, "转客户必须生成客户");
+        org.junit.jupiter.api.Assertions.assertEquals(business.getPhone(), created.getPhone());
+        org.junit.jupiter.api.Assertions.assertEquals(business.getName(), created.getName());
+        org.junit.jupiter.api.Assertions.assertEquals(business.getSubject(), created.getSubject());
+        org.junit.jupiter.api.Assertions.assertEquals(business.getDegree(), created.getDegree());
     }
 
     @Test

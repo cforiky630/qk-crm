@@ -1,6 +1,7 @@
 package com.qk.service;
 
 import com.qk.entity.po.Business;
+import com.qk.entity.po.Clue;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
@@ -26,6 +27,17 @@ public interface BusinessService {
      * @param business 商机信息
      */
     void addBusiness(Business business);
+
+    /**
+     * 由线索生成商机（线索转商机）
+     * <p>
+     * 「商机怎么诞生」属于商机模块自己的规则：状态置为待分配、不带走归属人、校验手机号与意向课程。
+     * 线索模块只负责把客户资料搬过来，不再直接往 business 表插数据 ——
+     * 否则在 {@link #addBusiness(Business)} 里新增的任何规则，转换链路都会静默漏掉。
+     *
+     * @param clue 已确认转为商机的线索
+     */
+    void createFromClue(Clue clue);
 
     /**
      * 分配商机给指定用户

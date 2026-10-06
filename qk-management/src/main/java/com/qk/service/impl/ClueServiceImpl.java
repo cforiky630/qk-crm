@@ -4,7 +4,6 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.qk.entity.po.Business;
 import com.qk.entity.po.Clue;
 import com.qk.entity.po.ClueTrackRecord;
 import com.qk.entity.vo.PageResult;
@@ -12,7 +11,6 @@ import com.qk.entity.dto.CluePoolDto;
 import com.qk.entity.dto.ClueQueryDto;
 import com.qk.entity.dto.ClueTrackDto;
 import com.qk.entity.dto.MarkFalseClueDto;
-import com.qk.entity.enums.BusinessStatus;
 import com.qk.entity.enums.ClueStatus;
 import com.qk.entity.enums.ClueTrackType;
 import com.qk.entity.enums.EnableStatus;
@@ -21,10 +19,10 @@ import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
 import com.qk.domain.ClueLifecycle;
 import com.qk.mapper.ActivityMapper;
-import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.ClueTrackRecordMapper;
 import com.qk.mapper.UserMapper;
+import com.qk.service.BusinessService;
 import com.qk.service.ClueService;
 import com.qk.common.util.UserHolder;
 import com.qk.entity.vo.ClueVO;
@@ -39,15 +37,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements ClueService {
 
     private final ClueTrackRecordMapper clueTrackRecordMapper;
-    private final BusinessMapper businessMapper;
+    private final BusinessService businessService;
     private final UserMapper userMapper;
     private final ActivityMapper activityMapper;
 
     @Autowired
-    public ClueServiceImpl(ClueTrackRecordMapper clueTrackRecordMapper, BusinessMapper businessMapper,
+    public ClueServiceImpl(ClueTrackRecordMapper clueTrackRecordMapper, BusinessService businessService,
                            UserMapper userMapper, ActivityMapper activityMapper) {
         this.clueTrackRecordMapper = clueTrackRecordMapper;
-        this.businessMapper = businessMapper;
+        this.businessService = businessService;
         this.userMapper = userMapper;
         this.activityMapper = activityMapper;
     }
@@ -164,19 +162,8 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         clue.setStatus(ClueStatus.CONVERT_BUSINESS.getCode());
         updateById(clue);
 
-        // 2. 按线索信息创建商机：只搬运客户资料，归属人/状态/下次跟进都不带（商机重新走分配流程）
-        Business business = new Business();
-        business.setName(clue.getName());
-        business.setPhone(clue.getPhone());
-        business.setGender(clue.getGender());
-        business.setAge(clue.getAge());
-        business.setWechat(clue.getWechat());
-        business.setQq(clue.getQq());
-        business.setSubject(clue.getSubject());
-        business.setChannel(clue.getChannel());
-        business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
-        business.setClueId(clue.getId());
-        businessMapper.insert(business);
+        // 2. 按线索信息创建商机：交给商机模块，复用它的新增规则并记录来源线索
+        businessService.createFromClue(clue);
     }
 
     @Override

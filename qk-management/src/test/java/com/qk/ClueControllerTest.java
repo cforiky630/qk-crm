@@ -270,6 +270,37 @@ class ClueControllerTest {
                 "重复转商机不应产生第二个商机");
     }
 
+    /**
+     * 线索转商机必须沿用「新增商机」的规则
+     * <p>
+     * 转换链路以前直接往 business 表插数据，绕过了 addBusiness：在新增路径上补的校验与默认值
+     * 转换时会静默漏掉。这里锁定结果：状态回到待分配、不带走归属人、客户资料照搬、来源线索已记录。
+     */
+    @Test
+    void convertToBusinessFollowsCreationRules() throws Exception {
+        Clue clue = insertClue("转商机规则线索", ClueStatus.WAIT_FOLLOW.getCode());
+        clue.setUserId(operator.getId());
+        clueMapper.updateById(clue);
+
+        mockMvc.perform(put("/clues/toBusiness/{id}", clue.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        Clue converted = clueMapper.selectById(clue.getId());
+        org.junit.jupiter.api.Assertions.assertEquals(ClueStatus.CONVERT_BUSINESS.getCode(), converted.getStatus());
+
+        Business created = businessMapper.selectOne(new LambdaQueryWrapper<Business>()
+                .eq(Business::getClueId, clue.getId()));
+        org.junit.jupiter.api.Assertions.assertNotNull(created, "转商机必须生成商机");
+        org.junit.jupiter.api.Assertions.assertEquals(BusinessStatus.WAIT_ALLOT.getCode(), created.getStatus(),
+                "转来的商机必须回到「待分配」，重新走分配流程");
+        org.junit.jupiter.api.Assertions.assertNull(created.getUserId(), "归属人不随线索搬运");
+        org.junit.jupiter.api.Assertions.assertEquals(clue.getPhone(), created.getPhone());
+        org.junit.jupiter.api.Assertions.assertEquals(clue.getName(), created.getName());
+        org.junit.jupiter.api.Assertions.assertEquals(clue.getSubject(), created.getSubject());
+        org.junit.jupiter.api.Assertions.assertEquals(clue.getChannel(), created.getChannel());
+    }
+
     @Test
     void markFalseClue() throws Exception {
         Clue clue = insertClue("测试伪线索处理", ClueStatus.WAIT_FOLLOW.getCode());
