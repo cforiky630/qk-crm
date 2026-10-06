@@ -476,4 +476,35 @@ class HardeningTest {
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value("只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片"));
     }
+
+    /**
+     * 伪装成图片的内容必须被拒
+     * <p>
+     * 只校验扩展名时，把脚本改名成 .png 就能写进对象存储；校验只看文件头，
+     * 不依赖 Content-Type（浏览器与客户端都可以随便填）。
+     */
+    @Test
+    void uploadRejectsDisguisedImage() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("image", "evil.png",
+                "image/png", "echo hi".getBytes(StandardCharsets.UTF_8));
+
+        mockMvc.perform(multipart("/upload").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("图片内容与文件类型不匹配，请上传真实图片"));
+    }
+
+    /**
+     * 没带文件分片时给出「请选择要上传的图片」，而不是 NPE 变成 500
+     * <p>
+     * 注意：缺分片时 Spring 传给控制器的是 null 而不是异常，因此这个判断必须留在入口。
+     * 提示语与改造前逐字一致（HTTP 200 + code = 0）。
+     */
+    @Test
+    void uploadWithoutFilePartIsRejectedWithFriendlyMessage() throws Exception {
+        mockMvc.perform(multipart("/upload"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("请选择要上传的图片"));
+    }
 }

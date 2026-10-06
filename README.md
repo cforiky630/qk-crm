@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-171%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-180%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -73,7 +73,7 @@
 ```
 qk-parent
 ├── qk-common/          通用能力（包根 com.qk.common）
-│   └── com.qk.common   Result / ResultCode、ErrorCode 错误码、系统异常告警出口与默认实现、OSS 客户端与模板、JWT 工具、UserHolder、业务异常
+│   └── com.qk.common   Result / ResultCode、ErrorCode 错误码、系统异常告警出口与默认实现、文件存储端口 FileStorage 与图片格式 ImageFormat、OSS 客户端与实现、JWT 工具、UserHolder、业务异常
 ├── qk-entity/          实体 / DTO / VO / 枚举（包根 com.qk.entity）
 │   └── com.qk.entity
 │       ├── po          表映射实体（Dept、User、Clue、Business…，与表一一对应）
@@ -240,7 +240,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：21 个测试类 / 171 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：22 个测试类 / 180 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -252,6 +252,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
 - [`ApiRobustnessTest`](qk-management/src/test/java/com/qk/ApiRobustnessTest.java) 守接口边界：404/405/415 不再变 500、分页参数校验、字段长度与手机号格式、悬空引用（把线索分配给不存在的用户等）、停用/未知账号的令牌被拒、状态流转守卫。
 - [`LifecycleTest`](qk-management/src/test/java/com/qk/LifecycleTest.java) 守状态机：不连数据库直接验证「哪些状态允许哪个动作」与提示语。
+- [`UploadServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadServiceImplTest.java) 守上传策略：不连数据库、不连 OSS（用内存实现替掉 `FileStorage`），验证扩展名白名单、文件头校验、空内容、读取失败保留根因。
 - 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**（唯一例外是 `HardeningTest` 里验证「摘要不能当密码登录」的那条，它需要库里已知密码的种子账号 `zhangsan`）。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
 
@@ -330,6 +331,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - 登录拦截器不只看签名：令牌通过校验后还会按主键查一次账号，账号不存在或 `status = 0` 直接 401 —— 停用或删除账号后，已签发的令牌不会在剩余有效期内继续可用。
 - 「操作日志」页面上的**操作模块**与**操作类型**不落库，由 `class_name` / `method_name` 在查询时映射（见 `OperateLogMapper.xml` 的 `moduleExpr` / `typeExpr`），`/logs` 支持 `operateModule`、`operateType` 模糊搜索。
 - 增删改接口标注 `@LogOperation`，由切面写入 `operate_log`（密码字段落库前脱敏为 `***`）。
+- **上传策略在服务层、存储走端口**：`UploadService` 负责扩展名白名单与文件头（魔术字节）校验，`FileStorage` 是存储出口、`OssTemplate` 是 OSS 实现，控制器只做协议适配（缺文件分片时给出「请选择要上传的图片」）。图片格式（扩展名 + Content-Type + 文件头）只有 `ImageFormat` 一个出处，换存储或改策略都不需要动 Web 层。
 
 ## 常见问题
 
@@ -372,7 +374,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 6. **客户 / 商机的「渠道来源」是选填**：服务端不做必填校验，`customer.channel` 与 `business.channel` 建表即为可空（`DEFAULT NULL`）；线索的 `channel` 仍是必填（原型 2.2 明确必填）。
 7. **两个「池」的口径与活动状态**：线索池只返回 `status = 4 伪线索`（与公海池只返回 `status = 4 回收` 一致）；`/clues`、`/businesses` 默认排除已关闭状态，但显式传 `status` 时按传入值筛选。活动状态（未开始/进行中/已结束）不落库，由 `/activities?activityStatus=` 按时间推算。
 8. **操作日志只记录增删改**：`@LogOperation` 只标注在写接口上，查询接口（GET）不写日志，因此日志列表里不会出现"查询部门/查询用户"这类记录。
-9. **上传**：仅校验扩展名与大小；对象为公共读，尚无孤儿对象清理机制。
+9. **上传**：已校验扩展名、文件头（魔术字节）与大小；对象仍是公共读，尚无孤儿对象清理机制（对象名按内容寻址，重复上传不会新增对象，但删除业务数据不会连带删除对象）。
 10. **只增表没有 `update_time`**：`clue_track_record`、`business_track_record`、`operate_log` 是只增表，只有创建时间（`operate_log` 叫 `operate_time`），严格来说不满足手册「表必备三字段」；时间列已补 `DEFAULT CURRENT_TIMESTAMP` 作为数据库侧兜底，业务写入仍以 Service 层为准。
 11. **列表检索使用全模糊**：各列表的手机号、姓名等条件为 `LIKE CONCAT('%', ?, '%')`，手册禁止左模糊与全模糊。改用前缀匹配或搜索引擎会改变检索结果，属于对外行为变更，故保留现状，待数据量上来后再评估。
 12. **0/1 语义字段未按 `is_xxx` 命名**：手册要求表达是与否的字段用 `is_xxx`，但 `job_status` 等字段改名会同时改变对外 JSON 字段名，属于破坏性契约变更，故保留（`status` 系列语义是「状态」而非布尔，不在该条款范围内）。

@@ -1314,9 +1314,12 @@ paths:
       tags: [文件上传]
       summary: 上传图片到阿里云 OSS
       description: |
-        对象按 `images/{上传人ID}/yyyy/MM/dd/{uuid}{后缀}` 命名（按用户隔离，便于后续追溯与清理），返回可公开访问的 URL。
+        对象按 `images/{上传人ID}/{内容MD5}{后缀}` 命名（内容寻址：同一用户重复上传同一张图落到同一个对象，天然幂等），返回可公开访问的 URL。
         只接受 jpg、jpeg、png、gif、bmp、webp 六种后缀；其他后缀返回 `code = 0`，
         `msg` 为「只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片」。
+        服务端还会校验文件头（魔术字节）必须与扩展名一致：把脚本改名成 `.png` 上传会返回 `code = 0`，
+        `msg` 为「图片内容与文件类型不匹配，请上传真实图片」；未携带 `image` 分片时返回 `code = 0`，
+        `msg` 为「请选择要上传的图片」。
         单个文件最大 5MB、整个请求最大 6MB，超出时返回 HTTP 400 且 `msg` 为「上传文件过大」。
       operationId: uploadImage
       requestBody:

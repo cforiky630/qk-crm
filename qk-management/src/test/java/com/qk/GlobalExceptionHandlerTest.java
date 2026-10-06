@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,5 +103,20 @@ class GlobalExceptionHandlerTest {
 
         Assertions.assertEquals(0, result.getCode());
         Assertions.assertEquals("系统繁忙,请稍后重试", result.getMsg());
+    }
+
+    /**
+     * 缺少 multipart 请求分片属于客户端问题，返回 400 + 「缺少请求参数：xxx」，
+     * 不能掉进兜底的 500 并触发运维告警。
+     */
+    @Test
+    void missingMultipartPartIsAClientError() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler(alert -> {
+        });
+
+        Result<Void> result = handler.handlerMissingPart(new MissingServletRequestPartException("image"));
+
+        Assertions.assertEquals(0, result.getCode());
+        Assertions.assertEquals("缺少请求参数：image", result.getMsg());
     }
 }

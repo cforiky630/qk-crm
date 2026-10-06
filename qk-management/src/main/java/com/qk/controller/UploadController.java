@@ -3,30 +3,29 @@ package com.qk.controller;
 import com.qk.common.Result;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
-import com.qk.common.util.FileNameUtil;
-import com.qk.common.util.OssTemplate;
-import com.qk.common.util.UserHolder;
-import lombok.extern.slf4j.Slf4j;
+import com.qk.service.UploadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
-@Slf4j
+/**
+ * 文件上传控制器
+ * <p>
+ * 只做协议适配：把 multipart 请求拆成「文件名 + 内容流」交给 {@code UploadService}。
+ * 上传策略（格式白名单、文件头校验）与存储实现都不在 Web 层，
+ * 因此换存储或调整校验规则都不需要动控制器。
+ */
 @RestController
 public class UploadController {
 
-    /** 允许上传的图片格式，避免把可执行文件之类的内容塞进图片目录 */
-    private static final List<String> ALLOWED_SUFFIX = List.of(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp");
-
-    private final OssTemplate ossTemplate;
+    private final UploadService uploadService;
 
     @Autowired
-    public UploadController(OssTemplate ossTemplate) {
-        this.ossTemplate = ossTemplate;
+    public UploadController(UploadService uploadService) {
+        this.uploadService = uploadService;
     }
 
     /**
@@ -37,22 +36,11 @@ public class UploadController {
      */
     @PostMapping("/upload")
     public Result<String> upload(MultipartFile image) throws IOException {
-        if (image == null || image.isEmpty()) {
+        // 没带文件分片时 Spring 解析出来的是 null（不是抛异常），必须在入口拦掉，
+        // 否则 NPE 会被兜底处理器变成 500 + 运维告警。提示语与改造前一致。
+        if (image == null) {
             throw new BusinessException(ErrorCode.UPLOAD_IMAGE_REQUIRED);
         }
-        String originalFilename = image.getOriginalFilename();
-        // 白名单是小写，因此这里统一转小写再比；没有扩展名时得到空串，走同一个「格式不支持」提示，
-        // 而不是像原来那样在 substring(-1) 上抛 StringIndexOutOfBoundsException（会变成 500）
-        String suffix = FileNameUtil.extensionOf(originalFilename).toLowerCase();
-        if (!ALLOWED_SUFFIX.contains(suffix)) {
-            throw new BusinessException(ErrorCode.UPLOAD_IMAGE_TYPE_UNSUPPORTED);
-        }
-
-        // 对象名带上上传人，便于后续按用户追溯与清理孤儿对象
-        Long userId = UserHolder.getCurrentUser();
-        log.info("文件上传开始：{}，上传人：{}", originalFilename, userId);
-        String url = ossTemplate.upload(userId, originalFilename, image.getInputStream());
-        log.info("文件上传完成：{}", url);
-        return Result.success(url);
+        return Result.success(uploadService.upload(image.getOriginalFilename(), image.getInputStream()));
     }
 }

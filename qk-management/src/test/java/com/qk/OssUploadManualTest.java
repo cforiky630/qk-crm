@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.ByteArrayInputStream;
 import java.util.Base64;
 
 /**
@@ -39,7 +38,7 @@ class OssUploadManualTest {
                 + " CONFIG_BUCKET=" + ossProperties.getBucketName());
 
         byte[] bytes = Base64.getDecoder().decode(PNG_BASE64);
-        String url = ossTemplate.upload(1L, "codex-upload-test.png", new ByteArrayInputStream(bytes));
+        String url = ossTemplate.store(1L, "codex-upload-test.png", bytes);
         System.out.println("UPLOADED_URL=" + url);
         System.out.println("UPLOAD_BYTES=" + bytes.length);
 

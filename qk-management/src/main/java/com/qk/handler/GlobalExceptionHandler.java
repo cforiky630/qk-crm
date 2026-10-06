@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
@@ -185,6 +186,18 @@ public class GlobalExceptionHandler {
     public Result<Void> handlerMissingParameter(MissingServletRequestParameterException e) {
         log.warn("缺少请求参数: {}", e.getParameterName());
         return Result.error(ErrorCode.PARAM_MISSING.format(e.getParameterName()));
+    }
+
+    /**
+     * 缺少 multipart 请求分片（例如 {@code POST /upload} 没带 image 字段）：返回 400
+     * <p>
+     * 与「缺少查询参数」同一类问题：都属于请求本身不完整，不该算服务端故障。
+     */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<Void> handlerMissingPart(MissingServletRequestPartException e) {
+        log.warn("缺少请求体分片: {}", e.getRequestPartName());
+        return Result.error(ErrorCode.PARAM_MISSING.format(e.getRequestPartName()));
     }
 
     /**

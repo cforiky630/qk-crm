@@ -1,16 +1,11 @@
 package com.qk.common.util;
 
-import com.qk.common.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -43,29 +38,6 @@ class OssTemplateTest {
         assertTrue(OssTemplate.buildObjectName(7L, ".png", first).endsWith(".png"));
     }
 
-    /**
-     * 读取上传文件失败时必须保留根因
-     * <p>
-     * 对外提示不能变（前端只看得到「读取上传文件失败」），但日志里要能看到到底为什么失败，
-     * 否则超时、断流、被拒绝这些情况在排查时全都长一个样。
-     */
-    @Test
-    void uploadKeepsRootCauseWhenReadingFails() {
-        IOException rootCause = new IOException("simulated read failure");
-        InputStream broken = new InputStream() {
-            @Override
-            public int read() throws IOException {
-                throw rootCause;
-            }
-        };
-
-        // 读取失败发生在触碰 OSS 客户端之前，所以两个依赖传 null 也不会被用到
-        OssTemplate template = new OssTemplate(null, null);
-
-        BusinessException thrown = assertThrows(BusinessException.class,
-                () -> template.upload(1L, "a.png", broken));
-
-        assertEquals("读取上传文件失败", thrown.getMessage(), "对外的提示文案不能变");
-        assertSame(rootCause, thrown.getCause(), "必须保留根因，否则日志里查不到真正原因");
-    }
+    // 「读取上传文件失败要保留根因」的用例随读取职责一起搬到了 UploadServiceImplTest：
+    // 适配器不再碰输入流，只负责对象命名与上传。
 }
