@@ -31,7 +31,7 @@ public class CourseController {
     /**
      * 新增课程
      *
-     * @param course 课程信息
+     * @param courseDto 课程信息
      * @return 操作结果
      */
     @LogOperation
@@ -71,7 +71,7 @@ public class CourseController {
     /**
      * 修改课程
      *
-     * @param course 课程信息
+     * @param courseDto 课程信息
      * @return 统一响应结果
      */
     @LogOperation

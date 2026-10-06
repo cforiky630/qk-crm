@@ -31,7 +31,7 @@ public class RoleController {
     /**
      * 新增角色
      *
-     * @param role 角色信息
+     * @param roleDto 角色信息
      * @return 操作结果
      */
     @LogOperation
@@ -71,7 +71,7 @@ public class RoleController {
     /**
      * 修改角色
      *
-     * @param role 角色信息
+     * @param roleDto 角色信息
      * @return 统一响应结果
      */
     @LogOperation
