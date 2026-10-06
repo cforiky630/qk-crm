@@ -82,10 +82,17 @@
                 <version>${hutool.version}</version>
             </dependency>
 
-            <!-- MyBatis-Plus：启动器与分页所需的 SQL 解析器版本保持一致 -->
+            <!-- MyBatis-Plus：启动器、注解与分页 SQL 解析器版本保持一致 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <version>${mybatisplus.version}</version>
+            </dependency>
+            <!-- 只含 @TableName / @TableId / @TableLogic 等注解，供 qk-entity 使用，
+                 避免模型模块把整个持久层运行时与自动配置拖进来 -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-annotation</artifactId>
                 <version>${mybatisplus.version}</version>
             </dependency>
             <dependency>

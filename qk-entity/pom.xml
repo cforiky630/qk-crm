@@ -17,10 +17,11 @@
     <description>实体 / DTO / VO / 枚举</description>
 
     <dependencies>
-        <!-- MyBatis-Plus 注解：@TableName、@TableId 等 -->
+        <!-- MyBatis-Plus 注解：@TableName、@TableId、@TableLogic 等。
+             这里只要注解、不要启动器：实体模块不该把持久层运行时与自动配置拖进来 -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+            <artifactId>mybatis-plus-annotation</artifactId>
         </dependency>
 
         <!-- 仅用于 @JsonIgnore 等序列化注解，避免实体被直接返回时泄露敏感字段 -->
