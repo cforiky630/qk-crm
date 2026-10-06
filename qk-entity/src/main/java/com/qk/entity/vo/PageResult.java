@@ -1,8 +1,9 @@
-package com.qk.common;
+package com.qk.entity.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 /**
@@ -12,9 +13,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-/*
- 我们定义类的时候也可以定义泛型, 让使用者来确定, 该类可以用于部门分页, 用户分页...等等 , 提供类的通用性
-*/
+
 public class PageResult<T> {
     /**
      * 总记录数
@@ -24,6 +23,6 @@ public class PageResult<T> {
     /**
      * 当前页的数据列表
      */
-    // 这里的T是泛型，表示当前页的数据列表的类型, 一般就是查询表对应的实体类
+    // 泛型，表示当前页的数据列表的类型, 一般是查询表对应的实体类
     private List<T> rows;
 }

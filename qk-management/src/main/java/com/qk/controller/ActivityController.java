@@ -1,9 +1,10 @@
 package com.qk.controller;
 
-import com.qk.entity.Activity;
+import com.qk.entity.po.Activity;
 import com.qk.entity.dto.ActivitySaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.ActivityVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.ActivityService;
@@ -46,12 +47,12 @@ public class ActivityController {
      * @param activityStatus 活动状态（1 未开始 / 2 进行中 / 3 已结束），按开始/结束时间推算，为空表示不筛选
      */
     @GetMapping("/activities")
-    public Result<PageResult<Activity>> listActivities(Integer channel, Integer type, Integer activityStatus,
+    public Result<PageResult<ActivityVO>> listActivities(Integer channel, Integer type, Integer activityStatus,
                                  @RequestParam(defaultValue = "1") Integer page,
                                  @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询活动, 参数: channel={}, type={}, activityStatus={}, page={}, pageSize={}",
                 channel, type, activityStatus, page, pageSize);
-        PageResult<Activity> pageResult =
+        PageResult<ActivityVO> pageResult =
                 activityService.findActivitiesByPage(channel, type, activityStatus, page, pageSize);
         return Result.success(pageResult);
     }
@@ -60,9 +61,9 @@ public class ActivityController {
      * 查询指定类型的所有活动，不分页
      */
     @GetMapping("/activities/type/{type}")
-    public Result<List<Activity>> listActivitiesByType(@PathVariable Integer type) {
+    public Result<List<ActivityVO>> listActivitiesByType(@PathVariable Integer type) {
         log.info("查询类型为{}的活动", type);
-        List<Activity> activities = activityService.findByType(type);
+        List<ActivityVO> activities = activityService.findByType(type);
         return Result.success(activities);
     }
 
@@ -70,7 +71,7 @@ public class ActivityController {
      * 根据ID查询活动
      */
     @GetMapping("/activities/{id}")
-    public Result<Activity> findById(@PathVariable Integer id) {
+    public Result<ActivityVO> findById(@PathVariable Long id) {
         log.info("查询活动ID为{}的活动信息", id);
         return Result.success(activityService.findById(id));
     }
@@ -98,7 +99,7 @@ public class ActivityController {
      */
     @LogOperation
     @DeleteMapping("/activities/{id}")
-    public Result<Void> deleteActivity(@PathVariable("id") Integer id) {
+    public Result<Void> deleteActivity(@PathVariable("id") Long id) {
         log.info("删除活动：{}", id);
         activityService.deleteById(id);
         return Result.success();

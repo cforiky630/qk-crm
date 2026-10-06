@@ -2,8 +2,8 @@ package com.qk.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.OperateLog;
-import com.qk.common.PageResult;
+import com.qk.entity.po.OperateLog;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.LogQueryDto;
 import com.qk.mapper.OperateLogMapper;
 import com.qk.service.OperateLogService;

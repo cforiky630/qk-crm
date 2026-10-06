@@ -6,7 +6,7 @@
     <sql id="viewSelect">
         SELECT cu.*, c.name AS course_name
         FROM customer cu
-        LEFT JOIN course c ON cu.course_id = c.id
+        LEFT JOIN course c ON cu.course_id = c.id AND c.is_deleted = 0
     </sql>
 
     <select id="listCustomers" resultType="com.qk.entity.vo.CustomerVO">

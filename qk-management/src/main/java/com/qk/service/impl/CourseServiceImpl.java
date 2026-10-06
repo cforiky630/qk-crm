@@ -3,8 +3,9 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Course;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Course;
+import com.qk.entity.vo.CourseVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.CourseMapper;
 import com.qk.mapper.BusinessMapper;
@@ -55,14 +56,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public PageResult<Course> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize) {
+    public PageResult<CourseVO> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize) {
         IPage<Course> p = courseMapper.pageCourses(new Page<>(page, pageSize), name, subject, target);
-        return new PageResult<>(p.getTotal(), p.getRecords());
+        return new PageResult<>(p.getTotal(), p.getRecords().stream().map(CourseVO::from).toList());
     }
 
     @Override
-    public Course findById(Integer id) {
-        return courseMapper.selectById(id);
+    public CourseVO findById(Long id) {
+        return CourseVO.from(requireCourse(id));
     }
 
     @Override
@@ -96,7 +97,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public void deleteById(Integer id) {
+    public void deleteById(Long id) {
         requireCourse(id);
 
         // 守卫：仍被商机或客户引用的课程不允许删除。
@@ -121,24 +122,28 @@ public class CourseServiceImpl implements CourseService {
 
     /**
      * 校验课程是否存在，不存在直接抛业务异常
+     *
+     * @return 已存在的课程，供调用方复用，避免重复查询
      */
-    private void requireCourse(Integer id) {
+    private Course requireCourse(Long id) {
         if (id == null) {
             throw new BusinessException("课程ID不能为空");
         }
-        if (courseMapper.selectById(id) == null) {
+        Course course = courseMapper.selectById(id);
+        if (course == null) {
             throw new BusinessException("课程不存在");
         }
+        return course;
     }
 
     @Override
-    public List<Course> findAll() {
-        return courseMapper.listAllOrdered();
+    public List<CourseVO> findAll() {
+        return courseMapper.listAllOrdered().stream().map(CourseVO::from).toList();
     }
 
     @Override
-    public List<Course> findBySubject(Integer subject) {
-        return courseMapper.listBySubject(subject);
+    public List<CourseVO> findBySubject(Integer subject) {
+        return courseMapper.listBySubject(subject).stream().map(CourseVO::from).toList();
     }
 
 }

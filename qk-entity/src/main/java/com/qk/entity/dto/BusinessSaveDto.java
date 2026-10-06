@@ -31,7 +31,7 @@ public class BusinessSaveDto {
 
     private Integer subject;
 
-    private Integer courseId;
+    private Long courseId;
 
     private Integer degree;
 

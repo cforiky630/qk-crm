@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class ClueTrackDto {
 
     /** 线索ID，必填 */
-    private Integer id;
+    private Long id;
 
     /** 手机号 */
     private String phone;
@@ -25,7 +25,7 @@ public class ClueTrackDto {
     private Integer channel;
 
     /** 关联活动ID */
-    private Integer activityId;
+    private Long activityId;
 
     /** 客户姓名 */
     private String name;

@@ -2,8 +2,9 @@ package com.qk.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.common.PageResult;
-import com.qk.entity.Role;
+import com.qk.entity.vo.PageResult;
+import com.qk.entity.vo.RoleVO;
+import com.qk.entity.po.Role;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
@@ -33,14 +34,14 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public PageResult<Role> findRolesByPage(String name, String label, Integer page, Integer pageSize) {
+    public PageResult<RoleVO> findRolesByPage(String name, String label, Integer page, Integer pageSize) {
         IPage<Role> p = roleMapper.pageRoles(new Page<>(page, pageSize), name, label);
-        return new PageResult<>(p.getTotal(), p.getRecords());
+        return new PageResult<>(p.getTotal(), p.getRecords().stream().map(RoleVO::from).toList());
     }
 
     @Override
-    public Role findById(Integer id) {
-        return roleMapper.selectById(id);
+    public RoleVO findById(Long id) {
+        return RoleVO.from(requireRole(id));
     }
 
     @Override
@@ -50,7 +51,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public void deleteById(Integer id) {
+    public void deleteById(Long id) {
         requireRole(id);
 
         // 守卫：仍被用户引用的角色不允许删除。
@@ -66,19 +67,23 @@ public class RoleServiceImpl implements RoleService {
 
     /**
      * 校验角色是否存在，不存在直接抛业务异常
+     *
+     * @return 已存在的角色，供调用方复用，避免重复查询
      */
-    private void requireRole(Integer id) {
+    private Role requireRole(Long id) {
         if (id == null) {
             throw new BusinessException("角色ID不能为空");
         }
-        if (roleMapper.selectById(id) == null) {
+        Role role = roleMapper.selectById(id);
+        if (role == null) {
             throw new BusinessException("角色不存在");
         }
+        return role;
     }
 
     @Override
-    public List<Role> findAll() {
-        return roleMapper.listAllOrdered();
+    public List<RoleVO> findAll() {
+        return roleMapper.listAllOrdered().stream().map(RoleVO::from).toList();
     }
 
 }

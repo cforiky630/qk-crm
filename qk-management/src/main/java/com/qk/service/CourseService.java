@@ -1,7 +1,8 @@
 package com.qk.service;
 
-import com.qk.entity.Course;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Course;
+import com.qk.entity.vo.CourseVO;
+import com.qk.entity.vo.PageResult;
 
 import java.util.List;
 
@@ -23,7 +24,7 @@ public interface CourseService {
      * @param pageSize 每页显示条数
      * @return 分页结果
      */
-    PageResult<Course> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize);
+    PageResult<CourseVO> findCoursesByPage(String name, Integer subject, Integer target, Integer page, Integer pageSize);
 
     /**
      * 根据id查询课程
@@ -31,7 +32,7 @@ public interface CourseService {
      * @param id 课程id
      * @return 课程信息
      */
-    Course findById(Integer id);
+    CourseVO findById(Long id);
 
     /**
      * 根据id修改课程信息
@@ -45,14 +46,14 @@ public interface CourseService {
      *
      * @param id 课程id
      */
-    void deleteById(Integer id);
+    void deleteById(Long id);
 
     /**
      * 查询所有课程，不分页，用于下拉框
      *
      * @return 课程列表
      */
-    List<Course> findAll();
+    List<CourseVO> findAll();
 
     /**
      * 根据学科查询课程，不分页
@@ -60,5 +61,5 @@ public interface CourseService {
      * @param subject 学科
      * @return 课程列表
      */
-    List<Course> findBySubject(Integer subject);
+    List<CourseVO> findBySubject(Integer subject);
 }

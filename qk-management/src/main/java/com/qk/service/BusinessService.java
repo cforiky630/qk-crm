@@ -1,8 +1,8 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.entity.Business;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Business;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.dto.BusinessTrackDto;
@@ -34,21 +34,21 @@ public interface BusinessService extends IService<Business> {
      * @param businessId 商机ID
      * @param userId     用户ID
      */
-    void assignBusiness(Integer businessId, Integer userId);
+    void assignBusiness(Long businessId, Long userId);
 
     /**
      * 将商机踢回公海
      *
      * @param id 商机ID
      */
-    void backToPool(Integer id);
+    void backToPool(Long id);
 
     /**
      * 将商机转为客户
      *
      * @param id 商机ID
      */
-    void convertToCustomer(Integer id);
+    void convertToCustomer(Long id);
 
     /**
      * 根据ID查询商机详细信息（含跟进记录列表）
@@ -56,7 +56,7 @@ public interface BusinessService extends IService<Business> {
      * @param id 商机ID
      * @return 商机详细信息
      */
-    BusinessVO getBusinessById(Integer id);
+    BusinessVO getBusinessById(Long id);
 
     /**
      * 跟进商机：更新商机信息并新增一条跟进记录

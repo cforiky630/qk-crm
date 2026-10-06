@@ -10,15 +10,15 @@ import java.time.LocalDateTime;
  */
 @Data
 public class UserVO {
-    private Integer id;
+    private Long id;
     private String username;
     private String name;
     private String phone;
     private String email;
     private Integer gender;
     private Integer status;
-    private Integer deptId;
-    private Integer roleId;
+    private Long deptId;
+    private Long roleId;
     private String image;
     private String remark;
     private LocalDateTime createTime;

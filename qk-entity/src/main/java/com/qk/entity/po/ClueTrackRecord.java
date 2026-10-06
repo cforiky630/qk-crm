@@ -1,4 +1,4 @@
-package com.qk.entity;
+package com.qk.entity.po;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -18,13 +18,13 @@ public class ClueTrackRecord {
 
     /** 跟进记录ID，主键 */
     @TableId
-    private Integer id;
+    private Long id;
 
     /** 线索ID，关联线索表主键 */
-    private Integer clueId;
+    private Long clueId;
 
     /** 跟进人ID，关联用户表主键 */
-    private Integer userId;
+    private Long userId;
 
     /** 意向学科 */
     private Integer subject;

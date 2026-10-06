@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Business;
+import com.qk.entity.po.Business;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.vo.BusinessVO;
@@ -31,7 +31,7 @@ public interface BusinessMapper extends BaseMapper<Business> {
     /**
      * 根据ID查询商机基本信息（不含跟进记录）
      */
-    BusinessVO getBusinessById(@Param("id") Integer id);
+    BusinessVO getBusinessById(@Param("id") Long id);
 
     /**
      * 公海池列表（回收的商机）
@@ -41,7 +41,7 @@ public interface BusinessMapper extends BaseMapper<Business> {
     /**
      * 统计引用某课程的商机数（用于删除课程前的引用校验）
      */
-    default long countByCourseId(Integer courseId) {
+    default long countByCourseId(Long courseId) {
         Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getCourseId, courseId));
         return count == null ? 0L : count;
     }
@@ -49,7 +49,7 @@ public interface BusinessMapper extends BaseMapper<Business> {
     /**
      * 统计归属于某用户的商机数（用于删除用户前的引用校验）
      */
-    default long countByUserId(Integer userId) {
+    default long countByUserId(Long userId) {
         Long count = selectCount(new LambdaQueryWrapper<Business>().eq(Business::getUserId, userId));
         return count == null ? 0L : count;
     }
@@ -61,7 +61,7 @@ public interface BusinessMapper extends BaseMapper<Business> {
      *
      * @return 受影响行数
      */
-    default int clearAssignee(Integer businessId) {
+    default int clearAssignee(Long businessId) {
         return update(null, new LambdaUpdateWrapper<Business>()
                 .eq(Business::getId, businessId)
                 .set(Business::getUserId, null));

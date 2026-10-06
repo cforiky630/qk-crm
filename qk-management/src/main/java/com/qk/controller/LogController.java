@@ -1,6 +1,6 @@
 package com.qk.controller;
 
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.dto.LogQueryDto;
 import com.qk.service.OperateLogService;

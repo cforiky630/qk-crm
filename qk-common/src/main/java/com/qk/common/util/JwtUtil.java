@@ -73,8 +73,8 @@ public class JwtUtil {
      * @param token 令牌
      * @return 用户ID，取不到时返回 null
      */
-    public Integer getUserId(String token) {
-        return Convert.toInt(JWT.of(token).getPayload("id"), null);
+    public Long getUserId(String token) {
+        return Convert.toLong(JWT.of(token).getPayload("id"), null);
     }
 
     /**

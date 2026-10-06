@@ -14,7 +14,7 @@ import lombok.Data;
 public class UserSaveDto {
 
     /** 用户ID：修改时必填，新增时忽略 */
-    private Integer id;
+    private Long id;
 
     @NotBlank(message = "用户名不能为空")
     private String username;
@@ -32,9 +32,9 @@ public class UserSaveDto {
 
     private Integer status;
 
-    private Integer deptId;
+    private Long deptId;
 
-    private Integer roleId;
+    private Long roleId;
 
     private String image;
 

@@ -6,14 +6,14 @@
     <sql id="listSelect">
         SELECT c.*, u.name AS assign_name
         FROM clue c
-        LEFT JOIN `user` u ON c.user_id = u.id
+        LEFT JOIN `user` u ON c.user_id = u.id AND u.is_deleted = 0
     </sql>
 
     <!-- 线索池视图：附带活动名称 -->
     <sql id="poolSelect">
         SELECT c.*, a.name AS activity_name
         FROM clue c
-        LEFT JOIN activity a ON c.activity_id = a.id
+        LEFT JOIN activity a ON c.activity_id = a.id AND a.is_deleted = 0
     </sql>
 
     <select id="listClues" resultType="com.qk.entity.vo.ClueVO">

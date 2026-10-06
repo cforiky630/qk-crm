@@ -31,9 +31,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Course;
-import com.qk.entity.Business;
-import com.qk.entity.Customer;
+import com.qk.entity.po.Course;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.Customer;
 import com.qk.entity.enums.BusinessStatus;
 
 /**
@@ -89,7 +89,7 @@ class CourseControllerTest {
     }
 
     /** 造一个把某课程作为意向课程的商机，用于验证「课程被引用时不可删除」 */
-    private Business insertBusiness(Integer courseId) {
+    private Business insertBusiness(Long courseId) {
         int seq = SEQ.incrementAndGet();
         Business business = new Business();
         business.setName("课程引用商机" + seq);
@@ -109,7 +109,7 @@ class CourseControllerTest {
     }
 
     /** 造一个把某课程作为意向课程的客户 */
-    private Customer insertCustomer(Integer courseId) {
+    private Customer insertCustomer(Long courseId) {
         int seq = SEQ.incrementAndGet();
         Customer customer = new Customer();
         customer.setPhone("156" + String.format("%08d", seq));

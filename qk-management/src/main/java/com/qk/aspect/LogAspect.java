@@ -1,6 +1,6 @@
 package com.qk.aspect;
 
-import com.qk.entity.OperateLog;
+import com.qk.entity.po.OperateLog;
 import com.qk.service.OperateLogService;
 import com.qk.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;

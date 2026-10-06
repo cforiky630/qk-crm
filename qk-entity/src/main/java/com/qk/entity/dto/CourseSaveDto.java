@@ -21,7 +21,7 @@ import lombok.Data;
 public class CourseSaveDto {
 
     /** 课程ID：修改时必填，新增时忽略 */
-    private Integer id;
+    private Long id;
 
     @NotNull(message = "学科不能为空")
     @Min(value = 1, message = "学科取值必须在 1~7 之间")

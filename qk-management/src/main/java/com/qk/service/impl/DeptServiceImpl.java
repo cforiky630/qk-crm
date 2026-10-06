@@ -2,8 +2,9 @@ package com.qk.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Dept;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Dept;
+import com.qk.entity.vo.DeptVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.exception.BusinessException;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.mapper.DeptMapper;
@@ -35,15 +36,15 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public PageResult<Dept> findDeptsByPage(String name, Integer status, Integer page, Integer pageSize) {
+    public PageResult<DeptVO> findDeptsByPage(String name, Integer status, Integer page, Integer pageSize) {
         // 查询条件与排序由 Mapper 负责，Service 只做参数传递与结果包装
         IPage<Dept> p = deptMapper.pageDepts(new Page<>(page, pageSize), name, status);
-        return new PageResult<>(p.getTotal(), p.getRecords());
+        return new PageResult<>(p.getTotal(), p.getRecords().stream().map(DeptVO::from).toList());
     }
 
     @Override
-    public Dept findById(Integer id) {
-        return deptMapper.selectById(id);
+    public DeptVO findById(Long id) {
+        return DeptVO.from(requireDept(id));
     }
 
     @Override
@@ -53,7 +54,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public void deleteById(Integer id) {
+    public void deleteById(Long id) {
         Dept dept = requireDept(id);
 
         // 守卫 1：启用状态的部门不允许直接删除，必须先停用。
@@ -78,7 +79,7 @@ public class DeptServiceImpl implements DeptService {
      *
      * @return 已存在的部门，供调用方复用，避免重复查询
      */
-    private Dept requireDept(Integer id) {
+    private Dept requireDept(Long id) {
         if (id == null) {
             throw new BusinessException("部门ID不能为空");
         }
@@ -90,8 +91,8 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public List<Dept> findAllNormal() {
-        return deptMapper.listEnabled();
+    public List<DeptVO> findAllNormal() {
+        return deptMapper.listEnabled().stream().map(DeptVO::from).toList();
     }
 
 }

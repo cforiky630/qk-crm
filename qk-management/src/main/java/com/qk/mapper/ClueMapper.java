@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Clue;
+import com.qk.entity.po.Clue;
 import com.qk.entity.dto.CluePoolDto;
 import com.qk.entity.dto.ClueQueryDto;
 import com.qk.entity.vo.ClueVO;
@@ -30,7 +30,7 @@ public interface ClueMapper extends BaseMapper<Clue> {
     /**
      * 根据ID查询线索基本信息（不含跟进记录）
      */
-    ClueVO getClueById(@Param("id") Integer id);
+    ClueVO getClueById(@Param("id") Long id);
 
     /**
      * 线索池列表（含活动名称），只返回伪线索（status = 4），供重新分配
@@ -40,7 +40,7 @@ public interface ClueMapper extends BaseMapper<Clue> {
     /**
      * 统计关联某活动的线索数（用于删除活动前的引用校验）
      */
-    default long countByActivityId(Integer activityId) {
+    default long countByActivityId(Long activityId) {
         Long count = selectCount(new LambdaQueryWrapper<Clue>().eq(Clue::getActivityId, activityId));
         return count == null ? 0L : count;
     }
@@ -48,7 +48,7 @@ public interface ClueMapper extends BaseMapper<Clue> {
     /**
      * 统计归属于某用户的线索数（用于删除用户前的引用校验）
      */
-    default long countByUserId(Integer userId) {
+    default long countByUserId(Long userId) {
         Long count = selectCount(new LambdaQueryWrapper<Clue>().eq(Clue::getUserId, userId));
         return count == null ? 0L : count;
     }

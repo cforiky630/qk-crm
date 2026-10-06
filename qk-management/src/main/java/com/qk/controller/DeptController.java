@@ -1,9 +1,10 @@
 package com.qk.controller;
 
-import com.qk.entity.Dept;
+import com.qk.entity.po.Dept;
 import com.qk.entity.dto.DeptSaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.DeptVO;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.DeptService;
@@ -51,9 +52,9 @@ public class DeptController {
     @GetMapping("/depts") // 接收前端发送的GET请求
     // 当前端使用(?参数)方式提交请求参数时, 后端需要使用   @RequestParam(可以省略) 参数变量  的方式接收
     // @RequestParam注解的defaultValue属性可以设置默认值
-    public Result<PageResult<Dept>> listDepts(String name, Integer status, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
+    public Result<PageResult<DeptVO>> listDepts(String name, Integer status, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询部门, 参数: name={}, status={}, page={}, pageSize={}", name, status, page, pageSize);
-        PageResult<Dept> pageResult = deptService.findDeptsByPage(name, status, page, pageSize);
+        PageResult<DeptVO> pageResult = deptService.findDeptsByPage(name, status, page, pageSize);
         return Result.success(pageResult);
     }
 
@@ -65,9 +66,9 @@ public class DeptController {
      */
     @GetMapping("/depts/{id}")
     // 当前端使用请求路径方式提交请求参数时, 后端需要使用   @PathVariable 变量  的方式接收
-    public Result<Dept> findById(@PathVariable Integer id) {
+    public Result<DeptVO> findById(@PathVariable Long id) {
         log.info("查询部门ID为{}的部门信息", id);
-        Dept dept = deptService.findById(id);
+        DeptVO dept = deptService.findById(id);
         return Result.success(dept);
     }
 
@@ -106,7 +107,7 @@ public class DeptController {
      */
     @LogOperation
     @DeleteMapping("/depts/{id}")
-    public Result<Void> deleteDept(@PathVariable("id") Integer id) {
+    public Result<Void> deleteDept(@PathVariable("id") Long id) {
         log.info("删除部门：{}", id);
         deptService.deleteById(id);
         return Result.success();
@@ -118,9 +119,9 @@ public class DeptController {
      * @return 统一响应结果
      */
     @GetMapping("/depts/list")
-    public Result<List<Dept>> listAllDepts() {
+    public Result<List<DeptVO>> listAllDepts() {
         log.info("查询所有正常状态的部门");
-        List<Dept> depts = deptService.findAllNormal();
+        List<DeptVO> depts = deptService.findAllNormal();
         return Result.success(depts);
     }
 }

@@ -1,9 +1,9 @@
 package com.qk.controller;
 
-import com.qk.entity.Customer;
+import com.qk.entity.po.Customer;
 import com.qk.entity.dto.CustomerSaveDto;
 import cn.hutool.core.bean.BeanUtil;
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.entity.dto.CustomerQueryDto;
@@ -55,7 +55,7 @@ public class CustomerController {
      * 根据ID查询客户
      */
     @GetMapping("/{id}")
-    public Result<CustomerVO> getCustomerById(@PathVariable Integer id) {
+    public Result<CustomerVO> getCustomerById(@PathVariable Long id) {
         log.info("根据ID查询客户, id: {}", id);
         CustomerVO customer = customerService.getCustomerById(id);
         return customer != null ? Result.success(customer) : Result.error("客户不存在");

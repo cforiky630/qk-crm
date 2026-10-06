@@ -13,7 +13,8 @@ info:
     ### 统一响应结构
     所有接口返回 `Result` 对象：`code` 为 `1` 表示成功、`0` 表示失败。
     **业务失败同样返回 HTTP 200**，由调用方依据 `code` 判断；`msg` 为可直接展示给用户的中文提示。
-    无业务数据时 `data` 为 `null`。
+    无业务数据时 `data` 为 `null`，且该字段会**整个省略**（服务端 `Result` 标注 `@JsonInclude(NON_NULL)`），
+    判断成功请用 `code == 1`，不要依赖 `data` 字段是否存在。
 
     ### 认证
     除 `POST /login` 外，所有接口都要求在请求头 `token` 中携带登录接口签发的 JWT 令牌。
@@ -49,6 +50,8 @@ info:
     冲突时返回 `code = 0`，`msg` 为「用户名已存在」「该手机号已录入线索」等具体提示。
 
     ### 删除接口的前置校验
+    删除是**逻辑删除**：记录从接口视角消失（列表、详情、下拉、统计都不再出现），但库中保留，误删可由 DBA 恢复；
+    已删除记录占用的唯一值（用户名、手机号、邮箱、部门名、角色标识）会被释放，因此同一个值可以重新创建。
     项目不使用物理外键，关联完整性由 Service 层保证，因此删除接口在下列情况会返回 `code = 0`：
 
     | 接口 | 拒绝条件 | msg 示例 |
@@ -110,7 +113,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/LoginDto'
             example:
               username: zhangsan
               password: '123'
@@ -143,7 +146,7 @@ paths:
         - name: deptId
           in: query
           description: 部门ID，精确匹配
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -247,7 +250,7 @@ paths:
         - name: deptId
           in: path
           required: true
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -372,7 +375,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '200':
-          description: 部门信息，不存在时 `data` 为 `null`
+          description: 部门信息；不存在时 `code = 0`、`msg = 部门不存在`
           content:
             application/json:
               schema:
@@ -474,7 +477,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '200':
-          description: 角色信息，不存在时 `data` 为 `null`
+          description: 角色信息；不存在时 `code = 0`、`msg = 角色不存在`
           content:
             application/json:
               schema:
@@ -601,7 +604,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '200':
-          description: 课程信息，不存在时 `data` 为 `null`
+          description: 课程信息；不存在时 `code = 0`、`msg = 课程不存在`
           content:
             application/json:
               schema:
@@ -721,7 +724,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '200':
-          description: 活动信息，不存在时 `data` 为 `null`
+          description: 活动信息；不存在时 `code = 0`、`msg = 活动不存在`
           content:
             application/json:
               schema:
@@ -752,7 +755,7 @@ paths:
         - name: clueId
           in: query
           description: 线索ID，精确匹配
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: phone
           in: query
           description: 手机号，模糊匹配
@@ -842,7 +845,7 @@ paths:
         - name: clueId
           in: query
           description: 线索ID，精确匹配
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: phone
           in: query
           description: 手机号，模糊匹配
@@ -874,12 +877,12 @@ paths:
           in: path
           required: true
           description: 线索ID
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: userId
           in: path
           required: true
           description: 被分配的用户ID
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -960,7 +963,7 @@ paths:
         - name: businessId
           in: query
           description: 商机ID，精确匹配
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: name
           in: query
           description: 客户姓名，模糊匹配
@@ -1055,7 +1058,7 @@ paths:
         - name: businessId
           in: query
           description: 商机ID，精确匹配
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: phone
           in: query
           description: 手机号，模糊匹配
@@ -1091,12 +1094,12 @@ paths:
           in: path
           required: true
           description: 商机ID
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
         - name: userId
           in: path
           required: true
           description: 被分配的用户ID
-          schema: { type: integer, format: int32 }
+          schema: { type: integer, format: int64 }
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -1350,8 +1353,8 @@ components:
       name: id
       in: path
       required: true
-      description: 主键ID
-      schema: { type: integer, format: int32 }
+      description: 主键ID，64 位整型（对应数据库 bigint unsigned）
+      schema: { type: integer, format: int64 }
     UserIds:
       name: ids
       in: path
@@ -1508,7 +1511,7 @@ components:
 
     # ---------- 认证 ----------
 
-    LoginRequest:
+    LoginDto:
       type: object
       properties:
         username:
@@ -1519,12 +1522,12 @@ components:
           description: 明文密码
       required: [username, password]
 
-    LoginResultVo:
+    LoginResultVO:
       type: object
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 用户ID
         username:
           type: string
@@ -1548,7 +1551,7 @@ components:
       type: object
       description: 用户视图对象，不含密码字段
       properties:
-        id: { type: integer, format: int32, description: 用户ID }
+        id: { type: integer, format: int64, description: 用户ID }
         username: { type: string, description: 用户名 }
         name: { type: string, description: 姓名 }
         phone: { type: string, description: 手机号 }
@@ -1558,13 +1561,13 @@ components:
         deptId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 部门ID
         roleId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 角色ID
         image:
@@ -1588,7 +1591,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 用户ID，修改时必填
         username: { type: string, description: 用户名，唯一 }
         password:
@@ -1604,13 +1607,13 @@ components:
         deptId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 部门ID
         roleId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 角色ID
         image:
@@ -1623,10 +1626,10 @@ components:
 
     # ---------- 部门 ----------
 
-    Dept:
+    DeptVO:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 部门ID }
+        id: { type: integer, format: int64, description: 部门ID }
         name: { type: string, description: 部门名称，唯一 }
         status: { $ref: '#/components/schemas/EnableStatus' }
         createTime: { $ref: '#/components/schemas/DateTime' }
@@ -1637,7 +1640,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 部门ID，修改时必填
         name: { type: string, description: 部门名称，唯一 }
         status: { $ref: '#/components/schemas/EnableStatus' }
@@ -1645,10 +1648,10 @@ components:
 
     # ---------- 角色 ----------
 
-    Role:
+    RoleVO:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 角色ID }
+        id: { type: integer, format: int64, description: 角色ID }
         name: { type: string, description: 角色名称 }
         label: { type: string, description: 角色标识，全局唯一，权限判断用 }
         remark:
@@ -1662,7 +1665,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 角色ID，修改时必填
         name: { type: string, description: 角色名称 }
         label: { type: string, description: 角色标识，全局唯一 }
@@ -1673,10 +1676,10 @@ components:
 
     # ---------- 课程 ----------
 
-    Course:
+    CourseVO:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 课程ID }
+        id: { type: integer, format: int64, description: 课程ID }
         subject: { $ref: '#/components/schemas/Subject' }
         name: { type: string, description: 课程名称 }
         price: { type: integer, format: int32, description: 价格，单位：元 }
@@ -1692,7 +1695,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 课程ID，修改时必填
         subject: { $ref: '#/components/schemas/Subject' }
         name: { type: string, description: 课程名称 }
@@ -1705,10 +1708,10 @@ components:
 
     # ---------- 活动 ----------
 
-    Activity:
+    ActivityVO:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 活动ID }
+        id: { type: integer, format: int64, description: 活动ID }
         channel: { $ref: '#/components/schemas/Channel' }
         name: { type: string, description: 活动名称 }
         startTime: { $ref: '#/components/schemas/DateTime' }
@@ -1737,7 +1740,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 活动ID，修改时必填
         channel: { $ref: '#/components/schemas/Channel' }
         name: { type: string, description: 活动名称 }
@@ -1765,13 +1768,13 @@ components:
     Clue:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 线索ID }
+        id: { type: integer, format: int64, description: 线索ID }
         phone: { type: string, description: 手机号，唯一 }
         channel: { $ref: '#/components/schemas/Channel' }
         activityId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 关联活动的ID
         name:
@@ -1796,7 +1799,7 @@ components:
         userId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 归属人ID
         status: { $ref: '#/components/schemas/ClueStatus' }
@@ -1835,9 +1838,9 @@ components:
       type: object
       description: 线索跟进记录
       properties:
-        id: { type: integer, format: int32, description: 跟进记录ID }
-        clueId: { type: integer, format: int32, description: 线索ID }
-        userId: { type: integer, format: int32, description: 跟进人ID }
+        id: { type: integer, format: int64, description: 跟进记录ID }
+        clueId: { type: integer, format: int64, description: 线索ID }
+        userId: { type: integer, format: int64, description: 跟进人ID }
         subject:
           anyOf:
             - $ref: '#/components/schemas/Subject'
@@ -1873,7 +1876,7 @@ components:
         activityId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 关联活动的ID
         name:
@@ -1913,7 +1916,7 @@ components:
       type: object
       description: 跟进线索的请求体，未传字段保持原值
       properties:
-        id: { type: integer, format: int32, description: 线索ID }
+        id: { type: integer, format: int64, description: 线索ID }
         name:
           type: [string, 'null']
           description: 客户姓名
@@ -1971,7 +1974,7 @@ components:
     Business:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 商机ID }
+        id: { type: integer, format: int64, description: 商机ID }
         name:
           type: [string, 'null']
           description: 客户姓名
@@ -1999,7 +2002,7 @@ components:
         courseId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 意向课程ID
         degree:
@@ -2018,13 +2021,13 @@ components:
         userId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 归属人ID
         clueId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 来源线索ID
         nextTime:
@@ -2065,9 +2068,9 @@ components:
       type: object
       description: 商机跟进记录
       properties:
-        id: { type: integer, format: int32, description: 跟进记录ID }
-        businessId: { type: integer, format: int32, description: 商机ID }
-        userId: { type: integer, format: int32, description: 跟进人ID }
+        id: { type: integer, format: int64, description: 跟进记录ID }
+        businessId: { type: integer, format: int64, description: 商机ID }
+        userId: { type: integer, format: int64, description: 跟进人ID }
         trackStatus: { $ref: '#/components/schemas/BusinessTrackStatus' }
         keyItems:
           type: [string, 'null']
@@ -2115,7 +2118,7 @@ components:
         courseId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 意向课程ID
         degree:
@@ -2140,7 +2143,7 @@ components:
       type: object
       description: 跟进商机的请求体，未传字段保持原值
       properties:
-        id: { type: integer, format: int32, description: 商机ID }
+        id: { type: integer, format: int64, description: 商机ID }
         trackStatus: { $ref: '#/components/schemas/BusinessTrackStatus' }
         keyItems:
           anyOf:
@@ -2163,7 +2166,7 @@ components:
     Customer:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 客户ID }
+        id: { type: integer, format: int64, description: 客户ID }
         phone: { type: string, description: 手机号，唯一 }
         channel:
           anyOf:
@@ -2203,13 +2206,13 @@ components:
         courseId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 意向课程ID
         businessId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 来源商机ID，手工新增的客户为 `null`
         createTime: { $ref: '#/components/schemas/DateTime' }
@@ -2224,7 +2227,7 @@ components:
       properties:
         id:
           type: integer
-          format: int32
+          format: int64
           description: 客户ID，修改时必填
         phone: { type: string, description: 手机号，唯一 }
         channel: { $ref: '#/components/schemas/Channel' }
@@ -2262,7 +2265,7 @@ components:
         courseId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 意向课程ID
       # channel 按页面原型（3.3 渠道来源，选填）与接口文档均为非必须
@@ -2273,11 +2276,11 @@ components:
     OperateLogVO:
       type: object
       properties:
-        id: { type: integer, format: int32, description: 日志ID }
+        id: { type: integer, format: int64, description: 日志ID }
         operateUserId:
           anyOf:
             - type: integer
-              format: int32
+              format: int64
             - type: 'null'
           description: 操作用户ID
         operateTime: { $ref: '#/components/schemas/DateTime' }
@@ -2345,7 +2348,7 @@ components:
         total: { type: integer, format: int64, description: 总记录数 }
         rows:
           type: array
-          items: { $ref: '#/components/schemas/Dept' }
+          items: { $ref: '#/components/schemas/DeptVO' }
       required: [total, rows]
 
     RolePage:
@@ -2354,7 +2357,7 @@ components:
         total: { type: integer, format: int64, description: 总记录数 }
         rows:
           type: array
-          items: { $ref: '#/components/schemas/Role' }
+          items: { $ref: '#/components/schemas/RoleVO' }
       required: [total, rows]
 
     CoursePage:
@@ -2363,7 +2366,7 @@ components:
         total: { type: integer, format: int64, description: 总记录数 }
         rows:
           type: array
-          items: { $ref: '#/components/schemas/Course' }
+          items: { $ref: '#/components/schemas/CourseVO' }
       required: [total, rows]
 
     ActivityPage:
@@ -2372,7 +2375,7 @@ components:
         total: { type: integer, format: int64, description: 总记录数 }
         rows:
           type: array
-          items: { $ref: '#/components/schemas/Activity' }
+          items: { $ref: '#/components/schemas/ActivityVO' }
       required: [total, rows]
 
     CluePage:
@@ -2420,7 +2423,7 @@ components:
           properties:
             data:
               anyOf:
-                - $ref: '#/components/schemas/LoginResultVo'
+                - $ref: '#/components/schemas/LoginResultVO'
                 - type: 'null'
 
     ResultUserPage:
@@ -2463,7 +2466,7 @@ components:
           properties:
             data:
               type: array
-              items: { $ref: '#/components/schemas/Dept' }
+              items: { $ref: '#/components/schemas/DeptVO' }
 
     ResultDept:
       allOf:
@@ -2472,7 +2475,7 @@ components:
           properties:
             data:
               anyOf:
-                - $ref: '#/components/schemas/Dept'
+                - $ref: '#/components/schemas/DeptVO'
                 - type: 'null'
 
     ResultRolePage:
@@ -2489,7 +2492,7 @@ components:
           properties:
             data:
               type: array
-              items: { $ref: '#/components/schemas/Role' }
+              items: { $ref: '#/components/schemas/RoleVO' }
 
     ResultRole:
       allOf:
@@ -2498,7 +2501,7 @@ components:
           properties:
             data:
               anyOf:
-                - $ref: '#/components/schemas/Role'
+                - $ref: '#/components/schemas/RoleVO'
                 - type: 'null'
 
     ResultCoursePage:
@@ -2515,7 +2518,7 @@ components:
           properties:
             data:
               type: array
-              items: { $ref: '#/components/schemas/Course' }
+              items: { $ref: '#/components/schemas/CourseVO' }
 
     ResultCourse:
       allOf:
@@ -2524,7 +2527,7 @@ components:
           properties:
             data:
               anyOf:
-                - $ref: '#/components/schemas/Course'
+                - $ref: '#/components/schemas/CourseVO'
                 - type: 'null'
 
     ResultActivityPage:
@@ -2541,7 +2544,7 @@ components:
           properties:
             data:
               type: array
-              items: { $ref: '#/components/schemas/Activity' }
+              items: { $ref: '#/components/schemas/ActivityVO' }
 
     ResultActivity:
       allOf:
@@ -2550,7 +2553,7 @@ components:
           properties:
             data:
               anyOf:
-                - $ref: '#/components/schemas/Activity'
+                - $ref: '#/components/schemas/ActivityVO'
                 - type: 'null'
 
     ResultCluePage:

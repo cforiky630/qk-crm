@@ -3,7 +3,7 @@ package com.qk;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.ClueMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.qk.entity.Business;
+import com.qk.entity.po.Business;
 import com.qk.mapper.UserMapper;
 import com.qk.entity.enums.BusinessStatus;
 import com.qk.entity.enums.ClueStatus;
@@ -32,9 +32,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Business;
-import com.qk.entity.Clue;
-import com.qk.entity.User;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.Clue;
+import com.qk.entity.po.User;
 
 /**
  * 线索管理接口测试，校验 6. 接口文档-线索管理.md 中的契约
@@ -77,8 +77,8 @@ class ClueControllerTest {
         operator.setPassword("x");
         operator.setGender(1);
         operator.setStatus(1);
-        operator.setDeptId(1);
-        operator.setRoleId(1);
+        operator.setDeptId(1L);
+        operator.setRoleId(1L);
         userMapper.insert(operator);
 
         String token = jwtUtil.generateToken(Map.of("id", operator.getId(), "username", operator.getUsername()));
@@ -129,9 +129,10 @@ class ClueControllerTest {
 
         // 伪线索（4）与已转商机（5）不应出现在线索列表中
         mockMvc.perform(get("/clues").param("pageSize", "50"))
-                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(falseClue.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(businessClue.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(activeClue.getId())));
+        // JsonPath 把 JSON 数字解析为 Integer，主键是 Long，比较前先取 intValue()
+                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(falseClue.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(businessClue.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(activeClue.getId().intValue())));
     }
 
     @Test
@@ -323,8 +324,8 @@ class ClueControllerTest {
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.total").isNumber())
                 .andExpect(jsonPath("$.data.rows").isArray())
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId())))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(activeClue.getId()))))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId().intValue())))
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(activeClue.getId().intValue()))))
                 .andExpect(jsonPath("$.data.rows[*].status", everyItem(is(4))))
                 .andExpect(jsonPath("$.data.rows[0].activityName").doesNotExist());
 
@@ -342,11 +343,11 @@ class ClueControllerTest {
         Clue falseClue = insertClue("测试按状态筛选伪线索", ClueStatus.FALSE_CLUE.getCode());
 
         mockMvc.perform(get("/clues").param("pageSize", "50"))
-                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(falseClue.getId()))));
+                .andExpect(jsonPath("$.data.rows[*].id", not(hasItem(falseClue.getId().intValue()))));
 
         mockMvc.perform(get("/clues").param("status", String.valueOf(ClueStatus.FALSE_CLUE.getCode())))
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId())))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(falseClue.getId().intValue())))
                 .andExpect(jsonPath("$.data.rows[*].status", everyItem(is(4))));
     }
 }

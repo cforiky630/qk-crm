@@ -13,10 +13,10 @@ import java.time.LocalDateTime;
 public class OperateLogVO {
 
     /** ID */
-    private Integer id;
+    private Long id;
 
     /** 操作用户ID */
-    private Integer operateUserId;
+    private Long operateUserId;
 
     /** 操作时间 */
     private LocalDateTime operateTime;

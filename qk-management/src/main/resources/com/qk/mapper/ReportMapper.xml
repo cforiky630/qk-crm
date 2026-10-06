@@ -10,13 +10,13 @@
       由 OtherControllerTest#getOverview（每种状态各插一条 + 求和等于总数）守卫。
     -->
     <select id="getOverview" resultType="com.qk.entity.vo.OverviewVO">
-        SELECT (SELECT COUNT(1) FROM clue)                                 AS clue_total,
+        SELECT (SELECT COUNT(*) FROM clue)                                 AS clue_total,
                (SELECT COUNT(IF(status = 1, 1, NULL)) FROM clue)           AS clue_wait_allot,
                (SELECT COUNT(IF(status = 2, 1, NULL)) FROM clue)           AS clue_wait_follow,
                (SELECT COUNT(IF(status = 3, 1, NULL)) FROM clue)           AS clue_following,
                (SELECT COUNT(IF(status = 4, 1, NULL)) FROM clue)           AS clue_false,
                (SELECT COUNT(IF(status = 5, 1, NULL)) FROM clue)           AS clue_convert_business,
-               (SELECT COUNT(1) FROM business)                             AS business_total,
+               (SELECT COUNT(*) FROM business)                             AS business_total,
                (SELECT COUNT(IF(status = 1, 1, NULL)) FROM business)       AS business_wait_allot,
                (SELECT COUNT(IF(status = 2, 1, NULL)) FROM business)       AS business_wait_follow,
                (SELECT COUNT(IF(status = 3, 1, NULL)) FROM business)       AS business_following,

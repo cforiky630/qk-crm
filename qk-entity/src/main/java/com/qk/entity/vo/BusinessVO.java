@@ -15,7 +15,7 @@ import java.util.List;
 public class BusinessVO {
 
     /** 商机ID */
-    private Integer id;
+    private Long id;
 
     /** 客户姓名 */
     private String name;
@@ -39,7 +39,7 @@ public class BusinessVO {
     private Integer subject;
 
     /** 意向课程ID */
-    private Integer courseId;
+    private Long courseId;
 
     /** 学历 */
     private Integer degree;
@@ -57,10 +57,10 @@ public class BusinessVO {
     private Integer status;
 
     /** 归属人ID */
-    private Integer userId;
+    private Long userId;
 
     /** 关联线索ID */
-    private Integer clueId;
+    private Long clueId;
 
     /** 下次跟进时间 */
     private LocalDateTime nextTime;

@@ -1,10 +1,10 @@
 package com.qk.service;
 
 import com.baomidou.mybatisplus.spring.service.IService;
-import com.qk.common.PageResult;
-import com.qk.entity.User;
+import com.qk.entity.vo.PageResult;
+import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
-import com.qk.entity.vo.LoginResultVo;
+import com.qk.entity.vo.LoginResultVO;
 import com.qk.entity.vo.UserVO;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public interface UserService extends IService<User> {
      * @param id 用户ID
      * @return 用户信息，不存在时返回 null
      */
-    UserVO getUserById(Integer id);
+    UserVO getUserById(Long id);
 
     /**
      * 修改用户信息
@@ -53,7 +53,7 @@ public interface UserService extends IService<User> {
      *
      * @param ids 待删除的用户ID，不能为空
      */
-    void deleteUsers(List<Integer> ids);
+    void deleteUsers(List<Long> ids);
 
     /**
      * 查询所有用户，不分页，用于下拉框
@@ -76,7 +76,7 @@ public interface UserService extends IService<User> {
      * @param deptId 部门ID
      * @return 用户列表
      */
-    List<UserVO> findByDeptId(Integer deptId);
+    List<UserVO> findByDeptId(Long deptId);
 
     /**
      * 登录校验，成功返回登录结果（含 JWT 令牌），失败返回 null
@@ -85,5 +85,5 @@ public interface UserService extends IService<User> {
      * @param password 密码
      * @return 登录结果
      */
-    LoginResultVo login(String username, String password);
+    LoginResultVO login(String username, String password);
 }

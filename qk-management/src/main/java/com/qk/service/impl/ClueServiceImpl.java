@@ -5,10 +5,10 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.qk.entity.Business;
-import com.qk.entity.Clue;
-import com.qk.entity.ClueTrackRecord;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.Clue;
+import com.qk.entity.po.ClueTrackRecord;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CluePoolDto;
 import com.qk.entity.dto.ClueQueryDto;
 import com.qk.entity.dto.ClueTrackDto;
@@ -61,7 +61,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     }
 
     @Override
-    public void assignClue(Integer clueId, Integer userId) {
+    public void assignClue(Long clueId, Long userId) {
         Clue existing = requireClue(clueId);
 
         // 守卫：只有「待分配」或「伪线索（已回到线索池）」的线索才能分配，
@@ -81,7 +81,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     }
 
     @Override
-    public ClueVO getClueById(Integer id) {
+    public ClueVO getClueById(Long id) {
         ClueVO clue = baseMapper.getClueById(id);
         if (clue == null) {
             return null;
@@ -114,7 +114,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void markFalseClue(Integer id, MarkFalseClueDto markFalseClueDto) {
+    public void markFalseClue(Long id, MarkFalseClueDto markFalseClueDto) {
         requireActiveClue(id, "标记为伪线索");
         // 1. 更新线索：状态置为伪线索
         Clue clue = new Clue();
@@ -134,7 +134,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void convertToBusiness(Integer id) {
+    public void convertToBusiness(Long id) {
         // 1. 更新线索：状态置为转为商机
         Clue clue = requireActiveClue(id, "转商机");
         clue.setStatus(ClueStatus.CONVERT_BUSINESS.getCode());
@@ -160,7 +160,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     /**
      * 校验线索是否存在，不存在直接抛业务异常，避免对不存在的数据「更新成功」
      */
-    private Clue requireClue(Integer id) {
+    private Clue requireClue(Long id) {
         if (id == null) {
             throw new BusinessException("线索ID不能为空");
         }
@@ -178,7 +178,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
      * 避免重复生成跟进记录、或把同一条线索重复转成商机（后者原先只能靠
      * 商机手机号唯一索引挡下，报错还误导成「该手机号已录入商机」）。
      */
-    private Clue requireActiveClue(Integer id, String action) {
+    private Clue requireActiveClue(Long id, String action) {
         Clue clue = requireClue(id);
         Integer status = clue.getStatus();
         boolean active = ClueStatus.WAIT_FOLLOW.getCode().equals(status)

@@ -22,7 +22,7 @@ public class ClueSaveDto {
     private Integer channel;
 
     /** 关联活动ID，可空 */
-    private Integer activityId;
+    private Long activityId;
 
     private String name;
 

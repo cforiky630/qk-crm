@@ -3,8 +3,8 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.qk.entity.Customer;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Customer;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.common.exception.BusinessException;
 import com.qk.mapper.CustomerMapper;
@@ -45,7 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public CustomerVO getCustomerById(Integer id) {
+    public CustomerVO getCustomerById(Long id) {
         return customerMapper.getCustomerById(id);
     }
 

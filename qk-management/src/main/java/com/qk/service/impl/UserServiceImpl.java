@@ -5,9 +5,9 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.qk.common.PageResult;
-import com.qk.entity.Role;
-import com.qk.entity.User;
+import com.qk.entity.vo.PageResult;
+import com.qk.entity.po.Role;
+import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
@@ -20,7 +20,7 @@ import com.qk.mapper.ClueTrackRecordMapper;
 import com.qk.service.UserService;
 import com.qk.common.util.UserHolder;
 import com.qk.common.util.JwtUtil;
-import com.qk.entity.vo.LoginResultVo;
+import com.qk.entity.vo.LoginResultVO;
 import com.qk.entity.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -95,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public UserVO getUserById(Integer id) {
+    public UserVO getUserById(Long id) {
         return userMapper.getUserById(id);
     }
 
@@ -107,7 +107,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 守卫：不允许把当前登录用户自己停用。
         // 登录会拒绝 status=0 的账号，一旦把自己停用，就再也进不来了（与「不能删除自己」同类）。
-        Integer currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUser();
         if (currentUserId != null && currentUserId.equals(user.getId())
                 && EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
             throw new BusinessException("不能停用当前登录用户");
@@ -126,18 +126,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 也没有任何校验：删自己不拦、删不存在的 id 静默成功、删还有业务数据的用户会留下悬空引用。
      */
     @Override
-    public void deleteUsers(List<Integer> ids) {
+    public void deleteUsers(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException("待删除的用户ID不能为空");
         }
         // 去重并剔除 null，避免同一个 id 传两次导致计数与提示失真
-        List<Integer> targetIds = ids.stream().filter(Objects::nonNull).distinct().toList();
+        List<Long> targetIds = ids.stream().filter(Objects::nonNull).distinct().toList();
         if (targetIds.isEmpty()) {
             throw new BusinessException("待删除的用户ID不能为空");
         }
 
         // 守卫 1：不允许删除当前登录用户自己，避免把自己锁在系统外
-        Integer currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUser();
         if (currentUserId != null && targetIds.contains(currentUserId)) {
             throw new BusinessException("不能删除当前登录用户");
         }
@@ -145,14 +145,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 守卫 2：待删 ID 必须真实存在，否则明确报错而不是静默「删除成功」
         List<User> existing = listByIds(targetIds);
         if (existing.size() != targetIds.size()) {
-            List<Integer> missing = new ArrayList<>(targetIds);
+            List<Long> missing = new ArrayList<>(targetIds);
             existing.forEach(user -> missing.remove(user.getId()));
             throw new BusinessException("用户不存在: " + missing);
         }
 
         // 守卫 3：仍被业务数据引用的用户不允许删除。
         // 项目不使用物理外键（见 sql/user.sql 注释），这类引用完整性只能由 Service 层兜底。
-        for (Integer id : targetIds) {
+        for (Long id : targetIds) {
             long clueRefs = clueMapper.countByUserId(id);
             long businessRefs = businessMapper.countByUserId(id);
             long trackRefs = clueTrackRecordMapper.countByUserId(id) + businessTrackRecordMapper.countByUserId(id);
@@ -177,12 +177,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<UserVO> findByDeptId(Integer deptId) {
+    public List<UserVO> findByDeptId(Long deptId) {
         return userMapper.findByDeptId(deptId);
     }
 
     @Override
-    public LoginResultVo login(String username, String password) {
+    public LoginResultVO login(String username, String password) {
         if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
             return null;
         }
@@ -204,7 +204,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         Role role = roleMapper.selectById(user.getRoleId());
 
         // 4. 组装登录结果并签发 JWT
-        LoginResultVo vo = new LoginResultVo();
+        LoginResultVO vo = new LoginResultVO();
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
         vo.setName(user.getName());

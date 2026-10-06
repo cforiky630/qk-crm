@@ -35,6 +35,14 @@
             <artifactId>hutool-all</artifactId>
         </dependency>
 
+
+        <!-- Result 用到 @JsonInclude。显式声明而不是靠 OSS SDK 传递带入：
+             传递依赖一旦调整，注解就会突然找不到，编译报错但原因不直观 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

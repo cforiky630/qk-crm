@@ -1,8 +1,9 @@
 package com.qk.controller;
 
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
+import com.qk.entity.vo.RoleVO;
 import com.qk.common.Result;
-import com.qk.entity.Role;
+import com.qk.entity.po.Role;
 import com.qk.entity.dto.RoleSaveDto;
 import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
@@ -49,9 +50,9 @@ public class RoleController {
      * @return 分页查询结果
      */
     @GetMapping("/roles")
-    public Result<PageResult<Role>> listRoles(String name, String label, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
+    public Result<PageResult<RoleVO>> listRoles(String name, String label, @RequestParam(defaultValue = "1") Integer page, @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("分页查询角色, 参数: name={}, label={}, page={}, pageSize={}", name, label, page, pageSize);
-        PageResult<Role> pageResult = roleService.findRolesByPage(name, label, page, pageSize);
+        PageResult<RoleVO> pageResult = roleService.findRolesByPage(name, label, page, pageSize);
         return Result.success(pageResult);
     }
 
@@ -62,9 +63,9 @@ public class RoleController {
      * @return 查询结果
      */
     @GetMapping("/roles/{id}")
-    public Result<Role> findById(@PathVariable Integer id) {
+    public Result<RoleVO> findById(@PathVariable Long id) {
         log.info("查询角色ID为{}的角色信息", id);
-        Role role = roleService.findById(id);
+        RoleVO role = roleService.findById(id);
         return Result.success(role);
     }
 
@@ -97,7 +98,7 @@ public class RoleController {
      */
     @LogOperation
     @DeleteMapping("/roles/{id}")
-    public Result<Void> deleteRole(@PathVariable("id") Integer id) {
+    public Result<Void> deleteRole(@PathVariable("id") Long id) {
         log.info("删除角色：{}", id);
         roleService.deleteById(id);
         return Result.success();
@@ -109,9 +110,9 @@ public class RoleController {
      * @return 统一响应结果
      */
     @GetMapping("/roles/list")
-    public Result<List<Role>> listAllRoles() {
+    public Result<List<RoleVO>> listAllRoles() {
         log.info("查询所有角色");
-        List<Role> roles = roleService.findAll();
+        List<RoleVO> roles = roleService.findAll();
         return Result.success(roles);
     }
 }

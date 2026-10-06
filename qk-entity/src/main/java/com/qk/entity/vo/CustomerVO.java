@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class CustomerVO {
 
     /** 客户ID */
-    private Integer id;
+    private Long id;
 
     /** 手机号 */
     private String phone;
@@ -44,10 +44,10 @@ public class CustomerVO {
     private Integer subject;
 
     /** 意向课程ID */
-    private Integer courseId;
+    private Long courseId;
 
     /** 关联的商机ID */
-    private Integer businessId;
+    private Long businessId;
 
     /** 创建时间 */
     private LocalDateTime createTime;

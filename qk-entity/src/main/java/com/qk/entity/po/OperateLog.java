@@ -1,4 +1,4 @@
-package com.qk.entity;
+package com.qk.entity.po;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -16,10 +16,10 @@ public class OperateLog {
 
     /** ID，主键 */
     @TableId
-    private Integer id;
+    private Long id;
 
     /** 操作用户ID */
-    private Integer operateUserId;
+    private Long operateUserId;
 
     /** 操作时间 */
     private LocalDateTime operateTime;

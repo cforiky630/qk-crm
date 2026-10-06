@@ -26,9 +26,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.qk.entity.Business;
-import com.qk.entity.Customer;
-import com.qk.entity.User;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.Customer;
+import com.qk.entity.po.User;
 
 /**
  * 商机管理接口测试，校验 7. 接口文档-商机管理.md 中的契约
@@ -71,8 +71,8 @@ class BusinessControllerTest {
         operator.setPassword("x");
         operator.setGender(1);
         operator.setStatus(1);
-        operator.setDeptId(1);
-        operator.setRoleId(1);
+        operator.setDeptId(1L);
+        operator.setRoleId(1L);
         userMapper.insert(operator);
 
         String token = jwtUtil.generateToken(Map.of("id", operator.getId(), "username", operator.getUsername()));
@@ -144,9 +144,10 @@ class BusinessControllerTest {
         Business following = insertBusiness("测试跟进中商机", BusinessStatus.FOLLOWING.getCode());
 
         mockMvc.perform(get("/businesses").param("pageSize", "50"))
-                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(recycled.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(converted.getId()))))
-                .andExpect(jsonPath("$.data.rows[*].id", hasItem(following.getId())));
+        // JsonPath 把 JSON 数字解析为 Integer，主键是 Long，比较前先取 intValue()
+                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(recycled.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", org.hamcrest.Matchers.not(hasItem(converted.getId().intValue()))))
+                .andExpect(jsonPath("$.data.rows[*].id", hasItem(following.getId().intValue())));
     }
 
     @Test
@@ -232,7 +233,7 @@ class BusinessControllerTest {
     @Test
     void backToPool() throws Exception {
         Business business = insertBusiness("测试踢回公海", BusinessStatus.WAIT_FOLLOW.getCode());
-        business.setUserId(8);
+        business.setUserId(8L);
         businessMapper.updateById(business);
 
         mockMvc.perform(put("/businesses/back/{id}", business.getId()))

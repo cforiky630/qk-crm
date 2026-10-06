@@ -22,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 锁定 Result 的对外契约
  * <p>
  * 泛型化只影响编译期，接口的 JSON 结构必须与改造前完全一致：
- * 固定三个字段 code / msg / data，且 data 为 null 时字段依然存在（不会被省略）。
+ * 固定三个字段 code / msg / data，且类上标注 @JsonInclude(NON_NULL)：
+ * data 为 null 时该字段被省略，报文只剩 code / msg。
  */
 class ResultTest {
 
@@ -63,7 +64,7 @@ class ResultTest {
     }
 
     @Test
-    void successWithoutDataKeepsJsonShape() {
+    void successWithoutDataOmitsDataField() {
         Result<Void> result = Result.success();
 
         assertEquals(1, result.getCode());
@@ -71,11 +72,10 @@ class ResultTest {
         assertNull(result.getData());
 
         Map<String, Object> json = toMap(result);
-        assertEquals(3, json.size(), "响应体必须固定为 code/msg/data 三个字段");
+        assertEquals(2, json.size(), "data 为 null 时响应体只有 code/msg 两个字段");
         assertEquals(1, ((Number) json.get("code")).intValue());
         assertEquals("success", json.get("msg"));
-        assertTrue(json.containsKey("data"), "data 为 null 时字段也必须存在");
-        assertNull(json.get("data"));
+        assertFalse(json.containsKey("data"), "data 为 null 时应被 @JsonInclude(NON_NULL) 省略");
     }
 
     @Test

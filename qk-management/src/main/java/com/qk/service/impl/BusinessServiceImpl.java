@@ -5,10 +5,10 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
-import com.qk.entity.Business;
-import com.qk.entity.BusinessTrackRecord;
-import com.qk.entity.Customer;
-import com.qk.common.PageResult;
+import com.qk.entity.po.Business;
+import com.qk.entity.po.BusinessTrackRecord;
+import com.qk.entity.po.Customer;
+import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.BusinessPoolDto;
 import com.qk.entity.dto.BusinessQueryDto;
 import com.qk.entity.dto.BusinessTrackDto;
@@ -60,7 +60,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
-    public void assignBusiness(Integer businessId, Integer userId) {
+    public void assignBusiness(Long businessId, Long userId) {
         Business existing = requireBusiness(businessId);
 
         // 守卫：只有「待分配」或「已回收（回公海后重新分配）」的商机才能分配
@@ -79,7 +79,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
-    public void backToPool(Integer id) {
+    public void backToPool(Long id) {
         requireActiveBusiness(id, "踢回公海");
         Business business = new Business();
         business.setId(id);
@@ -92,7 +92,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void convertToCustomer(Integer id) {
+    public void convertToCustomer(Long id) {
         // 1. 更新商机：状态置为转客户
         Business business = requireActiveBusiness(id, "转客户");
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
@@ -106,7 +106,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
-    public BusinessVO getBusinessById(Integer id) {
+    public BusinessVO getBusinessById(Long id) {
         BusinessVO business = baseMapper.getBusinessById(id);
         if (business == null) {
             return null;
@@ -147,7 +147,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     /**
      * 校验商机是否存在，不存在直接抛业务异常
      */
-    private Business requireBusiness(Integer id) {
+    private Business requireBusiness(Long id) {
         if (id == null) {
             throw new BusinessException("商机ID不能为空");
         }
@@ -164,7 +164,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
      * 与线索同样的思路：这是重复提交的第二道防线，避免重复生成跟进记录，
      * 或把同一条商机重复转成客户（后者原先只能靠客户手机号唯一索引挡下）。
      */
-    private Business requireActiveBusiness(Integer id, String action) {
+    private Business requireActiveBusiness(Long id, String action) {
         Business business = requireBusiness(id);
         Integer status = business.getStatus();
         boolean active = BusinessStatus.WAIT_FOLLOW.getCode().equals(status)

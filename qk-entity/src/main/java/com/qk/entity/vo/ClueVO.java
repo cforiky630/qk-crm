@@ -15,7 +15,7 @@ import java.util.List;
 public class ClueVO {
 
     /** 线索ID */
-    private Integer id;
+    private Long id;
 
     /** 手机号 */
     private String phone;
@@ -24,7 +24,7 @@ public class ClueVO {
     private Integer channel;
 
     /** 关联活动的ID */
-    private Integer activityId;
+    private Long activityId;
 
     /** 客户姓名 */
     private String name;
@@ -42,7 +42,7 @@ public class ClueVO {
     private String qq;
 
     /** 归属人ID */
-    private Integer userId;
+    private Long userId;
 
     /** 线索状态，1:待分配, 2:待跟进, 3:跟进中, 4:伪线索, 5:转为商机 */
     private Integer status;

@@ -1,8 +1,8 @@
 package com.qk.controller;
 
-import com.qk.common.PageResult;
+import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
-import com.qk.entity.User;
+import com.qk.entity.po.User;
 import com.qk.entity.dto.UserSaveDto;
 import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
@@ -66,7 +66,7 @@ public class UserController {
      * 根据部门ID查询用户
      */
     @GetMapping("/dept/{deptId}")
-    public Result<List<UserVO>> findUsersByDept(@PathVariable Integer deptId) {
+    public Result<List<UserVO>> findUsersByDept(@PathVariable Long deptId) {
         log.info("根据部门ID查询用户: {}", deptId);
         return Result.success(userService.findByDeptId(deptId));
     }
@@ -86,7 +86,7 @@ public class UserController {
      * 根据ID查询用户信息（回显）
      */
     @GetMapping("/{id}")
-    public Result<UserVO> getUserById(@PathVariable Integer id) {
+    public Result<UserVO> getUserById(@PathVariable Long id) {
         log.info("根据ID查询用户: {}", id);
         UserVO userVO = userService.getUserById(id);
         return userVO != null ? Result.success(userVO) : Result.error("用户不存在");
@@ -115,7 +115,7 @@ public class UserController {
      */
     @LogOperation
     @DeleteMapping("/{ids}")
-    public Result<Void> deleteUsers(@PathVariable List<Integer> ids) {
+    public Result<Void> deleteUsers(@PathVariable List<Long> ids) {
         log.info("批量删除用户: {}", ids);
         userService.deleteUsers(ids);
         return Result.success();
