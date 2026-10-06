@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.vo.PageResult;
-import com.qk.entity.po.Role;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
 import com.qk.entity.enums.EnableStatus;
@@ -21,17 +20,13 @@ import com.qk.mapper.ClueMapper;
 import com.qk.mapper.ClueTrackRecordMapper;
 import com.qk.service.UserService;
 import com.qk.common.util.UserHolder;
-import com.qk.common.util.JwtUtil;
-import com.qk.entity.vo.LoginResultVO;
 import com.qk.entity.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -44,21 +39,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final DeptMapper deptMapper;
-    private final JwtUtil jwtUtil;
     private final ClueMapper clueMapper;
     private final BusinessMapper businessMapper;
     private final ClueTrackRecordMapper clueTrackRecordMapper;
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
 
     @Autowired
-    public UserServiceImpl(UserMapper userMapper, RoleMapper roleMapper, DeptMapper deptMapper, JwtUtil jwtUtil,
+    public UserServiceImpl(UserMapper userMapper, RoleMapper roleMapper, DeptMapper deptMapper,
                            ClueMapper clueMapper, BusinessMapper businessMapper,
                            ClueTrackRecordMapper clueTrackRecordMapper,
                            BusinessTrackRecordMapper businessTrackRecordMapper) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
         this.deptMapper = deptMapper;
-        this.jwtUtil = jwtUtil;
         this.clueMapper = clueMapper;
         this.businessMapper = businessMapper;
         this.clueTrackRecordMapper = clueTrackRecordMapper;
@@ -192,44 +185,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public List<UserVO> findByDeptId(Long deptId) {
         return userMapper.findByDeptId(deptId);
-    }
-
-    @Override
-    public LoginResultVO login(String username, String password) {
-        if (StrUtil.isBlank(username) || StrUtil.isBlank(password)) {
-            return null;
-        }
-
-        // 1. 根据用户名查询用户
-        User user = userMapper.findByUsername(username);
-        if (user == null || user.getStatus() != null && user.getStatus() == 0) {
-            return null;
-        }
-
-        // 2. 校验密码：库中存放的是 md5(用户名 + 明文密码) 的摘要。
-        //    这里只接受明文密码（依赖 HTTPS 传输），不接受「直接提交摘要」的方式，
-        //    否则数据库里的摘要就等同于一个可复用的登录凭证（pass-the-hash）。
-        if (!StrUtil.equals(user.getPassword(), DigestUtil.md5Hex(username + password))) {
-            return null;
-        }
-
-        // 3. 查询角色标识
-        Role role = roleMapper.selectById(user.getRoleId());
-
-        // 4. 组装登录结果并签发 JWT
-        LoginResultVO vo = new LoginResultVO();
-        vo.setId(user.getId());
-        vo.setUsername(user.getUsername());
-        vo.setName(user.getName());
-        vo.setImage(user.getImage());
-        vo.setRoleLabel(role == null ? null : role.getLabel());
-
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("id", user.getId());
-        claims.put("username", user.getUsername());
-        claims.put("name", user.getName());
-        vo.setToken(jwtUtil.generateToken(claims));
-        return vo;
     }
 
     /**

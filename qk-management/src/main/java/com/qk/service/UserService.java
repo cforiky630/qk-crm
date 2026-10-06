@@ -3,7 +3,6 @@ package com.qk.service;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
-import com.qk.entity.vo.LoginResultVO;
 import com.qk.entity.vo.UserVO;
 
 import java.util.List;
@@ -77,12 +76,4 @@ public interface UserService {
      */
     List<UserVO> findByDeptId(Long deptId);
 
-    /**
-     * 登录校验，成功返回登录结果（含 JWT 令牌），失败返回 null
-     *
-     * @param username 用户名
-     * @param password 密码
-     * @return 登录结果
-     */
-    LoginResultVO login(String username, String password);
 }

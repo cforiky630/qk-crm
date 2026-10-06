@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-180%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-187%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -240,12 +240,13 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：22 个测试类 / 180 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：23 个测试类 / 187 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
 - `*ControllerTest` 覆盖各模块的接口契约（状态码、字段、分页、筛选、状态流转）。
-- [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型。
+- [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型；另外断言 Web 层（`controller` / `interceptor`）不直接依赖 `com.qk.mapper`。
+- [`AuthServiceTest`](qk-management/src/test/java/com/qk/AuthServiceTest.java) 守认证策略：登录成功/密码错误/账号不存在/账号停用，以及令牌的签名被改、格式非法、为空、**已过期**、账号不存在、账号停用 —— 全部应失效。
 - [`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 守报文：把同一个 PO 分别以实体和 VO 序列化并逐字节比对，VO 漏抄字段即失败。
 - [`DateTimeFormatTest`](qk-management/src/test/java/com/qk/DateTimeFormatTest.java) 守时间契约：默认格式锁死 `yyyy-MM-dd HH:mm:ss`，同时证明字段级 `@JsonFormat` 能覆盖出参与入参。
 - [`GlobalExceptionHandlerTest`](qk-management/src/test/java/com/qk/GlobalExceptionHandlerTest.java) 守系统异常告警：走了一遍真实 MVC 处理链（兜底处理器带 `HttpServletRequest` 参数，直接调用测不出解析是否正常），并断言告警失败不影响 500 响应。
@@ -328,7 +329,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **状态流转规则只有一处定义**：`com.qk.domain.ClueLifecycle` / `BusinessLifecycle` 用「动作 → 允许的前置状态」表达状态机，Service 只调用 `ensure(action, status)`；动作名直接拼进既有提示语（如「该线索当前状态不允许转商机」），列表口径也取自同一个类，由 `LifecycleTest` 守卫。
 - 列表排序按页面原型：部门/角色/课程/活动/用户按最后修改时间倒序，线索/商机/线索池/公海池按修改时间倒序，客户按创建时间倒序；排序末尾都补 `id`，避免排序键不唯一导致翻页重复或丢记录。
 - `GET /users/role/{roleLabel}`（分配线索/商机的人员下拉）只返回 `status = 1` 的用户：停用账号登录会被拒绝，分配给它等于这条数据没有归属人。
-- 登录拦截器不只看签名：令牌通过校验后还会按主键查一次账号，账号不存在或 `status = 0` 直接 401 —— 停用或删除账号后，已签发的令牌不会在剩余有效期内继续可用。
+- 登录与令牌校验集中在 `AuthService`（`login` 签发、`authenticate` 校验签名 + 有效期 + 账号是否存在与启用），`LoginController` 与 `LoginInterceptor` 都只依赖它，Web 层不再持有 JWT 工具或 Mapper（由 `LayeringTest` 守卫）。令牌对应的账号被停用或删除后**立即** 401：这里刻意不加缓存，用每请求一次主键查询换取即时撤销。
 - 「操作日志」页面上的**操作模块**与**操作类型**不落库，由 `class_name` / `method_name` 在查询时映射（见 `OperateLogMapper.xml` 的 `moduleExpr` / `typeExpr`），`/logs` 支持 `operateModule`、`operateType` 模糊搜索。
 - 增删改接口标注 `@LogOperation`，由切面写入 `operate_log`（密码字段落库前脱敏为 `***`）。
 - **上传策略在服务层、存储走端口**：`UploadService` 负责扩展名白名单与文件头（魔术字节）校验，`FileStorage` 是存储出口、`OssTemplate` 是 OSS 实现，控制器只做协议适配（缺文件分片时给出「请选择要上传的图片」）。图片格式（扩展名 + Content-Type + 文件头）只有 `ImageFormat` 一个出处，换存储或改策略都不需要动 Web 层。

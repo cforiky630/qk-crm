@@ -7,6 +7,8 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 import org.springframework.core.type.filter.AssignableTypeFilter;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -80,6 +82,48 @@ class LayeringTest {
             }
         }
         return false;
+    }
+
+    /**
+     * Web 层（控制器、拦截器）不得直接依赖数据访问层
+     * <p>
+     * 「令牌对应的账号是否可用」这类判断属于认证规则，应该在 Service 里；
+     * 一旦 Web 层自己注入 Mapper，就会绕过业务规则、并且每个请求都可能多查一次库而不自知。
+     * 登录拦截器曾经就是这种写法（直接注入 UserMapper），因此这里从依赖层面把它堵住。
+     */
+    @Test
+    void webLayerDoesNotDependOnMappers() throws Exception {
+        Set<BeanDefinition> candidates = new LinkedHashSet<>();
+        for (String pkg : new String[]{"com.qk.controller", "com.qk.interceptor"}) {
+            ClassPathScanningCandidateComponentProvider scanner =
+                    new ClassPathScanningCandidateComponentProvider(false);
+            scanner.addIncludeFilter(new AssignableTypeFilter(Object.class));
+            candidates.addAll(scanner.findCandidateComponents(pkg));
+        }
+
+        Assertions.assertTrue(candidates.size() >= 10,
+                "扫描到的 Web 层组件太少（" + candidates.size() + "），测试本身失效");
+
+        String mapperPackage = "com.qk.mapper";
+        StringBuilder violations = new StringBuilder();
+        for (BeanDefinition candidate : candidates) {
+            Class<?> component = Class.forName(candidate.getBeanClassName());
+            for (Field field : component.getDeclaredFields()) {
+                if (field.getType().getPackageName().equals(mapperPackage)) {
+                    violations.append(component.getSimpleName()).append('#').append(field.getName()).append('\n');
+                }
+            }
+            for (Constructor<?> constructor : component.getDeclaredConstructors()) {
+                for (Class<?> parameterType : constructor.getParameterTypes()) {
+                    if (parameterType.getPackageName().equals(mapperPackage)) {
+                        violations.append(component.getSimpleName()).append("(构造参数 ").append(parameterType.getSimpleName()).append(")\n");
+                    }
+                }
+            }
+        }
+
+        Assertions.assertEquals("", violations.toString(),
+                "Web 层不得直接依赖 Mapper，请改为依赖 Service：\n" + violations);
     }
 
     /** 递归收集一个类型及其全部泛型实参、数组元素、通配符上下界 */
