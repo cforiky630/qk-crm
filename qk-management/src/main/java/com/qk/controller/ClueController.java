@@ -3,12 +3,10 @@ package com.qk.controller;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.*;
-import com.qk.entity.enums.RoleLabel;
 import com.qk.entity.po.Clue;
 import com.qk.entity.vo.ClueVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.service.ClueService;
-import com.qk.interceptor.RequireRole;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,7 +94,6 @@ public class ClueController {
      * 分配线索给指定用户
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
     @PutMapping("/assign/{clueId}/{userId}")
     public Result<Void> assignClue(@PathVariable Long clueId, @PathVariable Long userId) {
         log.info("分配线索: 线索ID={}, 用户ID={}", clueId, userId);
@@ -108,7 +105,6 @@ public class ClueController {
      * 跟进线索
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
     @PutMapping
     public Result<Void> trackClue(@Valid @RequestBody ClueTrackDto clueTrackDto) {
         log.info("跟进线索: {}", clueTrackDto);
@@ -120,7 +116,6 @@ public class ClueController {
      * 将线索标记为伪线索
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
     @PutMapping("/false/{id}")
     public Result<Void> markFalseClue(@PathVariable Long id, @Valid @RequestBody MarkFalseClueDto markFalseClueDto) {
         log.info("将线索标记为伪线索, id: {}, 原因: {}", id, markFalseClueDto);
@@ -132,7 +127,6 @@ public class ClueController {
      * 将线索转为商机
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
     @PutMapping("/toBusiness/{id}")
     public Result<Void> convertToBusiness(@PathVariable Long id) {
         log.info("将线索转为商机, id: {}", id);

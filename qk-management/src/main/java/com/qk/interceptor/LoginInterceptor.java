@@ -39,15 +39,14 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         // 签名、有效期、账号是否存在与启用，全部由认证服务判断
-        Optional<AuthService.Principal> principal = authService.authenticate(token);
-        if (principal.isEmpty()) {
+        Optional<Long> userId = authService.authenticate(token);
+        if (userId.isEmpty()) {
             log.info("令牌无效或账号不可用，拒绝访问: {} {}", request.getMethod(), request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
-        UserHolder.setCurrentUser(principal.get().userId());
-        UserHolder.setCurrentRoleLabel(principal.get().roleLabel());
+        UserHolder.setCurrentUser(userId.get());
         return true;
     }
 

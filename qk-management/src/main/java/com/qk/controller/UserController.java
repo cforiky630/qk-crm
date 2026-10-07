@@ -4,9 +4,7 @@ import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserSaveDto;
-import com.qk.entity.enums.RoleLabel;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.interceptor.RequireRole;
 import com.qk.entity.dto.UserDto;
 import com.qk.service.UserService;
 import com.qk.entity.vo.UserVO;
@@ -76,7 +74,6 @@ public class UserController {
      * 新增用户
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
     @PostMapping
     public Result<Void> addUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("新增用户: {}", userDto.getUsername());
@@ -97,7 +94,6 @@ public class UserController {
      * 修改用户信息
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
     @PutMapping
     public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("修改用户: {}", userDto.getUsername());
@@ -131,7 +127,6 @@ public class UserController {
      * 批量删除用户（支持单个与批量）
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
     @DeleteMapping("/{ids}")
     public Result<Void> deleteUsers(@PathVariable List<Long> ids) {
         log.info("批量删除用户: {}", ids);
