@@ -24,8 +24,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * 这样"新增接口忘了声明权限"的表现是所有人调不通、且在构建期被覆盖率测试拦下，
  * 不会悄悄对所有登录用户开放。
  * <p>
- * 不满足时抛 {@link ForbiddenException}，交给 {@code GlobalExceptionHandler} 统一渲染成
- * HTTP 403 + {@code {code: 0, msg}}：与 401（未登录）配套，前端可以区分"重新登录"和"没权限"。
+ * 不满足时抛 {@link ForbiddenException}，由 {@code GlobalExceptionHandler} 按业务失败统一渲染成
+ * HTTP 200 + {@code {code: 0, msg}}（理由见 {@link ForbiddenException}：前端是已构建产物、不能改，
+ * 它只在 401 时登出，其它状态码不会读响应体里的 {@code msg}）。
  */
 @Slf4j
 @Component

@@ -42,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>权限点粒度到单个接口：有 {@code clue:track} 不等于有 {@code clue:assign}；</li>
  *   <li>超级管理员角色天然拥有全部权限、不可删除、不支持单独调整权限。</li>
  * </ul>
+ * 无权限时按业务失败返回：**HTTP 200 + {@code code = 0} + 具体 msg**（前端是已构建产物、不能改，
+ * 它只在 401 时登出，其它状态码不会读响应体）。
  * 角色、账号、授权全部由测试自建，不依赖种子数据。
  */
 @SpringBootTest
@@ -101,7 +103,7 @@ class AuthorizationTest {
         MockMvc mvc = mvcFor(insertUser(createRole(false)));
 
         mvc.perform(get("/clues"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
 
@@ -109,13 +111,16 @@ class AuthorizationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
                         .content("{\"username\":\"authz_denied\",\"name\":\"越权\",\"phone\":\"16900000000\",\"email\":\"authz_denied@qk.test\"}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
     }
 
     @Test
     void accountWithoutRoleHasNoPermission() throws Exception {
         mvcFor(insertUser(null)).perform(get("/clues"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
     }
 
@@ -128,7 +133,10 @@ class AuthorizationTest {
         MockMvc mvc = mvcFor(insertUser(roleId));
         Clue clue = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
 
-        mvc.perform(trackClue(clue.getId())).andExpect(status().isForbidden());
+        mvc.perform(trackClue(clue.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
 
         grantByApi(roleId, "\"clue:track\"");
         mvc.perform(trackClue(clue.getId()))
@@ -137,7 +145,9 @@ class AuthorizationTest {
 
         grantByApi(roleId);
         Clue another = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
-        mvc.perform(trackClue(another.getId())).andExpect(status().isForbidden());
+        mvc.perform(trackClue(another.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
     }
 
     /**
@@ -177,7 +187,9 @@ class AuthorizationTest {
         Clue waitAllot = insertClue(ClueStatus.WAIT_ALLOT.getCode());
 
         mvcFor(user).perform(put("/clues/assign/{clueId}/{userId}", waitAllot.getId(), user.getId()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
     }
 
     @Test

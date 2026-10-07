@@ -30,6 +30,10 @@ info:
     未声明权限的接口对所有人拒绝（默认拒绝），唯一例外是 `POST /login`。
     内置超级管理员角色（`role.is_super = 1`）天然拥有全部权限，不可删除、也不支持单独调整权限。
     登录响应里的 `permissions` 即当前账号的权限码列表，前端用它控制菜单与按钮（不要用 `roleLabel`）。
+    **权限不足按业务失败返回**：HTTP 200 + `code = 0` + `msg = 无权访问该接口，请联系管理员分配权限`。
+    不用 HTTP 403 是为了兼容当前前端：它是已构建产物、只在 401 时登出，其它状态码不会读响应体里的 `msg`。
+    另外注意，当前前端的按钮显隐仍写死 `roleLabel`（`admin` / `clue_operator` / `business_operator`），
+    尚未消费 `permissions`，因此这三个角色标识在改名之前要先发前端版本。
 
     ### 分页
     分页接口的查询参数为 `page`（页码，从 1 开始，默认 1）与 `pageSize`（每页条数，默认 10，**单页最大 200**），
@@ -42,7 +46,6 @@ info:
     | `200` | 成功；以及**业务失败**（数据不存在、唯一键冲突、文件类型不合法、状态不允许等） | `Result`，失败时 `code = 0`，按 `msg` 提示 |
     | `400` | 请求体不是合法 JSON、日期格式不合法、路径参数类型不匹配、缺少必填查询参数、上传文件超过大小限制 | `Result`，`code = 0`，`msg` 形如「请求参数格式不正确」 |
     | `401` | 未携带 `token`、令牌被篡改或已过期、令牌对应的账号已被停用或删除 | 空响应体 |
-    | `403` | 已登录，但缺少该接口要求的权限点 | `Result`，`code = 0`，`msg` 为「无权访问该接口，请联系管理员分配权限」 |
     | `404` | 请求的路径不存在 | `Result`，`code = 0`，`msg` 为「请求的资源不存在」 |
     | `405` | 请求方法不被支持（例如对 `POST /login` 使用 GET） | `Result`，`code = 0`，`msg` 为「请求方法不被支持」 |
     | `415` | 请求头 `Content-Type` 不被支持（例如给 JSON 接口发 `text/plain`） | `Result`，`code = 0`，`msg` 为「请求的 Content-Type 不被支持」 |
@@ -524,8 +527,6 @@ paths:
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '200':
           description: 角色权限列表；角色不存在时 `code = 0`、`msg = 角色不存在`
           content:
@@ -554,8 +555,6 @@ paths:
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '200':
           $ref: '#/components/responses/Ok'
 
@@ -568,8 +567,6 @@ paths:
       responses:
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '200':
           description: 权限目录，顺序与代码中的声明一致
           content:
@@ -1471,15 +1468,6 @@ components:
 
     BadRequest:
       description: 请求参数不合法（请求体格式错误、参数类型不匹配、上传文件过大等），返回 HTTP 400。
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Result'
-
-    Forbidden:
-      description: |
-        已登录但缺少该接口要求的权限点，返回 HTTP 403。
-        响应体是 `Result`：`code = 0`，`msg` 为「无权访问该接口，请联系管理员分配权限」。
       content:
         application/json:
           schema:

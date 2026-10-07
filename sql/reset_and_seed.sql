@@ -42,31 +42,47 @@ INSERT INTO role (id, name, label, remark, is_super, create_time, update_time) V
 (3, '商机专员', 'business_operator', '负责跟进商机', 0, NOW(), NOW());
 
 -- ---------- 角色权限（授权与角色标识无关，改角色名不会影响这里）----------
--- 线索专员：线索链路 + 相关基础数据只读 + 首页概览
+-- 授权口径：
+--   写权限严格按角色链路（线索专员只能动线索链路，商机专员只能动商机链路）；
+--   读权限给全（user/dept/role/course/activity/clue/business/customer/log/report），
+--   与改造前"查询类接口对所有登录用户开放"的可见范围保持一致 —— 当前前端是已构建产物、
+--   菜单是静态的，收窄读权限会让专员点进页面就报无权限。要收紧就把对应 read 权限撤掉。
+
+-- 线索专员：全部只读 + 线索链路 + 上传
 INSERT INTO role_permission (role_id, permission, create_time) VALUES
+(2, 'user:read', NOW()),
+(2, 'dept:read', NOW()),
+(2, 'role:read', NOW()),
+(2, 'course:read', NOW()),
+(2, 'activity:read', NOW()),
 (2, 'clue:read', NOW()),
+(2, 'business:read', NOW()),
+(2, 'customer:read', NOW()),
+(2, 'log:read', NOW()),
+(2, 'report:read', NOW()),
 (2, 'clue:create', NOW()),
 (2, 'clue:track', NOW()),
 (2, 'clue:mark_false', NOW()),
 (2, 'clue:convert_business', NOW()),
-(2, 'activity:read', NOW()),
-(2, 'course:read', NOW()),
-(2, 'customer:read', NOW()),
-(2, 'report:read', NOW()),
 (2, 'file:upload', NOW());
 
--- 商机专员：商机链路 + 客户新增 + 相关基础数据只读 + 首页概览
+-- 商机专员：全部只读 + 商机链路 + 客户新增 + 上传
 INSERT INTO role_permission (role_id, permission, create_time) VALUES
+(3, 'user:read', NOW()),
+(3, 'dept:read', NOW()),
+(3, 'role:read', NOW()),
+(3, 'course:read', NOW()),
+(3, 'activity:read', NOW()),
+(3, 'clue:read', NOW()),
 (3, 'business:read', NOW()),
+(3, 'customer:read', NOW()),
+(3, 'log:read', NOW()),
+(3, 'report:read', NOW()),
 (3, 'business:create', NOW()),
 (3, 'business:track', NOW()),
 (3, 'business:back_to_pool', NOW()),
 (3, 'business:convert_customer', NOW()),
-(3, 'clue:read', NOW()),
-(3, 'course:read', NOW()),
-(3, 'customer:read', NOW()),
 (3, 'customer:create', NOW()),
-(3, 'report:read', NOW()),
 (3, 'file:upload', NOW());
 
 -- ---------- 用户（密码统一 123）----------

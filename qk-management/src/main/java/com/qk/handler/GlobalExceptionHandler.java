@@ -3,7 +3,6 @@ package com.qk.handler;
 import com.qk.common.Result;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
-import com.qk.common.exception.ForbiddenException;
 import com.qk.common.util.UserHolder;
 import com.qk.common.notify.SystemAlert;
 import com.qk.common.notify.SystemExceptionNotifier;
@@ -48,19 +47,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handlerBusinessException(BusinessException e) {
         log.warn("业务校验未通过: [{}] {}", e.getErrorCode(), e.getMessage());
-        return Result.error(e.getMessage());
-    }
-
-    /**
-     * 已登录但角色不满足接口要求：返回 403
-     * <p>
-     * 与业务失败（HTTP 200 + code = 0）区分开、与 401（未登录，响应体为空）配套：
-     * 前端据此提示「没有权限」而不是「请重新登录」。比 BusinessException 更具体，优先命中。
-     */
-    @ExceptionHandler(ForbiddenException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public Result<Void> handlerForbidden(ForbiddenException e) {
-        log.warn("无权限访问: {}", e.getMessage());
         return Result.error(e.getMessage());
     }
 
