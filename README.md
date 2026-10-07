@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-195%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-201%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -110,6 +110,7 @@ qk-parent
 mysql -uroot -p -e "create database if not exists qk default charset utf8mb4"
 mysql -uroot -p qk < sql/dept.sql
 mysql -uroot -p qk < sql/role.sql
+mysql -uroot -p qk < sql/role_permission.sql
 mysql -uroot -p qk < sql/user.sql
 mysql -uroot -p qk < sql/course.sql
 mysql -uroot -p qk < sql/activity.sql
@@ -240,14 +241,15 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：24 个测试类 / 195 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：25 个测试类 / 201 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
 - `*ControllerTest` 覆盖各模块的接口契约（状态码、字段、分页、筛选、状态流转）。
 - [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型；另外断言 Web 层（`controller` / `interceptor`）不直接依赖 `com.qk.mapper`。
 - [`AuthServiceTest`](qk-management/src/test/java/com/qk/AuthServiceTest.java) 守认证策略：登录成功/密码错误/账号不存在/账号停用，以及令牌的签名被改、格式非法、为空、**已过期**、账号不存在、账号停用 —— 全部应失效。
-- [`AuthorizationTest`](qk-management/src/test/java/com/qk/AuthorizationTest.java) 守接口授权：admin 能管基础数据；非 admin 调管理类接口与删除用户返回 403；线索专员只能走线索流转、商机专员只能走商机流转；未绑定角色与自定义角色的账号只能看查询类接口。
+- [`AuthorizationTest`](qk-management/src/test/java/com/qk/AuthorizationTest.java) 守接口授权：角色没有授权时所有受保护接口 403；授权与撤销**立即生效**；**改角色名/标识不影响权限**；权限粒度到单个接口（有 `clue:track` 不等于有 `clue:assign`）；超级角色天然全权限、不可删除、不支持单独调整；未知权限码被拒；角色权限可读回。
+- [`PermissionCoverageTest`](qk-management/src/test/java/com/qk/PermissionCoverageTest.java) 守权限声明覆盖率：**每个对外接口都必须声明 `@RequirePermission`**（只有登录在白名单里），且权限目录里不允许存在没有任何接口使用的权限点 —— 漏标注在构建期就失败，不会等到线上才发现接口调不通。
 - [`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 守报文：把同一个 PO 分别以实体和 VO 序列化并逐字节比对，VO 漏抄字段即失败。
 - [`DateTimeFormatTest`](qk-management/src/test/java/com/qk/DateTimeFormatTest.java) 守时间契约：默认格式锁死 `yyyy-MM-dd HH:mm:ss`，同时证明字段级 `@JsonFormat` 能覆盖出参与入参。
 - [`GlobalExceptionHandlerTest`](qk-management/src/test/java/com/qk/GlobalExceptionHandlerTest.java) 守系统异常告警：走了一遍真实 MVC 处理链（兜底处理器带 `HttpServletRequest` 参数，直接调用测不出解析是否正常），并断言告警失败不影响 500 响应。
@@ -310,26 +312,33 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 
 不再使用的数据应改为**停用**（`status = 0`），而不是删除。引用计数统一放在 Mapper 的具名方法里（如 `UserMapper.countByDeptId`），Service 只负责业务判断，不感知 ORM 的查询 DSL。
 
-**接口授权**
+**接口授权（权限点模型）**
 
-角色是数据（管理员可以自由新建角色），但**接口授权只认保留标签**（`com.qk.entity.enums.RoleLabel`）：`admin` / `clue_operator` / `business_operator`。做法是给需要控制的接口标 `@RequireRole`，由 `PermissionInterceptor` 在登录校验之后读取当前账号的角色——角色每次从库里取（不放进令牌），因此换角色立即生效，与"停用立即失效"同一取舍。
+授权不依赖角色标识，分三层：
 
-| 范围 | 要求 |
-| --- | --- |
-| 用户 / 部门 / 角色 / 课程 / 活动的增删改 | `admin` |
-| 线索分配、商机分配 | `admin`（分配是管理员职责） |
-| 线索跟进 / 标伪 / 转商机 | `admin`、`clue_operator` |
-| 商机跟进 / 踢回公海 / 转客户 | `admin`、`business_operator` |
-| 其余（查询类、新增线索/商机/客户、上传、登录） | 所有已登录用户 |
+1. **权限点**（`com.qk.entity.enums.Permission`）：代码里的稳定契约，一个权限点对应一个能力，如 `clue:track`、`user:delete`。接口在方法上声明 `@RequirePermission(...)`，声明多个表示**必须全部具备**。
+2. **角色**：纯数据，管理员可以自由增删改；标识叫什么、有几个角色，都不影响授权。
+3. **角色授权**（`role_permission` 表）：管理员在运行时把权限点授予角色。`GET /permissions` 取目录、`GET /roles/{id}/permissions` 看已授权、`PUT /roles/{id}/permissions` **覆盖式**配置（传空数组 = 收回全部）。改完**立即生效**：权限与角色每次请求重新读取，不放进令牌。
 
-不满足时返回 **HTTP 403** + `{code: 0, msg: "无权访问该接口，请联系管理员分配角色"}`，与 401（未登录、响应体为空）配套，前端据此区分"重新登录"和"没权限"。
+因此「把 admin 改名导致所有人失去权限」这类问题不存在了——改名只改展示。
 
-`admin` 是**内置保留角色**：由 `sql/role.sql` 创建，内置管理员账号在 `sql/user.sql` 里直接绑定它。这步不能省——否则从零安装后库里一个角色都没有，而"管理类仅 admin"会让第一个账号连 `POST /roles` 都调不了，系统被锁死。已有库若内置账号的 `role_id` 为空，执行一条：
+**默认拒绝**：控制器方法没有声明权限点就一律拒绝。无需登录的接口只有 `POST /login`（在 `WebConfig` 显式排除），`/error` 同样排除（否则真实报错会被 403 盖住）。漏标注不会变成"对所有登录用户开放"，而是接口调不通，并且由 `PermissionCoverageTest` 在**构建期**拦下。
+
+**超级管理员角色**：`role.is_super = 1` 的角色天然拥有全部权限（不写 `role_permission`），不可删除、不支持单独调整权限。它由 `sql/role.sql` 内置创建，内置管理员账号在 `sql/user.sql` 里绑定它——否则从零安装后没人能配置角色权限，系统会被锁死。
+
+不满足时返回 **HTTP 403** + `{code: 0, msg: "无权访问该接口，请联系管理员分配权限"}`，与 401（未登录、响应体为空）配套，前端据此区分"重新登录"和"没权限"。
+
+前端注意：登录响应新增 `permissions`（权限码数组），菜单与按钮请按它控制；`roleLabel` 已降级为展示字段。
+
+已有库升级（建表脚本按全新安装口径，存量库手动补一次）：
 
 ```sql
-UPDATE `user` SET `role_id` = (SELECT `id` FROM `role` WHERE `label` = 'admin')
-WHERE `username` = 'admin' AND `role_id` IS NULL;
+ALTER TABLE `role` ADD COLUMN `is_super` tinyint unsigned NOT NULL DEFAULT 0
+  COMMENT '是否超级管理员角色：1-是，0-否' AFTER `remark`;
+UPDATE `role` SET `is_super` = 1 WHERE `label` = 'admin';
 ```
+
+再执行 `sql/role_permission.sql` 建映射表，然后按需用 `PUT /roles/{id}/permissions` 给各角色授权（`sql/reset_and_seed.sql` 里的演示数据已经配好线索专员与商机专员的权限）。
 
 **跨聚合的读写边界**
 
@@ -388,7 +397,7 @@ WHERE `username` = 'admin' AND `role_id` IS NULL;
 - [x] 按《阿里巴巴 Java 开发手册》整改：主键/外键升 `bigint unsigned`、索引规约 `uk_`/`idx_`、实体迁入 `com.qk.entity.po`、`PageResult` 迁入 `qk-entity`、声明未声明的 Jackson 依赖
 - [ ] 密码哈希由 MD5 升级为 BCrypt（登录时平滑升级，需先确认前端提交的密码形态）
 - [ ] 用户名改为不可变标识（避免改名后旧密码失效）
-- [x] 接口级权限控制（`@RequireRole` + 保留角色标识：管理类仅 `admin`，业务流转给对应专员）
+- [x] 接口级权限控制（权限点模型：接口声明权限点，角色通过 `role_permission` 授权，支持运行时配置）
 - [ ] CORS 配置（前后端同域或走网关时可跳过）
 - [ ] 上传图片改用私有读 + 签名 URL，并清理孤儿对象
 
@@ -409,7 +418,7 @@ WHERE `username` = 'admin' AND `role_id` IS NULL;
 13. **金额以整型存「元」**：`course.price`、`activity.voucher` 是 `int unsigned`（单位：元），不受手册「小数必须用 decimal」约束，但无法表达角、分。
 14. **操作日志的「操作模块 / 操作类型」尚未落库**：目前仍由 `OperateLogMapper.xml` 的 `CASE` 表达式在查询时从 `class_name` / `method_name` 翻译，`operateModule` / `operateType` 的模糊检索因此无法走索引，`operate_log` 增长后 `/logs` 会退化成全表扫描。彻底做法是在写入时把两个标签落成独立列并建索引（需要一次建表脚本变更），本次未一并处理。
 15. **未接入静态检查**：`BeanUtil` 之类的约定目前只靠注释与测试守卫，尚未接入 Alibaba P3C / SpotBugs 规则集，`Hutool` 也仍是 `hutool-all`（本地依赖仓库只有全量包，替换为 `hutool-core` / `hutool-crypto` / `hutool-jwt` 需要联网拉取）。
-16. **接口授权是角色级的粗粒度控制**：查询类与新增线索/商机/客户的接口对所有已登录用户开放（有意为之，避免补齐权限时把前端页面整体挡住）。「线索专员只能看到自己名下的线索」这类**数据行级**权限（按归属人过滤）尚未实现。
+16. **权限只到接口级，未做数据行级**：「线索专员只能看到自己名下的线索」这类按归属人过滤的**行级**权限尚未实现；另外前端需要改用登录响应里的 `permissions` 控制菜单与按钮（`roleLabel` 已降级为展示字段）。
 
 ## 说明
 

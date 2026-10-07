@@ -5,6 +5,8 @@ import com.qk.common.Result;
 import com.qk.entity.dto.LogQueryDto;
 import com.qk.service.OperateLogService;
 import com.qk.entity.vo.OperateLogVO;
+import com.qk.entity.enums.Permission;
+import com.qk.interceptor.RequirePermission;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,7 @@ public class LogController {
     /**
      * 操作日志列表查询
      */
+    @RequirePermission(Permission.LOG_READ)
     @GetMapping("/logs")
     public Result<PageResult<OperateLogVO>> listLogs(@Valid LogQueryDto logQueryDto) {
         log.info("查询操作日志, 参数: {}", logQueryDto);

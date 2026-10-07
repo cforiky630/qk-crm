@@ -4,10 +4,12 @@ import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.entity.dto.CustomerSaveDto;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.po.Customer;
 import com.qk.entity.vo.CustomerVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.service.CustomerService;
+import com.qk.interceptor.RequirePermission;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,7 @@ public class CustomerController {
     /**
      * 客户列表查询
      */
+    @RequirePermission(Permission.CUSTOMER_READ)
     @GetMapping
     public Result<PageResult<CustomerVO>> listCustomers(@Valid CustomerQueryDto customerQueryDto) {
         log.info("客户列表查询, 参数: {}", customerQueryDto);
@@ -43,6 +46,7 @@ public class CustomerController {
      * 新增客户
      */
     @LogOperation
+    @RequirePermission(Permission.CUSTOMER_CREATE)
     @PostMapping
     public Result<Void> addCustomer(@Valid @RequestBody CustomerSaveDto customerDto) {
         log.info("新增客户: {}", customerDto);
@@ -53,6 +57,7 @@ public class CustomerController {
     /**
      * 根据ID查询客户
      */
+    @RequirePermission(Permission.CUSTOMER_READ)
     @GetMapping("/{id}")
     public Result<CustomerVO> getCustomerById(@PathVariable Long id) {
         log.info("根据ID查询客户, id: {}", id);
@@ -63,6 +68,7 @@ public class CustomerController {
      * 修改客户
      */
     @LogOperation
+    @RequirePermission(Permission.CUSTOMER_UPDATE)
     @PutMapping
     public Result<Void> updateCustomer(@Valid @RequestBody CustomerSaveDto customerDto) {
         log.info("修改客户: {}", customerDto);

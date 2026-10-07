@@ -1,5 +1,6 @@
 package com.qk.service;
 
+import com.qk.common.context.CurrentUser;
 import com.qk.entity.vo.LoginResultVO;
 
 import java.util.Optional;
@@ -14,15 +15,6 @@ import java.util.Optional;
 public interface AuthService {
 
     /**
-     * 令牌对应的账号与角色
-     *
-     * @param userId    账号ID
-     * @param roleLabel 角色标识（数据库 role.label）；账号未绑定角色时为 null
-     */
-    record Principal(Long userId, String roleLabel) {
-    }
-
-    /**
      * 登录：校验账号密码并签发令牌
      *
      * @param username 用户名
@@ -33,13 +25,13 @@ public interface AuthService {
     LoginResultVO login(String username, String password);
 
     /**
-     * 校验令牌并返回可用账号及其角色
+     * 校验令牌并返回可用账号（含角色标识与权限集合）
      * <p>
      * 同时覆盖三件事：签名与有效期、账号是否存在、账号是否启用。
      * 任一不满足都返回空，调用方一律按 401 处理。
      *
      * @param token 请求头 {@code token} 的值
-     * @return 账号与角色；令牌不合法或账号不可用时返回空
+     * @return 当前用户上下文；令牌不合法或账号不可用时返回空
      */
-    Optional<Principal> authenticate(String token);
+    Optional<CurrentUser> authenticate(String token);
 }

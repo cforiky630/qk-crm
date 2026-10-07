@@ -3,13 +3,13 @@ package com.qk.controller;
 import com.qk.entity.po.Activity;
 import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.dto.ActivitySaveDto;
-import com.qk.entity.enums.RoleLabel;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.vo.ActivityVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.ActivityService;
-import com.qk.interceptor.RequireRole;
+import com.qk.interceptor.RequirePermission;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ public class ActivityController {
      * 新增活动
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.ACTIVITY_CREATE)
     @PostMapping("/activities")
     public Result<Void> addActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
         log.info("新增活动,参数:{}", activityDto);
@@ -49,6 +49,7 @@ public class ActivityController {
      *
      * @param query 查询条件（含分页参数）；活动状态按开始/结束时间推算，为空表示不筛选
      */
+    @RequirePermission(Permission.ACTIVITY_READ)
     @GetMapping("/activities")
     public Result<PageResult<ActivityVO>> listActivities(@Valid ActivityQueryDto query) {
         log.info("分页查询活动, 参数: {}", query);
@@ -58,6 +59,7 @@ public class ActivityController {
     /**
      * 查询指定类型的所有活动，不分页
      */
+    @RequirePermission(Permission.ACTIVITY_READ)
     @GetMapping("/activities/type/{type}")
     public Result<List<ActivityVO>> listActivitiesByType(@PathVariable Integer type) {
         log.info("查询类型为{}的活动", type);
@@ -68,6 +70,7 @@ public class ActivityController {
     /**
      * 根据ID查询活动
      */
+    @RequirePermission(Permission.ACTIVITY_READ)
     @GetMapping("/activities/{id}")
     public Result<ActivityVO> findById(@PathVariable Long id) {
         log.info("查询活动ID为{}的活动信息", id);
@@ -78,7 +81,7 @@ public class ActivityController {
      * 修改活动
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.ACTIVITY_UPDATE)
     @PutMapping("/activities")
     public Result<Void> updateActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
         log.info("修改活动信息：{}", activityDto);
@@ -110,7 +113,7 @@ public class ActivityController {
      * 删除活动
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.ACTIVITY_DELETE)
     @DeleteMapping("/activities/{id}")
     public Result<Void> deleteActivity(@PathVariable("id") Long id) {
         log.info("删除活动：{}", id);

@@ -31,7 +31,10 @@ public class Role {
     private String name;
 
     /**
-     * 角色标识，全局唯一，权限判断用
+     * 角色标识，全局唯一
+     * <p>
+     * 只用于展示与「按角色查人员」这类业务筛选，**不参与接口授权**：
+     * 授权看的是 {@code role_permission} 表里的权限点，因此标签改名不会影响任何人的权限。
      */
     private String label;
 
@@ -39,6 +42,18 @@ public class Role {
      * 备注说明
      */
     private String remark;
+
+    /**
+     * 是否超级管理员角色：1-是，0-否
+     * <p>
+     * 超级管理员天然拥有全部权限（见 {@link com.qk.entity.enums.Permission#allCodes()}），
+     * 不参与 {@code role_permission} 表：这样新增权限点时不需要同步补授权数据，
+     * 也不会出现"管理员把自己锁在门外"。
+     * <p>
+     * 数据库列名是 {@code is_super}，用 {@link TableField} 显式映射（原因见下面的 deleted 字段）。
+     */
+    @TableField("is_super")
+    private Boolean superRole;
 
     /**
      * 创建时间

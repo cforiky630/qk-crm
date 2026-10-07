@@ -1,5 +1,6 @@
 package com.qk.interceptor;
 
+import com.qk.common.context.CurrentUser;
 import com.qk.common.util.UserHolder;
 import com.qk.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,15 +40,14 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         // 签名、有效期、账号是否存在与启用，全部由认证服务判断
-        Optional<AuthService.Principal> principal = authService.authenticate(token);
-        if (principal.isEmpty()) {
+        Optional<CurrentUser> currentUser = authService.authenticate(token);
+        if (currentUser.isEmpty()) {
             log.info("令牌无效或账号不可用，拒绝访问: {} {}", request.getMethod(), request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
-        UserHolder.setCurrentUser(principal.get().userId());
-        UserHolder.setCurrentRoleLabel(principal.get().roleLabel());
+        UserHolder.setCurrentUser(currentUser.get());
         return true;
     }
 

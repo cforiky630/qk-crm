@@ -114,7 +114,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 守卫：不允许把当前登录用户自己停用。
         // 登录会拒绝 status=0 的账号，一旦把自己停用，就再也进不来了（与「不能删除自己」同类）。
-        Long currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(user.getId())
                 && EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
             throw new BusinessException(ErrorCode.USER_CANNOT_DISABLE_SELF);
@@ -145,7 +145,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         // 守卫 1：不允许删除当前登录用户自己，避免把自己锁在系统外
-        Long currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUserId();
         if (currentUserId != null && targetIds.contains(currentUserId)) {
             throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
         }

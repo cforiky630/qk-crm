@@ -2,11 +2,14 @@ package com.qk.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
+import com.qk.common.context.CurrentUser;
 import com.qk.common.util.JwtUtil;
 import com.qk.entity.enums.EnableStatus;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.po.Role;
 import com.qk.entity.po.User;
 import com.qk.entity.vo.LoginResultVO;
+import com.qk.mapper.RolePermissionMapper;
 import com.qk.mapper.RoleMapper;
 import com.qk.mapper.UserMapper;
 import com.qk.service.AuthService;
@@ -15,8 +18,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * 认证实现
@@ -32,11 +37,14 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
+    private final RolePermissionMapper rolePermissionMapper;
     private final JwtUtil jwtUtil;
 
-    public AuthServiceImpl(UserMapper userMapper, RoleMapper roleMapper, JwtUtil jwtUtil) {
+    public AuthServiceImpl(UserMapper userMapper, RoleMapper roleMapper,
+                           RolePermissionMapper rolePermissionMapper, JwtUtil jwtUtil) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
+        this.rolePermissionMapper = rolePermissionMapper;
         this.jwtUtil = jwtUtil;
     }
 
@@ -59,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
             return null;
         }
 
-        // 3. 查询角色标识（供前端渲染菜单；后端目前不做接口级鉴权）
+        // 3. 查询角色与它的权限（前端按权限渲染菜单与按钮）
         Role role = roleMapper.selectById(user.getRoleId());
 
         // 4. 组装登录结果并签发 JWT
@@ -69,6 +77,7 @@ public class AuthServiceImpl implements AuthService {
         vo.setName(user.getName());
         vo.setImage(user.getImage());
         vo.setRoleLabel(role == null ? null : role.getLabel());
+        vo.setPermissions(permissionsOf(role));
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("id", user.getId());
@@ -79,7 +88,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Optional<Principal> authenticate(String token) {
+    public Optional<CurrentUser> authenticate(String token) {
         // 签名与有效期由 JwtUtil 一并校验（内部把格式错误、签名不匹配、已过期都归为校验失败）
         if (!StringUtils.hasLength(token) || !jwtUtil.verify(token)) {
             log.debug("令牌为空、被篡改或已过期");
@@ -95,9 +104,30 @@ public class AuthServiceImpl implements AuthService {
             return Optional.empty();
         }
 
-        // 角色每次从库里取（不放进令牌）：给账号换角色要立即生效，与"停用立即失效"同一取舍。
-        // 自定义角色只是数据，不具备任何接口授权，因此这里返回的 label 可能不在保留角色之列。
+        // 角色与权限每次从库里取（不放进令牌）：给账号换角色、给角色改权限都要立即生效，
+        // 与"停用立即失效"同一取舍。
         Role role = user.getRoleId() == null ? null : roleMapper.selectById(user.getRoleId());
-        return Optional.of(new Principal(user.getId(), role == null ? null : role.getLabel()));
+        List<String> permissions = permissionsOf(role);
+        return Optional.of(new CurrentUser(user.getId(),
+                role == null ? null : role.getLabel(),
+                Set.copyOf(permissions)));
+    }
+
+    /**
+     * 角色拥有的权限码，按 {@link Permission} 的声明顺序返回（输出稳定，便于前端与测试比对）
+     * <p>
+     * 超级管理员角色天然拥有全部权限，因此不查 {@code role_permission} 表：
+     * 这样新增权限点后不需要同步补授权数据，管理员也永远不会因为没有授权而失去入口。
+     * 未绑定角色、或角色没有任何授权时返回空列表（默认拒绝）。
+     */
+    private List<String> permissionsOf(Role role) {
+        if (role == null) {
+            return List.of();
+        }
+        if (Boolean.TRUE.equals(role.getSuperRole())) {
+            return Permission.allCodes();
+        }
+        Set<String> granted = Set.copyOf(rolePermissionMapper.findPermissionCodes(role.getId()));
+        return Permission.allCodes().stream().filter(granted::contains).toList();
     }
 }

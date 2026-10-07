@@ -3,13 +3,13 @@ package com.qk.controller;
 import com.qk.entity.po.Course;
 import com.qk.entity.dto.CourseQueryDto;
 import com.qk.entity.dto.CourseSaveDto;
-import com.qk.entity.enums.RoleLabel;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.vo.CourseVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.service.CourseService;
-import com.qk.interceptor.RequireRole;
+import com.qk.interceptor.RequirePermission;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ public class CourseController {
      * @return 操作结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.COURSE_CREATE)
     @PostMapping("/courses")
     public Result<Void> addCourse(@Valid @RequestBody CourseSaveDto courseDto) {
         log.info("新增课程,参数:{}", courseDto);
@@ -49,6 +49,7 @@ public class CourseController {
      * @param query 查询条件（含分页参数）
      * @return 分页查询结果
      */
+    @RequirePermission(Permission.COURSE_READ)
     @GetMapping("/courses")
     public Result<PageResult<CourseVO>> listCourses(@Valid CourseQueryDto query) {
         log.info("分页查询课程, 参数: {}", query);
@@ -61,6 +62,7 @@ public class CourseController {
      * @param id 课程ID
      * @return 查询结果
      */
+    @RequirePermission(Permission.COURSE_READ)
     @GetMapping("/courses/{id}")
     public Result<CourseVO> findById(@PathVariable Long id) {
         log.info("查询课程ID为{}的课程信息", id);
@@ -75,7 +77,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.COURSE_UPDATE)
     @PutMapping("/courses")
     public Result<Void> updateCourse(@Valid @RequestBody CourseSaveDto courseDto) {
         log.info("修改课程信息：{}", courseDto);
@@ -107,7 +109,7 @@ public class CourseController {
      * @return 统一响应结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.COURSE_DELETE)
     @DeleteMapping("/courses/{id}")
     public Result<Void> deleteCourse(@PathVariable("id") Long id) {
         log.info("删除课程：{}", id);
@@ -120,6 +122,7 @@ public class CourseController {
      *
      * @return 统一响应结果
      */
+    @RequirePermission(Permission.COURSE_READ)
     @GetMapping("/courses/list")
     public Result<List<CourseVO>> listAllCourses() {
         log.info("查询所有课程");
@@ -133,6 +136,7 @@ public class CourseController {
      * @param subject 学科
      * @return 统一响应结果
      */
+    @RequirePermission(Permission.COURSE_READ)
     @GetMapping("/courses/subject/{subject}")
     public Result<List<CourseVO>> listCoursesBySubject(@PathVariable Integer subject) {
         log.info("查询学科为{}的课程", subject);

@@ -123,7 +123,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         // 2. 新增一条正常跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
         trackRecord.setClueId(clueTrackDto.getId());
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setSubject(clueTrackDto.getSubject());
         trackRecord.setLevel(clueTrackDto.getLevel());
         trackRecord.setRecord(clueTrackDto.getRecord());
@@ -146,7 +146,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         // 2. 新增一条伪线索跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
         trackRecord.setClueId(id);
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setType(ClueTrackType.FALSE_CLUE.getCode());
         trackRecord.setFalseReason(markFalseClueDto.getReason());
         trackRecord.setRecord(markFalseClueDto.getRemark());

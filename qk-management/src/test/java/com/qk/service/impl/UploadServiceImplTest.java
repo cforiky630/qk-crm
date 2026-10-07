@@ -1,6 +1,7 @@
 package com.qk.service.impl;
 
 import com.qk.common.exception.BusinessException;
+import com.qk.common.context.CurrentUser;
 import com.qk.common.storage.FileStorage;
 import com.qk.common.util.UserHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -10,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -38,7 +40,8 @@ class UploadServiceImplTest {
 
     @Test
     void storesValidImageAndReturnsUrl() {
-        UserHolder.setCurrentUser(42L);
+        // 上传接口只需要"当前用户ID"，权限不影响这里；构造一个最小上下文即可
+        UserHolder.setCurrentUser(new CurrentUser(42L, null, Set.of()));
 
         String url = uploadService.upload("photo.png", stream(PNG_HEAD));
 

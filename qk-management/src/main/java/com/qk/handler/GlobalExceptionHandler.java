@@ -266,7 +266,7 @@ public class GlobalExceptionHandler {
             systemExceptionNotifier.notify(SystemAlert.of(e,
                     request == null ? null : request.getMethod(),
                     request == null ? null : request.getRequestURI(),
-                    UserHolder.getCurrentUser()));
+                    UserHolder.getCurrentUserId()));
         } catch (Exception alertFailure) {
             log.warn("系统异常告警发送失败", alertFailure);
         }

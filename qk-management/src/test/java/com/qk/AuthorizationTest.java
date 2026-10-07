@@ -1,17 +1,15 @@
 package com.qk;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.qk.common.util.JwtUtil;
-import com.qk.entity.enums.BusinessStatus;
 import com.qk.entity.enums.ClueStatus;
-import com.qk.entity.enums.RoleLabel;
-import com.qk.entity.po.Business;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.po.Clue;
 import com.qk.entity.po.Role;
+import com.qk.entity.po.RolePermission;
 import com.qk.entity.po.User;
-import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.RoleMapper;
+import com.qk.mapper.RolePermissionMapper;
 import com.qk.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +24,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -34,15 +33,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 接口授权测试
+ * 接口授权测试（权限点模型）
  * <p>
- * 授权模型：
+ * 模型要点：
  * <ul>
- *   <li>标了 {@code @RequireRole} 的接口按角色放行 —— 管理/删除类仅 admin，业务流转给对应专员；</li>
- *   <li>未标注的接口（查询类、新增类）对所有已登录用户开放，避免补齐权限时把前端页面整体挡住；</li>
- *   <li>自定义角色只是数据，不具备任何接口授权。</li>
+ *   <li>接口声明「需要哪些权限点」，账号能做什么由「角色被授予了哪些权限点」决定；</li>
+ *   <li>角色标识（label）只是数据，改名不影响权限 —— 这是解耦前最容易踩的坑；</li>
+ *   <li>权限点粒度到单个接口：有 {@code clue:track} 不等于有 {@code clue:assign}；</li>
+ *   <li>超级管理员角色天然拥有全部权限、不可删除、不支持单独调整权限。</li>
  * </ul>
- * 三种角色按标签查找，库里没有就自建，因此不依赖种子数据。
+ * 角色、账号、授权全部由测试自建，不依赖种子数据。
  */
 @SpringBootTest
 @Transactional
@@ -50,7 +50,7 @@ class AuthorizationTest {
 
     private static final AtomicInteger SEQ = new AtomicInteger();
 
-    private static final String FORBIDDEN_MSG = "无权访问该接口，请联系管理员分配角色";
+    private static final String FORBIDDEN_MSG = "无权访问该接口，请联系管理员分配权限";
 
     @Autowired
     private WebApplicationContext wac;
@@ -62,137 +62,185 @@ class AuthorizationTest {
     private RoleMapper roleMapper;
 
     @Autowired
+    private RolePermissionMapper rolePermissionMapper;
+
+    @Autowired
     private UserMapper userMapper;
 
     @Autowired
     private ClueMapper clueMapper;
 
-    @Autowired
-    private BusinessMapper businessMapper;
-
-    private User admin;
-    private User clueOperator;
-    private User businessOperator;
-    private User accountWithoutRole;
+    private Long superRoleId;
+    private User superUser;
 
     @BeforeEach
     void setUp() {
-        admin = insertUser(roleIdOf(RoleLabel.ADMIN));
-        clueOperator = insertUser(roleIdOf(RoleLabel.CLUE_OPERATOR));
-        businessOperator = insertUser(roleIdOf(RoleLabel.BUSINESS_OPERATOR));
-        accountWithoutRole = insertUser(null);
+        superRoleId = createRole(true);
+        superUser = insertUser(superRoleId);
     }
 
     @Test
-    void adminCanManageMasterData() throws Exception {
-        mvcFor(admin).perform(post("/roles")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .characterEncoding("UTF-8")
-                        .content("""
-                                {"name":"授权测试角色","label":"authz_admin_%d"}
-                                """.formatted(SEQ.incrementAndGet())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(1));
-    }
-
-    @Test
-    void nonAdminCannotManageMasterDataOrDeleteUsers() throws Exception {
-        MockMvc mvc = mvcFor(clueOperator);
+    void superRolePassesEveryEndpointWithoutGrantRows() throws Exception {
+        MockMvc mvc = mvcFor(superUser);
 
         mvc.perform(post("/roles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
-                        .content("{\"name\":\"越权角色\",\"label\":\"authz_denied\"}"))
+                        .content("""
+                                {"name":"超级角色新建","label":"authz_created_%d"}
+                                """.formatted(SEQ.incrementAndGet())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        mvc.perform(get("/users")).andExpect(jsonPath("$.code").value(1));
+        mvc.perform(get("/permissions")).andExpect(jsonPath("$.code").value(1));
+    }
+
+    @Test
+    void roleWithoutGrantsIsRejectedOnProtectedEndpoints() throws Exception {
+        MockMvc mvc = mvcFor(insertUser(createRole(false)));
+
+        mvc.perform(get("/clues"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
 
-        mvc.perform(delete("/users/{ids}", admin.getId()))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value(0));
-
-        mvc.perform(post("/courses")
+        mvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
-                        .content("{\"subject\":1,\"name\":\"越权课程\",\"price\":1,\"target\":1}"))
+                        .content("{\"username\":\"authz_denied\",\"name\":\"越权\",\"phone\":\"16900000000\",\"email\":\"authz_denied@qk.test\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void clueOperatorCanFollowClueFlowButNotBusinessFlowNorAssign() throws Exception {
-        MockMvc mvc = mvcFor(clueOperator);
+    void accountWithoutRoleHasNoPermission() throws Exception {
+        mvcFor(insertUser(null)).perform(get("/clues"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
+    }
+
+    /**
+     * 授权与撤销都必须立即生效：这正是把授权放进数据表的目的
+     */
+    @Test
+    void grantingAndRevokingTakesEffectImmediately() throws Exception {
+        Long roleId = createRole(false);
+        MockMvc mvc = mvcFor(insertUser(roleId));
         Clue clue = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
 
-        mvc.perform(put("/clues")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .characterEncoding("UTF-8")
-                        .content("{\"id\":%d,\"record\":\"授权测试跟进\"}".formatted(clue.getId())))
+        mvc.perform(trackClue(clue.getId())).andExpect(status().isForbidden());
+
+        grantByApi(roleId, "\"clue:track\"");
+        mvc.perform(trackClue(clue.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
 
-        Business business = insertBusiness(BusinessStatus.WAIT_FOLLOW.getCode());
-        mvc.perform(put("/businesses")
+        grantByApi(roleId);
+        Clue another = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
+        mvc.perform(trackClue(another.getId())).andExpect(status().isForbidden());
+    }
+
+    /**
+     * 改角色名/标识不影响权限
+     * <p>
+     * 解耦前授权依赖角色标识，改名会把权限一起改掉（甚至把管理员自己锁死）；
+     * 现在授权只看 role_permission，改名只是改展示。
+     */
+    @Test
+    void renamingRoleLabelDoesNotChangePermissions() throws Exception {
+        Long roleId = createRole(false);
+        grant(roleId, Permission.CLUE_TRACK);
+        MockMvc mvc = mvcFor(insertUser(roleId));
+
+        mvcFor(superUser).perform(put("/roles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
-                        .content("{\"id\":%d,\"trackStatus\":1,\"record\":\"越权跟进\"}".formatted(business.getId())))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
+                        .content("""
+                                {"id":%d,"name":"改过的名字","label":"authz_renamed_%d"}
+                                """.formatted(roleId, SEQ.incrementAndGet())))
+                .andExpect(jsonPath("$.code").value(1));
 
-        // 分配线索是管理员职责
+        Clue clue = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
+        mvc.perform(trackClue(clue.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+    }
+
+    /**
+     * 权限粒度到接口：能跟进不等于能分配
+     */
+    @Test
+    void permissionGranularityIsPerEndpoint() throws Exception {
+        Long roleId = createRole(false);
+        grant(roleId, Permission.CLUE_TRACK);
+        User user = insertUser(roleId);
         Clue waitAllot = insertClue(ClueStatus.WAIT_ALLOT.getCode());
-        mvc.perform(put("/clues/assign/{clueId}/{userId}", waitAllot.getId(), clueOperator.getId()))
+
+        mvcFor(user).perform(put("/clues/assign/{clueId}/{userId}", waitAllot.getId(), user.getId()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void businessOperatorCanFollowBusinessFlowButNotClueFlow() throws Exception {
-        MockMvc mvc = mvcFor(businessOperator);
-        Business business = insertBusiness(BusinessStatus.WAIT_FOLLOW.getCode());
+    void superRoleIsProtectedFromDeletionAndPermissionEditing() throws Exception {
+        MockMvc mvc = mvcFor(superUser);
 
-        mvc.perform(put("/businesses")
+        mvc.perform(put("/roles/{id}/permissions", superRoleId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
-                        .content("{\"id\":%d,\"trackStatus\":1,\"record\":\"授权测试跟进\"}".formatted(business.getId())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(1));
+                        .content("{\"permissions\":[]}"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("超级管理员角色天然拥有全部权限，不支持单独调整"));
 
-        Clue clue = insertClue(ClueStatus.WAIT_FOLLOW.getCode());
-        mvc.perform(put("/clues")
+        mvc.perform(delete("/roles/{id}", superRoleId))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("超级管理员角色不可删除"));
+    }
+
+    @Test
+    void unknownPermissionCodeIsRejected() throws Exception {
+        Long roleId = createRole(false);
+
+        mvcFor(superUser).perform(put("/roles/{id}/permissions", roleId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8")
-                        .content("{\"id\":%d,\"record\":\"越权跟进\"}".formatted(clue.getId())))
-                .andExpect(status().isForbidden());
+                        .content("{\"permissions\":[\"clue:track\",\"not:a:permission\"]}"))
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value("存在无效的权限码：not:a:permission"));
     }
 
     @Test
-    void accountWithoutRoleKeepsReadAccessOnly() throws Exception {
-        MockMvc mvc = mvcFor(accountWithoutRole);
+    void rolePermissionsCanBeReadBackForTheAdminUi() throws Exception {
+        Long roleId = createRole(false);
+        grant(roleId, Permission.CLUE_READ, Permission.CLUE_TRACK);
 
-        mvc.perform(get("/clues"))
+        mvcFor(superUser).perform(get("/roles/{id}/permissions", roleId))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data[*].code", hasItems("clue:read", "clue:track")))
+                .andExpect(jsonPath("$.data[0].description").exists());
+    }
+
+    @Test
+    void superRolePermissionsReadBackAsTheWholeCatalog() throws Exception {
+        mvcFor(superUser).perform(get("/roles/{id}/permissions", superRoleId))
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.length()").value(Permission.values().length));
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder trackClue(Long clueId) {
+        return put("/clues")
+                .contentType(MediaType.APPLICATION_JSON)
+                .characterEncoding("UTF-8")
+                .content("{\"id\":%d,\"record\":\"授权测试跟进\"}".formatted(clueId));
+    }
+
+    /** 通过接口覆盖式配置角色权限（不传权限码表示全部收回） */
+    private void grantByApi(Long roleId, String... permissionCodes) throws Exception {
+        mvcFor(superUser).perform(put("/roles/{id}/permissions", roleId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .characterEncoding("UTF-8")
+                        .content("{\"permissions\":[" + String.join(",", permissionCodes) + "]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
-
-        mvc.perform(put("/clues/toBusiness/{id}", insertClue(ClueStatus.WAIT_FOLLOW.getCode()).getId()))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void customRoleGetsNoInterfacePermission() throws Exception {
-        // 自定义角色（非保留标签）只是数据：查询可用，流转不给
-        Role custom = new Role();
-        custom.setName("授权测试自定义角色" + SEQ.incrementAndGet());
-        custom.setLabel("authz_custom_" + SEQ.get());
-        custom.setRemark("不属于保留角色");
-        roleMapper.insert(custom);
-
-        MockMvc mvc = mvcFor(insertUser(custom.getId()));
-
-        mvc.perform(get("/clues"))
-                .andExpect(jsonPath("$.code").value(1));
-
-        mvc.perform(put("/clues/toBusiness/{id}", insertClue(ClueStatus.WAIT_FOLLOW.getCode()).getId()))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.msg").value(FORBIDDEN_MSG));
     }
 
     private MockMvc mvcFor(User user) {
@@ -202,19 +250,23 @@ class AuthorizationTest {
                 .build();
     }
 
-    /** 按保留标签找角色，找不到就自建（从零安装时库里只有内置 admin） */
-    private Long roleIdOf(RoleLabel roleLabel) {
-        Role existing = roleMapper.selectOne(
-                new LambdaQueryWrapper<Role>().eq(Role::getLabel, roleLabel.getLabel()));
-        if (existing != null) {
-            return existing.getId();
-        }
+    private Long createRole(boolean superRole) {
         Role role = new Role();
         role.setName("授权测试角色" + SEQ.incrementAndGet());
-        role.setLabel(roleLabel.getLabel());
+        role.setLabel("authz_role_" + SEQ.incrementAndGet());
         role.setRemark("接口授权测试");
+        role.setSuperRole(superRole);
         roleMapper.insert(role);
         return role.getId();
+    }
+
+    private void grant(Long roleId, Permission... permissions) {
+        for (Permission permission : permissions) {
+            RolePermission grant = new RolePermission();
+            grant.setRoleId(roleId);
+            grant.setPermission(permission.getCode());
+            rolePermissionMapper.insert(grant);
+        }
     }
 
     private User insertUser(Long roleId) {
@@ -242,15 +294,5 @@ class AuthorizationTest {
         clue.setStatus(status);
         clueMapper.insert(clue);
         return clue;
-    }
-
-    private Business insertBusiness(Integer status) {
-        int seq = SEQ.incrementAndGet();
-        Business business = new Business();
-        business.setName("授权测试商机" + seq);
-        business.setPhone("171" + String.format("%08d", seq));
-        business.setStatus(status);
-        businessMapper.insert(business);
-        return business;
     }
 }

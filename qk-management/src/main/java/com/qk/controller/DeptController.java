@@ -4,12 +4,12 @@ import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.DeptQueryDto;
 import com.qk.entity.dto.DeptSaveDto;
-import com.qk.entity.enums.RoleLabel;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.po.Dept;
 import com.qk.entity.vo.DeptVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.service.DeptService;
-import com.qk.interceptor.RequireRole;
+import com.qk.interceptor.RequirePermission;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ public class DeptController {
      * @return 操作结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.DEPT_CREATE)
     @PostMapping("/depts") // 对应前端提交时用到的请求方式
     public Result<Void> addDept(@Valid @RequestBody DeptSaveDto deptDto) {
         log.info("新增部门,参数:{}", deptDto);
@@ -49,6 +49,7 @@ public class DeptController {
      * @param query 查询条件（含分页参数）
      * @return 分页查询结果
      */
+    @RequirePermission(Permission.DEPT_READ)
     @GetMapping("/depts") // 接收前端发送的GET请求
     // 当前端使用(?参数)方式提交请求参数时，Spring 会按字段名绑定到查询 DTO
     public Result<PageResult<DeptVO>> listDepts(@Valid DeptQueryDto query) {
@@ -62,6 +63,7 @@ public class DeptController {
      * @param id 部门ID
      * @return 查询结果
      */
+    @RequirePermission(Permission.DEPT_READ)
     @GetMapping("/depts/{id}")
     // 当前端使用请求路径方式提交请求参数时, 后端需要使用   @PathVariable 变量  的方式接收
     public Result<DeptVO> findById(@PathVariable Long id) {
@@ -78,7 +80,7 @@ public class DeptController {
      * @return 统一响应结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.DEPT_UPDATE)
     @PutMapping("/depts")
     public Result<Void> updateDept(@Valid @RequestBody DeptSaveDto deptDto) {
         log.info("修改部门信息：{}", deptDto);
@@ -110,7 +112,7 @@ public class DeptController {
      * @return 统一响应结果
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.DEPT_DELETE)
     @DeleteMapping("/depts/{id}")
     public Result<Void> deleteDept(@PathVariable("id") Long id) {
         log.info("删除部门：{}", id);
@@ -123,6 +125,7 @@ public class DeptController {
      *
      * @return 统一响应结果
      */
+    @RequirePermission(Permission.DEPT_READ)
     @GetMapping("/depts/list")
     public Result<List<DeptVO>> listAllDepts() {
         log.info("查询所有正常状态的部门");

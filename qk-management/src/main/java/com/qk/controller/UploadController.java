@@ -3,6 +3,8 @@ package com.qk.controller;
 import com.qk.common.Result;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
+import com.qk.entity.enums.Permission;
+import com.qk.interceptor.RequirePermission;
 import com.qk.service.UploadService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +36,7 @@ public class UploadController {
      * @param image 上传的图片
      * @return 文件上传的 url
      */
+    @RequirePermission(Permission.FILE_UPLOAD)
     @PostMapping("/upload")
     public Result<String> upload(MultipartFile image) throws IOException {
         // 没带文件分片时 Spring 解析出来的是 null（不是抛异常），必须在入口拦掉，

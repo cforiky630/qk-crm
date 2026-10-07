@@ -3,12 +3,12 @@ package com.qk.controller;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.*;
-import com.qk.entity.enums.RoleLabel;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.po.Clue;
 import com.qk.entity.vo.ClueVO;
 import com.qk.entity.vo.PageResult;
 import com.qk.service.ClueService;
-import com.qk.interceptor.RequireRole;
+import com.qk.interceptor.RequirePermission;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +33,7 @@ public class ClueController {
     /**
      * 线索列表查询
      */
+    @RequirePermission(Permission.CLUE_READ)
     @GetMapping
     public Result<PageResult<ClueVO>> listClues(@Valid ClueQueryDto clueQueryDto) {
         log.info("线索列表查询, 参数: {}", clueQueryDto);
@@ -43,6 +44,7 @@ public class ClueController {
     /**
      * 线索池列表查询
      */
+    @RequirePermission(Permission.CLUE_READ)
     @GetMapping("/pool")
     public Result<PageResult<ClueVO>> getPoolClues(@Valid CluePoolDto cluePoolDto) {
         log.info("线索池列表查询, 参数: {}", cluePoolDto);
@@ -53,6 +55,7 @@ public class ClueController {
     /**
      * 根据ID查询线索详细信息（含跟进记录）
      */
+    @RequirePermission(Permission.CLUE_READ)
     @GetMapping("/{id}")
     public Result<ClueVO> getClueById(@PathVariable Long id) {
         log.info("根据ID查询线索详细信息, id: {}", id);
@@ -63,6 +66,7 @@ public class ClueController {
      * 新增线索
      */
     @LogOperation
+    @RequirePermission(Permission.CLUE_CREATE)
     @PostMapping
     public Result<Void> addClue(@Valid @RequestBody ClueSaveDto clueDto) {
         log.info("新增线索: {}", clueDto);
@@ -96,7 +100,7 @@ public class ClueController {
      * 分配线索给指定用户
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.CLUE_ASSIGN)
     @PutMapping("/assign/{clueId}/{userId}")
     public Result<Void> assignClue(@PathVariable Long clueId, @PathVariable Long userId) {
         log.info("分配线索: 线索ID={}, 用户ID={}", clueId, userId);
@@ -108,7 +112,7 @@ public class ClueController {
      * 跟进线索
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
+    @RequirePermission(Permission.CLUE_TRACK)
     @PutMapping
     public Result<Void> trackClue(@Valid @RequestBody ClueTrackDto clueTrackDto) {
         log.info("跟进线索: {}", clueTrackDto);
@@ -120,7 +124,7 @@ public class ClueController {
      * 将线索标记为伪线索
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
+    @RequirePermission(Permission.CLUE_MARK_FALSE)
     @PutMapping("/false/{id}")
     public Result<Void> markFalseClue(@PathVariable Long id, @Valid @RequestBody MarkFalseClueDto markFalseClueDto) {
         log.info("将线索标记为伪线索, id: {}, 原因: {}", id, markFalseClueDto);
@@ -132,7 +136,7 @@ public class ClueController {
      * 将线索转为商机
      */
     @LogOperation
-    @RequireRole({RoleLabel.ADMIN, RoleLabel.CLUE_OPERATOR})
+    @RequirePermission(Permission.CLUE_CONVERT_BUSINESS)
     @PutMapping("/toBusiness/{id}")
     public Result<Void> convertToBusiness(@PathVariable Long id) {
         log.info("将线索转为商机, id: {}", id);

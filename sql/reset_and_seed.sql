@@ -24,6 +24,7 @@ TRUNCATE TABLE customer;
 TRUNCATE TABLE activity;
 TRUNCATE TABLE course;
 TRUNCATE TABLE user;
+TRUNCATE TABLE role_permission;
 TRUNCATE TABLE role;
 TRUNCATE TABLE dept;
 
@@ -34,10 +35,39 @@ INSERT INTO dept (id, name, status, create_time, update_time) VALUES
 (3, '客服部', 1, NOW(), NOW());
 
 -- ---------- 角色 ----------
-INSERT INTO role (id, name, label, remark, create_time, update_time) VALUES
-(1, '管理员', 'admin', '拥有全部权限', NOW(), NOW()),
-(2, '线索专员', 'clue_operator', '负责跟进线索', NOW(), NOW()),
-(3, '商机专员', 'business_operator', '负责跟进商机', NOW(), NOW());
+-- is_super = 1 的角色天然拥有全部权限，不写 role_permission 表
+INSERT INTO role (id, name, label, remark, is_super, create_time, update_time) VALUES
+(1, '管理员', 'admin', '超级管理员：天然拥有全部权限', 1, NOW(), NOW()),
+(2, '线索专员', 'clue_operator', '负责跟进线索', 0, NOW(), NOW()),
+(3, '商机专员', 'business_operator', '负责跟进商机', 0, NOW(), NOW());
+
+-- ---------- 角色权限（授权与角色标识无关，改角色名不会影响这里）----------
+-- 线索专员：线索链路 + 相关基础数据只读 + 首页概览
+INSERT INTO role_permission (role_id, permission, create_time) VALUES
+(2, 'clue:read', NOW()),
+(2, 'clue:create', NOW()),
+(2, 'clue:track', NOW()),
+(2, 'clue:mark_false', NOW()),
+(2, 'clue:convert_business', NOW()),
+(2, 'activity:read', NOW()),
+(2, 'course:read', NOW()),
+(2, 'customer:read', NOW()),
+(2, 'report:read', NOW()),
+(2, 'file:upload', NOW());
+
+-- 商机专员：商机链路 + 客户新增 + 相关基础数据只读 + 首页概览
+INSERT INTO role_permission (role_id, permission, create_time) VALUES
+(3, 'business:read', NOW()),
+(3, 'business:create', NOW()),
+(3, 'business:track', NOW()),
+(3, 'business:back_to_pool', NOW()),
+(3, 'business:convert_customer', NOW()),
+(3, 'clue:read', NOW()),
+(3, 'course:read', NOW()),
+(3, 'customer:read', NOW()),
+(3, 'customer:create', NOW()),
+(3, 'report:read', NOW()),
+(3, 'file:upload', NOW());
 
 -- ---------- 用户（密码统一 123）----------
 INSERT INTO user (id, username, password, name, phone, email, gender, status, dept_id, role_id, image, remark, create_time, update_time) VALUES

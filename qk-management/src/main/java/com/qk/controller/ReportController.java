@@ -2,7 +2,9 @@ package com.qk.controller;
 
 import com.qk.common.Result;
 import com.qk.service.ReportService;
+import com.qk.entity.enums.Permission;
 import com.qk.entity.vo.OverviewVO;
+import com.qk.interceptor.RequirePermission;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,7 @@ public class ReportController {
     /**
      * 获取首页概览数据
      */
+    @RequirePermission(Permission.REPORT_READ)
     @GetMapping("/overview")
     public Result<OverviewVO> getOverview() {
         log.info("获取首页概览数据");

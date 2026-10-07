@@ -132,8 +132,10 @@ public enum ErrorCode {
     PARAM_VALIDATION_FAILED("请求参数校验未通过"),
     /** 上传文件超出大小限制：{@code 上传文件过大} */
     UPLOAD_SIZE_EXCEEDED("上传文件过大"),
-    /** 已登录但角色不允许访问该接口：{@code 无权访问该接口，请联系管理员分配角色} */
-    FORBIDDEN("无权访问该接口，请联系管理员分配角色"),
+    /** 已登录但缺少接口要求的权限：{@code 无权访问该接口，请联系管理员分配权限} */
+    FORBIDDEN("无权访问该接口，请联系管理员分配权限"),
+    /** 接口未声明权限（代码缺陷，默认拒绝）：{@code 接口未配置权限，请联系管理员} */
+    PERMISSION_NOT_DECLARED("接口未配置权限，请联系管理员"),
     /** 请求了不存在的路径：{@code 请求的资源不存在} */
     RESOURCE_NOT_FOUND("请求的资源不存在"),
     /** 请求方法不被支持：{@code 请求方法不被支持} */
@@ -152,6 +154,12 @@ public enum ErrorCode {
     DEPT_NAME_EXISTS("部门名称已存在"),
     /** 角色标识唯一索引冲突：{@code 角色标识已存在} */
     ROLE_LABEL_EXISTS("角色标识已存在"),
+    /** 超级管理员角色不支持单独调整权限：{@code 超级管理员角色天然拥有全部权限，不支持单独调整} */
+    SUPER_ROLE_PERMISSION_FIXED("超级管理员角色天然拥有全部权限，不支持单独调整"),
+    /** 超级管理员角色不可删除：{@code 超级管理员角色不可删除} */
+    SUPER_ROLE_CANNOT_DELETE("超级管理员角色不可删除"),
+    /** 授权时出现目录之外的权限码，参数为无效码列表：{@code 存在无效的权限码：%s} */
+    PERMISSION_UNKNOWN("存在无效的权限码：%s"),
     /** 用户名唯一索引冲突：{@code 用户名已存在} */
     USER_USERNAME_EXISTS("用户名已存在"),
     /** 用户手机号唯一索引冲突：{@code 手机号已存在} */

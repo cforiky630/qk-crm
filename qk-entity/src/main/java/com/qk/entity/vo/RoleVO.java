@@ -29,6 +29,11 @@ public class RoleVO {
     /** 备注说明 */
     private String remark;
 
+    /**
+     * 是否超级管理员角色：true 表示天然拥有全部权限，不在界面上单独勾选权限
+     */
+    private Boolean superRole;
+
     /** 创建时间 */
     private LocalDateTime createTime;
 
@@ -50,6 +55,7 @@ public class RoleVO {
         vo.setName(po.getName());
         vo.setLabel(po.getLabel());
         vo.setRemark(po.getRemark());
+        vo.setSuperRole(po.getSuperRole());
         vo.setCreateTime(po.getCreateTime());
         vo.setUpdateTime(po.getUpdateTime());
         return vo;

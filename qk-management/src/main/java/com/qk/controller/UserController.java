@@ -4,9 +4,9 @@ import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserSaveDto;
-import com.qk.entity.enums.RoleLabel;
+import com.qk.entity.enums.Permission;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.interceptor.RequireRole;
+import com.qk.interceptor.RequirePermission;
 import com.qk.entity.dto.UserDto;
 import com.qk.service.UserService;
 import com.qk.entity.vo.UserVO;
@@ -36,6 +36,7 @@ public class UserController {
     /**
      * 条件分页查询用户列表
      */
+    @RequirePermission(Permission.USER_READ)
     @GetMapping
     public Result<PageResult<UserVO>> getUsers(@Valid UserDto userDto) {
         log.info("条件分页查询用户: {}", userDto);
@@ -47,6 +48,7 @@ public class UserController {
      * 查询所有用户（下拉框）
      * 注意：字面量路径必须写在 /{id} 之前，否则会被路径变量抢占
      */
+    @RequirePermission(Permission.USER_READ)
     @GetMapping("/list")
     public Result<List<UserVO>> listAllUsers() {
         log.info("查询所有用户");
@@ -57,6 +59,7 @@ public class UserController {
     /**
      * 根据角色标识查询用户（只返回正常状态的用户，用于分配线索/商机时的人员下拉）
      */
+    @RequirePermission(Permission.USER_READ)
     @GetMapping("/role/{roleLabel}")
     public Result<List<UserVO>> findUsersByRole(@PathVariable String roleLabel) {
         log.info("根据角色标识查询用户: {}", roleLabel);
@@ -66,6 +69,7 @@ public class UserController {
     /**
      * 根据部门ID查询用户
      */
+    @RequirePermission(Permission.USER_READ)
     @GetMapping("/dept/{deptId}")
     public Result<List<UserVO>> findUsersByDept(@PathVariable Long deptId) {
         log.info("根据部门ID查询用户: {}", deptId);
@@ -76,7 +80,7 @@ public class UserController {
      * 新增用户
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.USER_CREATE)
     @PostMapping
     public Result<Void> addUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("新增用户: {}", userDto.getUsername());
@@ -87,6 +91,7 @@ public class UserController {
     /**
      * 根据ID查询用户信息（回显）
      */
+    @RequirePermission(Permission.USER_READ)
     @GetMapping("/{id}")
     public Result<UserVO> getUserById(@PathVariable Long id) {
         log.info("根据ID查询用户: {}", id);
@@ -97,7 +102,7 @@ public class UserController {
      * 修改用户信息
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.USER_UPDATE)
     @PutMapping
     public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("修改用户: {}", userDto.getUsername());
@@ -131,7 +136,7 @@ public class UserController {
      * 批量删除用户（支持单个与批量）
      */
     @LogOperation
-    @RequireRole(RoleLabel.ADMIN)
+    @RequirePermission(Permission.USER_DELETE)
     @DeleteMapping("/{ids}")
     public Result<Void> deleteUsers(@PathVariable List<Long> ids) {
         log.info("批量删除用户: {}", ids);

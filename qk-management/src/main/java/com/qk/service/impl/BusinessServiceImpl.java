@@ -172,7 +172,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         // 2. 新增一条商机跟进记录
         BusinessTrackRecord trackRecord = new BusinessTrackRecord();
         trackRecord.setBusinessId(businessTrackDto.getId());
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setTrackStatus(businessTrackDto.getTrackStatus());
         trackRecord.setKeyItems(toKeyItems(businessTrackDto.getKeyItems()));
         trackRecord.setNextTime(businessTrackDto.getNextTime());

@@ -25,10 +25,11 @@ public class WebConfig implements WebMvcConfigurer {
         // 顺序即执行顺序：先认证（你是谁），再授权（你能不能调这个接口）
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                // 登录接口本身不能要求携带令牌，否则永远登录不上
-                .excludePathPatterns("/login");
+                // /login 不能要求携带令牌；/error 是 Spring 的错误转发入口，
+                // 放它进拦截器会把真正的错误盖成 401/403
+                .excludePathPatterns("/login", "/error");
         registry.addInterceptor(permissionInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/login");
+                .excludePathPatterns("/login", "/error");
     }
 }

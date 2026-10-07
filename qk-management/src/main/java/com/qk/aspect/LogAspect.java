@@ -62,7 +62,7 @@ public class LogAspect {
         long costTime = System.currentTimeMillis() - startTime;
 
         OperateLog operateLog = new OperateLog();
-        operateLog.setOperateUserId(UserHolder.getCurrentUser());
+        operateLog.setOperateUserId(UserHolder.getCurrentUserId());
         operateLog.setOperateTime(LocalDateTime.now());
         // 使用签名声明类，避免拿到 CGLIB 代理类的名字（xxx$$SpringCGLIB$$0）
         operateLog.setClassName(joinPoint.getSignature().getDeclaringTypeName());
