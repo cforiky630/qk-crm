@@ -18,14 +18,14 @@ public interface UserService {
      * @param userDto 查询参数
      * @return 查询结果
      */
-    PageResult<UserVO> getUsers(UserDto userDto);
+    PageResult<UserVO> listUsers(UserDto userDto);
 
     /**
      * 新增用户，未指定密码时使用默认密码（用户名 + 123 的 MD5 摘要）
      *
      * @param user 用户信息
      */
-    void addUser(User user);
+    void saveUser(User user);
 
     /**
      * 根据ID查询用户（含部门名称、角色名称，用于修改回显）
@@ -40,7 +40,7 @@ public interface UserService {
      *
      * @param user 用户信息
      */
-    void updateUser(User user);
+    void updateById(User user);
 
     /**
      * 批量删除用户（支持单个与批量删除）
@@ -66,7 +66,7 @@ public interface UserService {
      * @param roleLabel 角色标识
      * @return 用户列表
      */
-    List<UserVO> findByRoleLabel(String roleLabel);
+    List<UserVO> listByRoleLabel(String roleLabel);
 
     /**
      * 根据部门ID查询用户
@@ -74,6 +74,6 @@ public interface UserService {
      * @param deptId 部门ID
      * @return 用户列表
      */
-    List<UserVO> findByDeptId(Long deptId);
+    List<UserVO> listByDeptId(Long deptId);
 
 }

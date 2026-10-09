@@ -26,7 +26,7 @@ public interface ClueService {
      *
      * @param clue 线索信息
      */
-    void addClue(Clue clue);
+    void saveClue(Clue clue);
 
     /**
      * 分配线索给指定用户
@@ -72,5 +72,5 @@ public interface ClueService {
      * @param cluePoolDto 查询参数
      * @return 分页结果
      */
-    PageResult<ClueVO> getPoolClues(CluePoolDto cluePoolDto);
+    PageResult<ClueVO> listPoolClues(CluePoolDto cluePoolDto);
 }

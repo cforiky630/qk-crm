@@ -34,7 +34,7 @@ public class ActivityServiceImpl implements ActivityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addActivity(Activity activity) {
+    public void saveActivity(Activity activity) {
         activity.setId(null);
         if (StrUtil.isBlank(activity.getName()) || activity.getChannel() == null
                 || activity.getType() == null || activity.getStartTime() == null || activity.getEndTime() == null) {
@@ -44,7 +44,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public PageResult<ActivityVO> findActivitiesByPage(ActivityQueryDto query) {
+    public PageResult<ActivityVO> listActivitiesByPage(ActivityQueryDto query) {
         // 活动状态是查询条件而不是库里的列，取值必须先收敛到枚举，
         // 否则前端传 9 之类的脏值会被静默忽略，返回「没有筛选」的全量数据
         Integer activityStatus = query.getActivityStatus();
@@ -57,7 +57,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public ActivityVO findById(Long id) {
+    public ActivityVO getById(Long id) {
         return ActivityVO.from(requireActivity(id));
     }
 
@@ -100,7 +100,7 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public List<ActivityVO> findByType(Integer type) {
+    public List<ActivityVO> listByType(Integer type) {
         return activityMapper.listByType(type).stream().map(ActivityVO::from).toList();
     }
 }

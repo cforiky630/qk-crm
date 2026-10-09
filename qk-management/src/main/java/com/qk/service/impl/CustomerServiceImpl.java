@@ -41,7 +41,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addCustomer(Customer customer) {
+    public void saveCustomer(Customer customer) {
         // 手机号是库里的 NOT NULL + 唯一键，必须校验；
         // 渠道来源按页面原型（3.3 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
         if (StrUtil.isBlank(customer.getPhone())) {
@@ -70,7 +70,7 @@ public class CustomerServiceImpl implements CustomerService {
         // 来源商机由服务端写入：客户接口不允许外部伪造 businessId
         customer.setBusinessId(business.getId());
         // 走普通新增，复用同一套校验（手机号必填、意向课程必须存在）
-        addCustomer(customer);
+        saveCustomer(customer);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateCustomer(Customer customer) {
+    public void updateById(Customer customer) {
         if (customer.getId() == null || customerMapper.selectById(customer.getId()) == null) {
             throw new BusinessException(ErrorCode.CUSTOMER_NOT_FOUND);
         }

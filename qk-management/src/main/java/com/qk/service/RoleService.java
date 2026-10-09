@@ -13,7 +13,7 @@ public interface RoleService {
      *
      * @param role 角色信息
      */
-    void addRole(Role role);
+    void saveRole(Role role);
 
     /**
      * 分页查询角色
@@ -21,7 +21,7 @@ public interface RoleService {
      * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<RoleVO> findRolesByPage(RoleQueryDto query);
+    PageResult<RoleVO> listRolesByPage(RoleQueryDto query);
 
     /**
      * 根据id查询角色
@@ -29,7 +29,7 @@ public interface RoleService {
      * @param id 角色id
      * @return 角色信息
      */
-    RoleVO findById(Long id);
+    RoleVO getById(Long id);
 
     /**
      * 根据id修改角色信息
@@ -50,5 +50,5 @@ public interface RoleService {
      *
      * @return 角色列表
      */
-    List<RoleVO> findAll();
+    List<RoleVO> listAll();
 }

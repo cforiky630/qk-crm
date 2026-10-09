@@ -25,7 +25,7 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 动态条件分页查询用户列表（含部门名称、角色名称）
      */
-    IPage<UserVO> getUsers(Page<UserVO> page, @Param("userDto") UserDto userDto);
+    IPage<UserVO> listUsers(Page<UserVO> page, @Param("userDto") UserDto userDto);
 
     /**
      * 根据ID查询用户（含部门名称、角色名称）
@@ -43,12 +43,12 @@ public interface UserMapper extends BaseMapper<User> {
      * 只返回正常状态（{@code status = 1}）的用户，供「分配线索 / 分配商机」的人员下拉使用：
      * 停用账号无法登录，分配给它等于没有归属人。
      */
-    List<UserVO> findByRoleLabel(@Param("roleLabel") String roleLabel);
+    List<UserVO> listByRoleLabel(@Param("roleLabel") String roleLabel);
 
     /**
      * 根据部门ID查询用户
      */
-    List<UserVO> findByDeptId(@Param("deptId") Long deptId);
+    List<UserVO> listByDeptId(@Param("deptId") Long deptId);
 
     /**
      * 统计某部门下的用户数

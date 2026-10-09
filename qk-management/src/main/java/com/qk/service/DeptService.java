@@ -13,7 +13,7 @@ public interface DeptService {
      *
      * @param dept 部门信息（新增时忽略 id）
      */
-    void addDept(Dept dept);
+    void saveDept(Dept dept);
 
     /**
      * 分页查询部门
@@ -21,7 +21,7 @@ public interface DeptService {
      * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<DeptVO> findDeptsByPage(DeptQueryDto query);
+    PageResult<DeptVO> listDeptsByPage(DeptQueryDto query);
 
     /**
      * 根据id查询部门
@@ -29,7 +29,7 @@ public interface DeptService {
      * @param id 部门id
      * @return 部门信息
      */
-    DeptVO findById(Long id);
+    DeptVO getById(Long id);
 
     /**
      * 根据id修改部门信息
@@ -50,5 +50,5 @@ public interface DeptService {
      *
      * @return 部门列表
      */
-    List<DeptVO> findAllNormal();
+    List<DeptVO> listAllNormal();
 }

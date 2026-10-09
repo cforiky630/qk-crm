@@ -47,7 +47,7 @@ public class BusinessController {
     @GetMapping("/pool")
     public Result<PageResult<BusinessVO>> getPoolBusinesses(@Valid BusinessPoolDto businessPoolDto) {
         log.info("公海池列表查询, 参数: {}", businessPoolDto);
-        PageResult<BusinessVO> pageResult = businessService.getPoolBusinesses(businessPoolDto);
+        PageResult<BusinessVO> pageResult = businessService.listPoolBusinesses(businessPoolDto);
         return Result.success(pageResult);
     }
 
@@ -67,7 +67,7 @@ public class BusinessController {
     @PostMapping
     public Result<Void> addBusiness(@Valid @RequestBody BusinessSaveDto businessDto) {
         log.info("新增商机: {}", businessDto);
-        businessService.addBusiness(toBusiness(businessDto));
+        businessService.saveBusiness(toBusiness(businessDto));
         return Result.success();
     }
 

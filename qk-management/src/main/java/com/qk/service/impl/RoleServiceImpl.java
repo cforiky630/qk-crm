@@ -32,20 +32,20 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addRole(Role role) {
+    public void saveRole(Role role) {
         role.setId(null);
         roleMapper.insert(role);
     }
 
     @Override
-    public PageResult<RoleVO> findRolesByPage(RoleQueryDto query) {
+    public PageResult<RoleVO> listRolesByPage(RoleQueryDto query) {
         IPage<Role> p = roleMapper.pageRoles(new Page<>(query.getPage(), query.getPageSize()),
                 query.getName(), query.getLabel());
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(RoleVO::from).toList());
     }
 
     @Override
-    public RoleVO findById(Long id) {
+    public RoleVO getById(Long id) {
         return RoleVO.from(requireRole(id));
     }
 
@@ -89,7 +89,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<RoleVO> findAll() {
+    public List<RoleVO> listAll() {
         return roleMapper.listAllOrdered().stream().map(RoleVO::from).toList();
     }
 

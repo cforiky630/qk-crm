@@ -44,7 +44,7 @@ public class ClueController {
     @GetMapping("/pool")
     public Result<PageResult<ClueVO>> getPoolClues(@Valid CluePoolDto cluePoolDto) {
         log.info("线索池列表查询, 参数: {}", cluePoolDto);
-        PageResult<ClueVO> pageResult = clueService.getPoolClues(cluePoolDto);
+        PageResult<ClueVO> pageResult = clueService.listPoolClues(cluePoolDto);
         return Result.success(pageResult);
     }
 
@@ -64,7 +64,7 @@ public class ClueController {
     @PostMapping
     public Result<Void> addClue(@Valid @RequestBody ClueSaveDto clueDto) {
         log.info("新增线索: {}", clueDto);
-        clueService.addClue(toClue(clueDto));
+        clueService.saveClue(toClue(clueDto));
         return Result.success();
     }
 

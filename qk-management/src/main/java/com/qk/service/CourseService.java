@@ -13,7 +13,7 @@ public interface CourseService {
      *
      * @param course 课程信息
      */
-    void addCourse(Course course);
+    void saveCourse(Course course);
 
     /**
      * 分页查询课程
@@ -21,7 +21,7 @@ public interface CourseService {
      * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<CourseVO> findCoursesByPage(CourseQueryDto query);
+    PageResult<CourseVO> listCoursesByPage(CourseQueryDto query);
 
     /**
      * 根据id查询课程
@@ -29,7 +29,7 @@ public interface CourseService {
      * @param id 课程id
      * @return 课程信息
      */
-    CourseVO findById(Long id);
+    CourseVO getById(Long id);
 
     /**
      * 根据id修改课程信息
@@ -50,7 +50,7 @@ public interface CourseService {
      *
      * @return 课程列表
      */
-    List<CourseVO> findAll();
+    List<CourseVO> listAll();
 
     /**
      * 根据学科查询课程，不分页
@@ -58,5 +58,5 @@ public interface CourseService {
      * @param subject 学科
      * @return 课程列表
      */
-    List<CourseVO> findBySubject(Integer subject);
+    List<CourseVO> listBySubject(Integer subject);
 }

@@ -4,7 +4,6 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserDto;
@@ -32,9 +31,14 @@ import java.util.Set;
 
 /**
  * 用户服务实现类
+ * <p>
+ * 直接注入 Mapper，不继承 MyBatis-Plus 的 {@code ServiceImpl}：继承会把
+ * {@code save/removeById/updateById/getById} 这套通用方法带进实现类，与本模块的业务方法
+ * 同名相撞（如 {@code updateById(User)} 与 {@code IRepository.updateById(T)} 的返回类型不兼容），
+ * 也会给「所有写入都必须过守卫」留下绕过口子。其余 Service 实现同样直接注入 Mapper。
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
@@ -65,12 +69,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 分页查询结果
      */
     @Override
-    public PageResult<UserVO> getUsers(UserDto userDto) {
+    public PageResult<UserVO> listUsers(UserDto userDto) {
         // 1.设置分页条件
         Page<UserVO> p = new Page<>(userDto.getPage(), userDto.getPageSize());
 
         // 2. 执行分页查询
-        IPage<UserVO> userPage = userMapper.getUsers(p, userDto);
+        IPage<UserVO> userPage = userMapper.listUsers(p, userDto);
 
         // 3. 封装返回结果
         return new PageResult<>(userPage.getTotal(), userPage.getRecords());
@@ -78,7 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addUser(User user) {
+    public void saveUser(User user) {
         // 主键由数据库自增，禁止客户端指定
         user.setId(null);
         if (StrUtil.isBlank(user.getUsername()) || StrUtil.isBlank(user.getName())
@@ -106,8 +110,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateUser(User user) {
-        if (user.getId() == null || getById(user.getId()) == null) {
+    public void updateById(User user) {
+        if (user.getId() == null || userMapper.selectById(user.getId()) == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         requireExistingDeptAndRole(user.getDeptId(), user.getRoleId());
@@ -151,7 +155,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         // 守卫 2：待删 ID 必须真实存在，否则明确报错而不是静默「删除成功」
-        List<User> existing = listByIds(targetIds);
+        List<User> existing = userMapper.selectByIds(targetIds);
         if (existing.size() != targetIds.size()) {
             Set<Long> existingIds = existing.stream().map(User::getId).collect(Collectors.toSet());
             List<Long> missing = targetIds.stream().filter(id -> !existingIds.contains(id)).toList();
@@ -169,7 +173,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
 
-        removeBatchByIds(targetIds);
+        userMapper.deleteByIds(targetIds);
     }
 
     @Override
@@ -178,13 +182,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
-    public List<UserVO> findByRoleLabel(String roleLabel) {
-        return userMapper.findByRoleLabel(roleLabel);
+    public List<UserVO> listByRoleLabel(String roleLabel) {
+        return userMapper.listByRoleLabel(roleLabel);
     }
 
     @Override
-    public List<UserVO> findByDeptId(Long deptId) {
-        return userMapper.findByDeptId(deptId);
+    public List<UserVO> listByDeptId(Long deptId) {
+        return userMapper.listByDeptId(deptId);
     }
 
     /**

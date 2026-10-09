@@ -37,7 +37,7 @@ public class UserController {
     @GetMapping
     public Result<PageResult<UserVO>> getUsers(@Valid UserDto userDto) {
         log.info("条件分页查询用户: {}", userDto);
-        PageResult<UserVO> pageResult = userService.getUsers(userDto);
+        PageResult<UserVO> pageResult = userService.listUsers(userDto);
         return Result.success(pageResult);
     }
 
@@ -58,7 +58,7 @@ public class UserController {
     @GetMapping("/role/{roleLabel}")
     public Result<List<UserVO>> findUsersByRole(@PathVariable String roleLabel) {
         log.info("根据角色标识查询用户: {}", roleLabel);
-        return Result.success(userService.findByRoleLabel(roleLabel));
+        return Result.success(userService.listByRoleLabel(roleLabel));
     }
 
     /**
@@ -67,7 +67,7 @@ public class UserController {
     @GetMapping("/dept/{deptId}")
     public Result<List<UserVO>> findUsersByDept(@PathVariable Long deptId) {
         log.info("根据部门ID查询用户: {}", deptId);
-        return Result.success(userService.findByDeptId(deptId));
+        return Result.success(userService.listByDeptId(deptId));
     }
 
     /**
@@ -77,7 +77,7 @@ public class UserController {
     @PostMapping
     public Result<Void> addUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("新增用户: {}", userDto.getUsername());
-        userService.addUser(toUser(userDto));
+        userService.saveUser(toUser(userDto));
         return Result.success();
     }
 
@@ -97,7 +97,7 @@ public class UserController {
     @PutMapping
     public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userDto) {
         log.info("修改用户: {}", userDto.getUsername());
-        userService.updateUser(toUser(userDto));
+        userService.updateById(toUser(userDto));
         return Result.success();
     }
 

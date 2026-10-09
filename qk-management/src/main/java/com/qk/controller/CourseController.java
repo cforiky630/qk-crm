@@ -36,7 +36,7 @@ public class CourseController {
     @PostMapping("/courses")
     public Result<Void> addCourse(@Valid @RequestBody CourseSaveDto courseDto) {
         log.info("新增课程,参数:{}", courseDto);
-        courseService.addCourse(toCourse(courseDto));
+        courseService.saveCourse(toCourse(courseDto));
         return Result.success();
     }
 
@@ -49,7 +49,7 @@ public class CourseController {
     @GetMapping("/courses")
     public Result<PageResult<CourseVO>> listCourses(@Valid CourseQueryDto query) {
         log.info("分页查询课程, 参数: {}", query);
-        return Result.success(courseService.findCoursesByPage(query));
+        return Result.success(courseService.listCoursesByPage(query));
     }
 
     /**
@@ -61,7 +61,7 @@ public class CourseController {
     @GetMapping("/courses/{id}")
     public Result<CourseVO> findById(@PathVariable Long id) {
         log.info("查询课程ID为{}的课程信息", id);
-        CourseVO course = courseService.findById(id);
+        CourseVO course = courseService.getById(id);
         return Result.success(course);
     }
 
@@ -118,7 +118,7 @@ public class CourseController {
     @GetMapping("/courses/list")
     public Result<List<CourseVO>> listAllCourses() {
         log.info("查询所有课程");
-        List<CourseVO> courses = courseService.findAll();
+        List<CourseVO> courses = courseService.listAll();
         return Result.success(courses);
     }
 
@@ -131,7 +131,7 @@ public class CourseController {
     @GetMapping("/courses/subject/{subject}")
     public Result<List<CourseVO>> listCoursesBySubject(@PathVariable Integer subject) {
         log.info("查询学科为{}的课程", subject);
-        List<CourseVO> courses = courseService.findBySubject(subject);
+        List<CourseVO> courses = courseService.listBySubject(subject);
         return Result.success(courses);
     }
 }

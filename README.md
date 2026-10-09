@@ -269,6 +269,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **分页参数只有一处定义**：所有查询 DTO 继承 `PageQuery`（`page` / `pageSize` 的默认值与上下限），控制器入参加 `@Valid`。因此 `?page=`（空串）、`page=0`、`pageSize=0`、`pageSize=99999` 都会返回 `code = 0` + 字段提示，而不是 500 或静默返回空列表；上限 `PageQuery.MAX_PAGE_SIZE` 同时被 MyBatis-Plus 分页插件引用，两处口径不会漂移。
 - **超长字段不会变成 500**：DTO 上的 `@Size` 是第一道防线；`GlobalExceptionHandler` 另有 `DataIntegrityViolationException` 兜底（列超长、非空、类型不匹配等），把漏网的完整性错误转成 `code = 0`，不会触发运维告警。
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
+- **Service 方法名按《阿里巴巴 Java 开发手册》的命名规约**：取单个对象用 `get`（`getById`、`getClueById`）、取多个用 `list`（`listUsers`、`listPoolClues`、`listByRoleLabel`）、插入用 `save`（`saveDept`、`saveUser`）、删除用 `delete`（`deleteById`、`deleteUsers`）、修改用 `update`（`updateById`）。状态流转这类业务动作不在规约覆盖范围内，保留动词命名（`assignClue`、`trackClue`、`convertToBusiness`、`backToPool`）。
+- **Service 接口不继承 MyBatis-Plus 的 `IService`，实现类也不继承 `ServiceImpl`**，直接注入 Mapper。继承会把 `save` / `removeById` / `removeByMap` / `update` / `list(Wrapper)` / `getBaseMapper()` 这套通用方法挂到接口上：项目没有物理外键、删除与写入的守卫全在 Service 层，多出来的入口等于给「绕过守卫」开了后门，且漏覆盖某个重载时编译期毫无提示（MP 升级新增重载时守卫会静默失效）。`getBaseMapper()` 在接口上是 `public abstract`，调用方拿到 Service 就能直取 Mapper 绕开全部校验。另一处代价是查询 DSL 会随 `list(Wrapper)` 一起泄给调用方，与「wrapper 只写在 Mapper 的 default 方法里」冲突。
 
 **统一响应（Result / ResultCode）**
 
@@ -312,7 +314,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 **跨聚合的读写边界**
 
 - **只读的引用查询可以直接调对方的 Mapper**：`UserMapper.countByDeptId`、`ClueMapper.countByUserId` 这类单表、无规则可绕过的存在性与计数查询，改走 Service 会立刻造出双向依赖（`UserService ↔ ClueService`、`CourseService ↔ BusinessService`、`DeptService ↔ UserService`），收益只是形式上的分层。
-- **写入必须走拥有该聚合的 Service**：线索转商机调 `BusinessService.createFromClue`，商机转客户调 `CustomerService.createFromBusiness`。以前这两处直接 `businessMapper.insert` / `customerMapper.insert`，等于绕过 `addBusiness` / `addCustomer` —— 在新增路径上补的校验与默认值，转换链路会静默漏掉。
+- **写入必须走拥有该聚合的 Service**：线索转商机调 `BusinessService.createFromClue`，商机转客户调 `CustomerService.createFromBusiness`。以前这两处直接 `businessMapper.insert` / `customerMapper.insert`，等于绕过 `saveBusiness` / `saveCustomer` —— 在新增路径上补的校验与默认值，转换链路会静默漏掉。
 
 **写入路径的引用守卫与并发**
 

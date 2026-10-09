@@ -37,7 +37,7 @@ public class ActivityController {
     @PostMapping("/activities")
     public Result<Void> addActivity(@Valid @RequestBody ActivitySaveDto activityDto) {
         log.info("新增活动,参数:{}", activityDto);
-        activityService.addActivity(toActivity(activityDto));
+        activityService.saveActivity(toActivity(activityDto));
         return Result.success();
     }
 
@@ -49,7 +49,7 @@ public class ActivityController {
     @GetMapping("/activities")
     public Result<PageResult<ActivityVO>> listActivities(@Valid ActivityQueryDto query) {
         log.info("分页查询活动, 参数: {}", query);
-        return Result.success(activityService.findActivitiesByPage(query));
+        return Result.success(activityService.listActivitiesByPage(query));
     }
 
     /**
@@ -58,7 +58,7 @@ public class ActivityController {
     @GetMapping("/activities/type/{type}")
     public Result<List<ActivityVO>> listActivitiesByType(@PathVariable Integer type) {
         log.info("查询类型为{}的活动", type);
-        List<ActivityVO> activities = activityService.findByType(type);
+        List<ActivityVO> activities = activityService.listByType(type);
         return Result.success(activities);
     }
 
@@ -68,7 +68,7 @@ public class ActivityController {
     @GetMapping("/activities/{id}")
     public Result<ActivityVO> findById(@PathVariable Long id) {
         log.info("查询活动ID为{}的活动信息", id);
-        return Result.success(activityService.findById(id));
+        return Result.success(activityService.getById(id));
     }
 
     /**

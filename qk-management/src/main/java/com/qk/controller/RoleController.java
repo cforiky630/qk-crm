@@ -36,7 +36,7 @@ public class RoleController {
     @PostMapping("/roles")
     public Result<Void> addRole(@Valid @RequestBody RoleSaveDto roleDto) {
         log.info("新增角色,参数:{}", roleDto);
-        roleService.addRole(toRole(roleDto));
+        roleService.saveRole(toRole(roleDto));
         return Result.success();
     }
 
@@ -49,7 +49,7 @@ public class RoleController {
     @GetMapping("/roles")
     public Result<PageResult<RoleVO>> listRoles(@Valid RoleQueryDto query) {
         log.info("分页查询角色, 参数: {}", query);
-        return Result.success(roleService.findRolesByPage(query));
+        return Result.success(roleService.listRolesByPage(query));
     }
 
     /**
@@ -61,7 +61,7 @@ public class RoleController {
     @GetMapping("/roles/{id}")
     public Result<RoleVO> findById(@PathVariable Long id) {
         log.info("查询角色ID为{}的角色信息", id);
-        RoleVO role = roleService.findById(id);
+        RoleVO role = roleService.getById(id);
         return Result.success(role);
     }
 
@@ -116,7 +116,7 @@ public class RoleController {
     @GetMapping("/roles/list")
     public Result<List<RoleVO>> listAllRoles() {
         log.info("查询所有角色");
-        List<RoleVO> roles = roleService.findAll();
+        List<RoleVO> roles = roleService.listAll();
         return Result.success(roles);
     }
 }

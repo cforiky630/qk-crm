@@ -48,7 +48,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addCourse(Course course) {
+    public void saveCourse(Course course) {
         course.setId(null);
         // 这四列在库里是 NOT NULL：不在业务层校验的话，前端只能看到 500「系统繁忙」
         if (course.getSubject() == null || StrUtil.isBlank(course.getName())
@@ -60,14 +60,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public PageResult<CourseVO> findCoursesByPage(CourseQueryDto query) {
+    public PageResult<CourseVO> listCoursesByPage(CourseQueryDto query) {
         IPage<Course> p = courseMapper.pageCourses(new Page<>(query.getPage(), query.getPageSize()),
                 query.getName(), query.getSubject(), query.getTarget());
         return new PageResult<>(p.getTotal(), p.getRecords().stream().map(CourseVO::from).toList());
     }
 
     @Override
-    public CourseVO findById(Long id) {
+    public CourseVO getById(Long id) {
         return CourseVO.from(requireCourse(id));
     }
 
@@ -144,12 +144,12 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseVO> findAll() {
+    public List<CourseVO> listAll() {
         return courseMapper.listAllOrdered().stream().map(CourseVO::from).toList();
     }
 
     @Override
-    public List<CourseVO> findBySubject(Integer subject) {
+    public List<CourseVO> listBySubject(Integer subject) {
         return courseMapper.listBySubject(subject).stream().map(CourseVO::from).toList();
     }
 

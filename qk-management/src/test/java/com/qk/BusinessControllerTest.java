@@ -124,7 +124,7 @@ class BusinessControllerTest {
     /**
      * 商机转客户必须沿用「新增客户」的规则，并记录来源商机
      * <p>
-     * 转换链路以前直接往 customer 表插数据，绕过了 addCustomer；
+     * 转换链路以前直接往 customer 表插数据，绕过了 saveCustomer；
      * 现在走 CustomerService.createFromBusiness，规则与校验只有一处。
      */
     @Test

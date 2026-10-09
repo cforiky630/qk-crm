@@ -33,14 +33,14 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addDept(Dept dept) {
+    public void saveDept(Dept dept) {
         // 主键由数据库自增，禁止客户端指定
         dept.setId(null);
         deptMapper.insert(dept);
     }
 
     @Override
-    public PageResult<DeptVO> findDeptsByPage(DeptQueryDto query) {
+    public PageResult<DeptVO> listDeptsByPage(DeptQueryDto query) {
         // 查询条件与排序由 Mapper 负责，Service 只做参数传递与结果包装
         IPage<Dept> p = deptMapper.pageDepts(new Page<>(query.getPage(), query.getPageSize()),
                 query.getName(), query.getStatus());
@@ -48,7 +48,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public DeptVO findById(Long id) {
+    public DeptVO getById(Long id) {
         return DeptVO.from(requireDept(id));
     }
 
@@ -98,7 +98,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public List<DeptVO> findAllNormal() {
+    public List<DeptVO> listAllNormal() {
         return deptMapper.listEnabled().stream().map(DeptVO::from).toList();
     }
 

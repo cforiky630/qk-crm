@@ -46,7 +46,7 @@ public class CustomerController {
     @PostMapping
     public Result<Void> addCustomer(@Valid @RequestBody CustomerSaveDto customerDto) {
         log.info("新增客户: {}", customerDto);
-        customerService.addCustomer(toCustomer(customerDto));
+        customerService.saveCustomer(toCustomer(customerDto));
         return Result.success();
     }
 
@@ -66,7 +66,7 @@ public class CustomerController {
     @PutMapping
     public Result<Void> updateCustomer(@Valid @RequestBody CustomerSaveDto customerDto) {
         log.info("修改客户: {}", customerDto);
-        customerService.updateCustomer(toCustomer(customerDto));
+        customerService.updateById(toCustomer(customerDto));
         return Result.success();
     }
 

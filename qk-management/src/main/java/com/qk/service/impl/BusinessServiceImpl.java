@@ -3,7 +3,6 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.po.Business;
 import com.qk.entity.po.BusinessTrackRecord;
 import com.qk.entity.po.Clue;
@@ -33,21 +32,27 @@ import java.util.List;
 
 /**
  * 商机管理Service实现
+ * <p>
+ * 直接注入 Mapper，不继承 MyBatis-Plus 的 {@code ServiceImpl}：继承会把
+ * {@code save/removeById/updateById/getById} 这套通用方法带进实现类，与本模块的业务方法
+ * 同名相撞，也给「所有写入都必须过守卫」留下绕过口子。其余 Service 实现同样直接注入 Mapper。
  */
 @Service
-public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> implements BusinessService {
+public class BusinessServiceImpl implements BusinessService {
 
     /** business_track_record.key_items 的列宽，超出时给出明确提示而不是让它变成 500 */
     private static final int MAX_KEY_ITEMS_LENGTH = 50;
 
+    private final BusinessMapper businessMapper;
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
     private final CustomerService customerService;
     private final UserMapper userMapper;
     private final CourseMapper courseMapper;
 
     @Autowired
-    public BusinessServiceImpl(BusinessTrackRecordMapper businessTrackRecordMapper, CustomerService customerService,
-                               UserMapper userMapper, CourseMapper courseMapper) {
+    public BusinessServiceImpl(BusinessMapper businessMapper, BusinessTrackRecordMapper businessTrackRecordMapper,
+                               CustomerService customerService, UserMapper userMapper, CourseMapper courseMapper) {
+        this.businessMapper = businessMapper;
         this.businessTrackRecordMapper = businessTrackRecordMapper;
         this.customerService = customerService;
         this.userMapper = userMapper;
@@ -57,14 +62,14 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     @Override
     public PageResult<BusinessVO> listBusinesses(BusinessQueryDto businessQueryDto) {
         Page<BusinessVO> page = new Page<>(businessQueryDto.getPage(), businessQueryDto.getPageSize());
-        IPage<BusinessVO> businessPage = baseMapper.listBusinesses(page, businessQueryDto,
+        IPage<BusinessVO> businessPage = businessMapper.listBusinesses(page, businessQueryDto,
                 BusinessLifecycle.closedCodes());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addBusiness(Business business) {
+    public void saveBusiness(Business business) {
         // 手机号是库里的 NOT NULL + 唯一键，必须校验；
         // 渠道来源按页面原型（2.11 选填）与接口文档（非必须）是可以不填的，因此不参与必填校验
         if (StrUtil.isBlank(business.getPhone())) {
@@ -74,7 +79,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setId(null);
         business.setStatus(BusinessStatus.WAIT_ALLOT.getCode());
         business.setUserId(null);
-        save(business);
+        businessMapper.insert(business);
     }
 
     @Override
@@ -93,7 +98,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setClueId(clue.getId());
         // 走普通新增，复用同一套规则（编号自增、状态待分配、无归属人、校验手机号与意向课程）；
         // 归属人与下次跟进时间刻意不搬运，商机重新走分配流程
-        addBusiness(business);
+        saveBusiness(business);
     }
 
     @Override
@@ -108,7 +113,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setId(businessId);
         business.setUserId(userId);
         business.setStatus(BusinessStatus.WAIT_FOLLOW.getCode());
-        updateById(business);
+        businessMapper.updateById(business);
     }
 
     @Override
@@ -117,7 +122,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         Business existing = lockBusiness(id);
         BusinessLifecycle.ensure(BusinessLifecycle.Action.BACK_TO_POOL, existing.getStatus());
         // 状态与归属人在同一条 UPDATE 里改完，中途失败不会留下半成品状态；也少一次数据库往返
-        baseMapper.recycle(id, BusinessStatus.RECYCLED.getCode());
+        businessMapper.recycle(id, BusinessStatus.RECYCLED.getCode());
     }
 
     @Override
@@ -127,7 +132,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         Business business = lockBusiness(id);
         BusinessLifecycle.ensure(BusinessLifecycle.Action.CONVERT_TO_CUSTOMER, business.getStatus());
         business.setStatus(BusinessStatus.CONVERT_CUSTOMER.getCode());
-        updateById(business);
+        businessMapper.updateById(business);
 
         // 2. 按商机信息创建客户：交给客户模块，复用它的新增规则并记录来源商机
         customerService.createFromBusiness(business);
@@ -135,7 +140,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
 
     @Override
     public BusinessVO getBusinessById(Long id) {
-        BusinessVO business = baseMapper.getBusinessById(id);
+        BusinessVO business = businessMapper.getBusinessById(id);
         if (business == null) {
             throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }
@@ -167,7 +172,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         business.setRemark(businessTrackDto.getRemark());
         business.setNextTime(businessTrackDto.getNextTime());
         business.setStatus(BusinessStatus.FOLLOWING.getCode());
-        updateById(business);
+        businessMapper.updateById(business);
 
         // 2. 新增一条商机跟进记录
         BusinessTrackRecord trackRecord = new BusinessTrackRecord();
@@ -181,9 +186,9 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
     }
 
     @Override
-    public PageResult<BusinessVO> getPoolBusinesses(BusinessPoolDto businessPoolDto) {
+    public PageResult<BusinessVO> listPoolBusinesses(BusinessPoolDto businessPoolDto) {
         Page<BusinessVO> page = new Page<>(businessPoolDto.getPage(), businessPoolDto.getPageSize());
-        IPage<BusinessVO> businessPage = baseMapper.getPoolBusinesses(page, businessPoolDto,
+        IPage<BusinessVO> businessPage = businessMapper.getPoolBusinesses(page, businessPoolDto,
                 BusinessLifecycle.poolStatus());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
@@ -198,7 +203,7 @@ public class BusinessServiceImpl extends ServiceImpl<BusinessMapper, Business> i
         if (id == null) {
             throw new BusinessException(ErrorCode.BUSINESS_ID_REQUIRED);
         }
-        Business business = baseMapper.lockById(id);
+        Business business = businessMapper.lockById(id);
         if (business == null) {
             throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }

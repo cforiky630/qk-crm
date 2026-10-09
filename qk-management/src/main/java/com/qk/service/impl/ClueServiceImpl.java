@@ -3,7 +3,6 @@ package com.qk.service.impl;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.qk.entity.po.Clue;
 import com.qk.entity.po.ClueTrackRecord;
 import com.qk.entity.vo.PageResult;
@@ -32,18 +31,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 线索管理Service实现
+ * <p>
+ * 直接注入 Mapper，不继承 MyBatis-Plus 的 {@code ServiceImpl}：继承会把
+ * {@code save/removeById/updateById/getById} 这套通用方法带进实现类，与本模块的业务方法
+ * 同名相撞，也给「所有写入都必须过守卫」留下绕过口子。其余 Service 实现同样直接注入 Mapper。
  */
 @Service
-public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements ClueService {
+public class ClueServiceImpl implements ClueService {
 
+    private final ClueMapper clueMapper;
     private final ClueTrackRecordMapper clueTrackRecordMapper;
     private final BusinessService businessService;
     private final UserMapper userMapper;
     private final ActivityMapper activityMapper;
 
     @Autowired
-    public ClueServiceImpl(ClueTrackRecordMapper clueTrackRecordMapper, BusinessService businessService,
+    public ClueServiceImpl(ClueMapper clueMapper, ClueTrackRecordMapper clueTrackRecordMapper, BusinessService businessService,
                            UserMapper userMapper, ActivityMapper activityMapper) {
+        this.clueMapper = clueMapper;
         this.clueTrackRecordMapper = clueTrackRecordMapper;
         this.businessService = businessService;
         this.userMapper = userMapper;
@@ -53,13 +58,13 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
     @Override
     public PageResult<ClueVO> listClues(ClueQueryDto clueQueryDto) {
         Page<ClueVO> page = new Page<>(clueQueryDto.getPage(), clueQueryDto.getPageSize());
-        IPage<ClueVO> cluePage = baseMapper.listClues(page, clueQueryDto, ClueLifecycle.closedCodes());
+        IPage<ClueVO> cluePage = clueMapper.listClues(page, clueQueryDto, ClueLifecycle.closedCodes());
         return new PageResult<>(cluePage.getTotal(), cluePage.getRecords());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void addClue(Clue clue) {
+    public void saveClue(Clue clue) {
         if (StrUtil.isBlank(clue.getPhone()) || clue.getChannel() == null) {
             throw new BusinessException(ErrorCode.CLUE_PHONE_CHANNEL_REQUIRED);
         }
@@ -67,7 +72,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         clue.setId(null);
         clue.setStatus(ClueStatus.WAIT_ALLOT.getCode());
         clue.setUserId(null);
-        save(clue);
+        clueMapper.insert(clue);
     }
 
     @Override
@@ -83,12 +88,12 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         clue.setId(clueId);
         clue.setUserId(userId);
         clue.setStatus(ClueStatus.WAIT_FOLLOW.getCode());
-        updateById(clue);
+        clueMapper.updateById(clue);
     }
 
     @Override
     public ClueVO getClueById(Long id) {
-        ClueVO clue = baseMapper.getClueById(id);
+        ClueVO clue = clueMapper.getClueById(id);
         if (clue == null) {
             throw new BusinessException(ErrorCode.CLUE_NOT_FOUND);
         }
@@ -118,7 +123,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         clue.setLevel(clueTrackDto.getLevel());
         clue.setNextTime(clueTrackDto.getNextTime());
         clue.setStatus(ClueStatus.FOLLOWING.getCode());
-        updateById(clue);
+        clueMapper.updateById(clue);
 
         // 2. 新增一条正常跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
@@ -141,7 +146,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         Clue clue = new Clue();
         clue.setId(id);
         clue.setStatus(ClueStatus.FALSE_CLUE.getCode());
-        updateById(clue);
+        clueMapper.updateById(clue);
 
         // 2. 新增一条伪线索跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
@@ -160,16 +165,16 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         Clue clue = lockClue(id);
         ClueLifecycle.ensure(ClueLifecycle.Action.CONVERT_TO_BUSINESS, clue.getStatus());
         clue.setStatus(ClueStatus.CONVERT_BUSINESS.getCode());
-        updateById(clue);
+        clueMapper.updateById(clue);
 
         // 2. 按线索信息创建商机：交给商机模块，复用它的新增规则并记录来源线索
         businessService.createFromClue(clue);
     }
 
     @Override
-    public PageResult<ClueVO> getPoolClues(CluePoolDto cluePoolDto) {
+    public PageResult<ClueVO> listPoolClues(CluePoolDto cluePoolDto) {
         Page<ClueVO> page = new Page<>(cluePoolDto.getPage(), cluePoolDto.getPageSize());
-        IPage<ClueVO> cluePage = baseMapper.getPoolClues(page, cluePoolDto, ClueLifecycle.poolStatus());
+        IPage<ClueVO> cluePage = clueMapper.getPoolClues(page, cluePoolDto, ClueLifecycle.poolStatus());
         return new PageResult<>(cluePage.getTotal(), cluePage.getRecords());
     }
 
@@ -187,7 +192,7 @@ public class ClueServiceImpl extends ServiceImpl<ClueMapper, Clue> implements Cl
         if (id == null) {
             throw new BusinessException(ErrorCode.CLUE_ID_REQUIRED);
         }
-        Clue clue = baseMapper.lockById(id);
+        Clue clue = clueMapper.lockById(id);
         if (clue == null) {
             throw new BusinessException(ErrorCode.CLUE_NOT_FOUND);
         }

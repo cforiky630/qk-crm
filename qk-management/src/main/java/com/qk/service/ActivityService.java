@@ -17,7 +17,7 @@ public interface ActivityService {
      *
      * @param activity 活动信息
      */
-    void addActivity(Activity activity);
+    void saveActivity(Activity activity);
 
     /**
      * 分页查询活动
@@ -25,7 +25,7 @@ public interface ActivityService {
      * @param query 查询条件（含分页参数）
      * @return 分页结果
      */
-    PageResult<ActivityVO> findActivitiesByPage(ActivityQueryDto query);
+    PageResult<ActivityVO> listActivitiesByPage(ActivityQueryDto query);
 
     /**
      * 根据id查询活动
@@ -33,7 +33,7 @@ public interface ActivityService {
      * @param id 活动id
      * @return 活动信息
      */
-    ActivityVO findById(Long id);
+    ActivityVO getById(Long id);
 
     /**
      * 根据id修改活动信息
@@ -55,5 +55,5 @@ public interface ActivityService {
      * @param type 活动类型
      * @return 活动列表
      */
-    List<ActivityVO> findByType(Integer type);
+    List<ActivityVO> listByType(Integer type);
 }

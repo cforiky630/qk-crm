@@ -36,7 +36,7 @@ public class DeptController {
     @PostMapping("/depts") // 对应前端提交时用到的请求方式
     public Result<Void> addDept(@Valid @RequestBody DeptSaveDto deptDto) {
         log.info("新增部门,参数:{}", deptDto);
-        deptService.addDept(toDept(deptDto));
+        deptService.saveDept(toDept(deptDto));
         return Result.success();
     }
 
@@ -50,7 +50,7 @@ public class DeptController {
     // 当前端使用(?参数)方式提交请求参数时，Spring 会按字段名绑定到查询 DTO
     public Result<PageResult<DeptVO>> listDepts(@Valid DeptQueryDto query) {
         log.info("分页查询部门, 参数: {}", query);
-        return Result.success(deptService.findDeptsByPage(query));
+        return Result.success(deptService.listDeptsByPage(query));
     }
 
     /**
@@ -63,7 +63,7 @@ public class DeptController {
     // 当前端使用请求路径方式提交请求参数时, 后端需要使用   @PathVariable 变量  的方式接收
     public Result<DeptVO> findById(@PathVariable Long id) {
         log.info("查询部门ID为{}的部门信息", id);
-        DeptVO dept = deptService.findById(id);
+        DeptVO dept = deptService.getById(id);
         return Result.success(dept);
     }
 
@@ -121,7 +121,7 @@ public class DeptController {
     @GetMapping("/depts/list")
     public Result<List<DeptVO>> listAllDepts() {
         log.info("查询所有正常状态的部门");
-        List<DeptVO> depts = deptService.findAllNormal();
+        List<DeptVO> depts = deptService.listAllNormal();
         return Result.success(depts);
     }
 }

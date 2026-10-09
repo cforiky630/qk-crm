@@ -24,12 +24,12 @@ public interface CustomerService {
      *
      * @param customer 客户信息
      */
-    void addCustomer(Customer customer);
+    void saveCustomer(Customer customer);
 
     /**
      * 由商机生成客户（商机转客户）
      * <p>
-     * 与 {@link #addCustomer(Customer)} 同一套规则：编号自增、校验手机号与意向课程；
+     * 与 {@link #saveCustomer(Customer)} 同一套规则：编号自增、校验手机号与意向课程；
      * 来源商机ID 由本方法写入，外部接口无法伪造。
      *
      * @param business 已确认转为客户的商机
@@ -49,5 +49,5 @@ public interface CustomerService {
      *
      * @param customer 客户信息
      */
-    void updateCustomer(Customer customer);
+    void updateById(Customer customer);
 }

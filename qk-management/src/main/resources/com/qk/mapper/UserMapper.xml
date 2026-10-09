@@ -19,7 +19,7 @@
     </sql>
 
     <!-- 动态条件分页：Page 参数由 MyBatis-Plus 分页插件自动追加 limit 并回填 total -->
-    <select id="getUsers" resultType="com.qk.entity.vo.UserVO">
+    <select id="listUsers" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         <where>
             u.is_deleted = 0
@@ -58,7 +58,7 @@
       （登录会拒绝 status = 0），把线索或商机分给停用的人等于没人能跟进，
       因此这里直接过滤掉，而不是留给前端判断。
     -->
-    <select id="findByRoleLabel" resultType="com.qk.entity.vo.UserVO">
+    <select id="listByRoleLabel" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         WHERE r.label = #{roleLabel}
           AND u.status = 1
@@ -66,7 +66,7 @@
         ORDER BY u.id
     </select>
 
-    <select id="findByDeptId" resultType="com.qk.entity.vo.UserVO">
+    <select id="listByDeptId" resultType="com.qk.entity.vo.UserVO">
         <include refid="viewSelect"/>
         WHERE u.dept_id = #{deptId}
           AND u.is_deleted = 0
