@@ -12,12 +12,22 @@ package com.qk.common.storage;
 public interface FileStorage {
 
     /**
-     * 保存文件并返回可直接访问的地址
+     * 保存文件
      *
      * @param ownerId          上传人ID，用于按用户隔离对象路径；允许为 null（匿名）
      * @param originalFilename 原始文件名，仅用于取扩展名
      * @param content          文件内容
-     * @return 可直接访问的 https 地址
+     * @return 保存结果（访问地址、对象键、内容摘要、大小、MIME 类型）
      */
-    String store(Long ownerId, String originalFilename, byte[] content);
+    StoredObject store(Long ownerId, String originalFilename, byte[] content);
+
+    /**
+     * 删除已保存的对象
+     * <p>
+     * 用于「业务数据删除 / 换图后回收旧对象」。实现应让删除具备幂等语义
+     * （对象已不存在不算失败），调用方负责决定失败后如何兜底。
+     *
+     * @param objectKey {@link #store} 返回的对象键
+     */
+    void delete(String objectKey);
 }

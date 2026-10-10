@@ -38,7 +38,7 @@ class OssUploadManualTest {
                 + " CONFIG_BUCKET=" + ossProperties.getBucketName());
 
         byte[] bytes = Base64.getDecoder().decode(PNG_BASE64);
-        String url = ossTemplate.store(1L, "codex-upload-test.png", bytes);
+        String url = ossTemplate.store(1L, "codex-upload-test.png", bytes).url();
         System.out.println("UPLOADED_URL=" + url);
         System.out.println("UPLOAD_BYTES=" + bytes.length);
 

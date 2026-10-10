@@ -17,6 +17,7 @@ import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.ClueTrackRecordMapper;
+import com.qk.service.UploadService;
 import com.qk.service.UserService;
 import com.qk.common.util.UserHolder;
 import com.qk.entity.vo.UserVO;
@@ -47,12 +48,14 @@ public class UserServiceImpl implements UserService {
     private final BusinessMapper businessMapper;
     private final ClueTrackRecordMapper clueTrackRecordMapper;
     private final BusinessTrackRecordMapper businessTrackRecordMapper;
+    private final UploadService uploadService;
 
     @Autowired
     public UserServiceImpl(UserMapper userMapper, RoleMapper roleMapper, DeptMapper deptMapper,
                            ClueMapper clueMapper, BusinessMapper businessMapper,
                            ClueTrackRecordMapper clueTrackRecordMapper,
-                           BusinessTrackRecordMapper businessTrackRecordMapper) {
+                           BusinessTrackRecordMapper businessTrackRecordMapper,
+                           UploadService uploadService) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
         this.deptMapper = deptMapper;
@@ -60,6 +63,7 @@ public class UserServiceImpl implements UserService {
         this.businessMapper = businessMapper;
         this.clueTrackRecordMapper = clueTrackRecordMapper;
         this.businessTrackRecordMapper = businessTrackRecordMapper;
+        this.uploadService = uploadService;
     }
 
     /**
@@ -97,6 +101,9 @@ public class UserServiceImpl implements UserService {
             user.setPassword(DigestUtil.md5Hex(user.getUsername() + user.getPassword()));
         }
         userMapper.insert(user);
+        // 头像来自独立的 POST /upload（内容寻址，同一张图可能已被多次上传），
+        // 这里把台账记到该用户名下；绑定与新增在同一事务，回滚时绑定一起回滚
+        uploadService.bindImage(user.getImage(), UploadService.REF_TYPE_USER, user.getId());
     }
 
     @Override
@@ -111,7 +118,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateById(User user) {
-        if (user.getId() == null || userMapper.selectById(user.getId()) == null) {
+        User existing = user.getId() == null ? null : userMapper.selectById(user.getId());
+        if (existing == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
         requireExistingDeptAndRole(user.getDeptId(), user.getRoleId());
@@ -128,6 +136,13 @@ public class UserServiceImpl implements UserService {
         // 因此这里显式置空，避免前端回传的密码摘要被二次加密后写坏数据
         user.setPassword(null);
         userMapper.updateById(user);
+
+        // 换头像：新头像绑定到本用户，旧头像不再被引用，尽力同步删除（事务提交后才真正删）
+        uploadService.bindImage(user.getImage(), UploadService.REF_TYPE_USER, user.getId());
+        String oldImage = existing.getImage();
+        if (StrUtil.isNotBlank(oldImage) && !oldImage.equals(user.getImage())) {
+            uploadService.releaseImage(oldImage);
+        }
     }
 
     /**
@@ -174,6 +189,12 @@ public class UserServiceImpl implements UserService {
         }
 
         userMapper.deleteByIds(targetIds);
+
+        // 用户是逻辑删除（@TableLogic），行还在表里但已不再被引用；
+        // 删除提交后尽力同步删掉头像对象，漏掉的由定时回收兜底
+        for (User deleted : existing) {
+            uploadService.releaseImage(deleted.getImage());
+        }
     }
 
     @Override

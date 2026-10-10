@@ -73,4 +73,17 @@
         ORDER BY u.id
     </select>
 
+    <!--
+      仍被用户引用的头像地址：上传对象回收任务判断「这个对象还有没有人在用」。
+      这里必须显式写 is_deleted = 0 —— 用户是逻辑删除，已删用户的行还在表里，
+      漏掉这个条件会让旧头像永远被视为「仍被引用」，回收任务就成了摆设。
+    -->
+    <select id="listImageUrls" resultType="java.lang.String">
+        SELECT image
+        FROM `user`
+        WHERE is_deleted = 0
+          AND image IS NOT NULL
+          AND image != ''
+    </select>
+
 </mapper>

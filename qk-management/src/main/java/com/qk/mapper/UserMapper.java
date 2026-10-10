@@ -77,4 +77,14 @@ public interface UserMapper extends BaseMapper<User> {
     default User findByUsername(String username) {
         return selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
     }
+
+    /**
+     * 查询仍被用户引用的头像地址（用于上传对象回收前的引用判断）
+     * <p>
+     * 必须显式过滤逻辑删除：用户删除是 {@code is_deleted = 1} 的逻辑删除，行仍在表里，
+     * 不过滤的话已删用户的头像会永远被当成「仍在使用」而回收不掉。
+     * 写在 XML 里而不是 wrapper 里，是为了让这个过滤条件显式可见（自定义 SQL 不会自动补
+     * MyBatis-Plus 的逻辑删除条件）。
+     */
+    List<String> listImageUrls();
 }

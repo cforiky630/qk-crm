@@ -16,6 +16,7 @@
 SET NAMES utf8mb4;
 
 TRUNCATE TABLE operate_log;
+TRUNCATE TABLE upload_file;
 TRUNCATE TABLE business_track_record;
 TRUNCATE TABLE business;
 TRUNCATE TABLE clue_track_record;

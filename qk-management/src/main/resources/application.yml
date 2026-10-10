@@ -52,3 +52,9 @@ qk:
     # 真实密钥写在 config/application-local.yml 里，或用环境变量 QK_JWT_SECRET 注入
     secret: ${QK_JWT_SECRET:qk-management-jwt-secret-change-me-in-production}
     ttlHours: 24                 # 令牌有效期（小时）
+  upload:
+    cleanup:
+      enabled: true              # 是否启用上传对象兜底回收（测试或本地可置为 false）
+      cron: "0 0 3 * * ?"        # 定时执行时间，默认每天凌晨 3 点
+      retentionHours: 24         # 宽限期：上传后多久仍无人引用才允许回收
+      batchSize: 200             # 单轮最多处理条数

@@ -118,6 +118,8 @@ public enum ErrorCode {
     UPLOAD_IMAGE_TYPE_UNSUPPORTED("只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片"),
     /** 上传内容与扩展名不符（文件头不是图片）：{@code 图片内容与文件类型不匹配，请上传真实图片} */
     UPLOAD_IMAGE_CONTENT_INVALID("图片内容与文件类型不匹配，请上传真实图片"),
+    /** 上传台账写入失败：{@code 图片上传失败，请稍后重试} */
+    UPLOAD_RECORD_FAILED("图片上传失败，请稍后重试"),
 
     // ---------- 登录 ----------
     /** 登录失败：账号不存在、密码错误、账号已停用共用同一句提示，避免暴露账号是否存在 */

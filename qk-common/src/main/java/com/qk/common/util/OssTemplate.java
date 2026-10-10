@@ -1,6 +1,7 @@
 package com.qk.common.util;
 
 import com.aliyun.sdk.service.oss2.OSSClient;
+import com.aliyun.sdk.service.oss2.models.DeleteObjectRequest;
 import com.aliyun.sdk.service.oss2.models.PutObjectRequest;
 import com.aliyun.sdk.service.oss2.transport.BinaryData;
 import com.qk.common.exception.BusinessException;
@@ -8,6 +9,7 @@ import com.qk.common.exception.ErrorCode;
 import com.qk.common.properties.OssProperties;
 import com.qk.common.storage.FileStorage;
 import com.qk.common.storage.ImageFormat;
+import com.qk.common.storage.StoredObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -34,7 +36,7 @@ public class OssTemplate implements FileStorage {
     }
 
     @Override
-    public String store(Long ownerId, String originalFilename, byte[] content) {
+    public StoredObject store(Long ownerId, String originalFilename, byte[] content) {
         // 扩展名由调用方（UploadService）先校验过；这里再判一次是为了让适配器自身也站得住，
         // 不依赖"调用方一定校验过"这个前提
         String suffix = FileNameUtil.extensionOf(originalFilename);
@@ -46,17 +48,36 @@ public class OssTemplate implements FileStorage {
         // 同一用户重复上传同一张图会落到同一个对象上（覆盖写），
         // 因此双击提交或网络重试都不会在 OSS 里堆积孤儿文件，上传天然幂等。
         String objectName = buildObjectName(ownerId, suffix, content);
+        String contentType = contentTypeOf(suffix);
 
         PutObjectRequest request = PutObjectRequest.newBuilder()
                 .bucket(ossProperties.getBucketName())
                 .key(objectName)
                 .body(BinaryData.fromStream(new ByteArrayInputStream(content)))
-                .contentType(contentTypeOf(suffix))
+                .contentType(contentType)
                 .build();
 
         ossClient.putObject(request);
 
-        return "https://" + ossProperties.getBucketName() + ".oss-" + ossProperties.getRegion() + ".aliyuncs.com/" + objectName;
+        String url = "https://" + ossProperties.getBucketName() + ".oss-" + ossProperties.getRegion() + ".aliyuncs.com/" + objectName;
+        return new StoredObject(url, objectName, DigestUtil.md5Hex(content), content.length, contentType);
+    }
+
+    /**
+     * 删除对象
+     * <p>
+     * OSS 的 DeleteObject 本身就是幂等的：对象不存在时同样返回成功，因此重复调用安全。
+     */
+    @Override
+    public void delete(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return;
+        }
+        DeleteObjectRequest request = DeleteObjectRequest.newBuilder()
+                .bucket(ossProperties.getBucketName())
+                .key(objectKey)
+                .build();
+        ossClient.deleteObject(request);
     }
 
     /**

@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-189%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-208%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -54,7 +54,7 @@
 | 基础数据 | 部门、角色、课程的增删改查与下拉列表 |
 | 活动管理 | 活动的增删改查、按渠道/类型/活动状态（未开始、进行中、已结束）筛选 |
 | 统计分析 | 首页概览（线索与商机各阶段数量） |
-| 系统能力 | JWT 登录鉴权、图片上传到阿里云 OSS、AOP 操作日志、统一响应与全局异常处理 |
+| 系统能力 | JWT 登录鉴权、图片上传到阿里云 OSS（上传台账 + 删除同步回收 + 定时兜底）、AOP 操作日志、统一响应与全局异常处理 |
 
 ## 技术栈
 
@@ -63,7 +63,7 @@
 | Java | 21 | 语言级别 21 |
 | Spring Boot | 4.0.8 | Boot 4：Web 用 `spring-boot-starter-webmvc`，JSON 是 **Jackson 3**（`tools.jackson.*`） |
 | MyBatis-Plus | 3.5.17 | 用 Boot 4 专用 starter `mybatis-plus-spring-boot4-starter` |
-| MySQL | 8.0+ / 9.x | 库名 `qk`，11 张表，不使用物理外键 |
+| MySQL | 8.0+ / 9.x | 库名 `qk`，12 张表，不使用物理外键 |
 | Hutool | 5.8.47 | 加密、JWT、Bean 拷贝等 |
 | 阿里云 OSS SDK | V2 0.6.0 | 图片上传 |
 | Lombok | 1.18.48 | 简化实体样板代码 |
@@ -173,6 +173,15 @@ curl -H "token: <token>" http://localhost:8080/report/overview
 | `QK_OSS_ACCESS_KEY_SECRET` | 空 | 同上 |
 | `QK_JWT_SECRET` | 开发占位值 | JWT 签名密钥，生产必须替换 ≥32 字节的随机值 |
 
+上传对象回收相关的开关在 `application.yml` 的 `qk.upload.cleanup` 下（不是环境变量，普通配置项）：
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `qk.upload.cleanup.enabled` | `true` | 是否启用定时兜底回收；测试或本地可置为 `false` |
+| `qk.upload.cleanup.cron` | `0 0 3 * * ?` | 定时执行时间，默认每天凌晨 3 点 |
+| `qk.upload.cleanup.retentionHours` | `24` | 宽限期：上传后多久仍无人引用才允许回收 |
+| `qk.upload.cleanup.batchSize` | `200` | 单轮最多处理条数（上限即分页单页上限 200） |
+
 日志输出到**项目根目录的 `./logs`**（已在 `.gitignore` 中忽略），历史归档在同级 `history/`。注意 `./logs` 是相对路径，写到哪取决于启动时的工作目录：
 
 | 启动方式 | 工作目录 | 日志位置 |
@@ -211,7 +220,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 
 ## 数据库
 
-11 张表，全部不使用物理外键（关联关系由业务层保证），时间字段由服务层写入：
+12 张表，全部不使用物理外键（关联关系由业务层保证），时间字段由服务层写入：
 
 | 表 | 说明 |
 | --- | --- |
@@ -221,6 +230,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 | `business` / `business_track_record` | 商机、商机跟进记录 |
 | `customer` | 客户 |
 | `operate_log` | 操作日志（AOP 自动写入） |
+| `upload_file` | 上传文件台账（临时对象回收与删除同步清理的依据） |
 
 建表脚本在 [`sql/`](sql/)，最小数据集在 [`sql/reset_and_seed.sql`](sql/reset_and_seed.sql)。
 
@@ -228,7 +238,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 
 | 规约 | 落地方式 |
 | --- | --- |
-| id 必为 `bigint unsigned` | 11 张表的主键与全部逻辑外键（`dept_id`/`role_id`/`user_id`/`course_id`/`activity_id`/`clue_id`/`business_id`/`operate_user_id`）统一 `bigint unsigned`，Java 侧对应 `Long` |
+| id 必为 `bigint unsigned` | 12 张表的主键与全部逻辑外键（`dept_id`/`role_id`/`user_id`/`course_id`/`activity_id`/`clue_id`/`business_id`/`operate_user_id`/`uploader_id`/`ref_id`）统一 `bigint unsigned`，Java 侧对应 `Long` |
 | 索引命名 | 唯一索引 `uk_列名`（`uk_username`/`uk_phone`/`uk_email`/`uk_label`/`uk_name`），逻辑外键补 `idx_列名` 普通索引 |
 | 禁用外键与级联 | 全部表不使用物理外键，关联完整性由 Service 层的删除守卫保证 |
 | 时间字段兜底 | `create_time` 用 `DEFAULT CURRENT_TIMESTAMP`、`update_time` 用 `ON UPDATE CURRENT_TIMESTAMP`；业务仍由 Service 层显式写入，默认值只兜底绕过 Service 的裸 SQL |
@@ -240,7 +250,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：23 个测试类 / 189 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：25 个测试类 / 208 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -253,7 +263,9 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
 - [`ApiRobustnessTest`](qk-management/src/test/java/com/qk/ApiRobustnessTest.java) 守接口边界：404/405/415 不再变 500、分页参数校验、字段长度与手机号格式、悬空引用（把线索分配给不存在的用户等）、停用/未知账号的令牌被拒、状态流转守卫。
 - [`LifecycleTest`](qk-management/src/test/java/com/qk/LifecycleTest.java) 守状态机：不连数据库直接验证「哪些状态允许哪个动作」与提示语。
-- [`UploadServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadServiceImplTest.java) 守上传策略：不连数据库、不连 OSS（用内存实现替掉 `FileStorage`），验证扩展名白名单、文件头校验、空内容、读取失败保留根因。
+- [`UploadServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadServiceImplTest.java) 守上传策略与台账：不连数据库、不连 OSS（用内存实现替掉 `FileStorage`、Mapper 用 Mockito），验证扩展名白名单、文件头校验、空内容、读取失败保留根因，以及登记台账、重复上传只刷新、绑定、回收（仍被引用不删 / 删除失败回退 / 事务内推迟到提交后）。
+- [`UploadCleanupServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadCleanupServiceImplTest.java) 守兜底回收：候选筛选、跳过仍被引用的对象、调度入口吞掉异常不拖垮调度线程。
+- [`UploadFileLedgerTest`](qk-management/src/test/java/com/qk/UploadFileLedgerTest.java) 守台账联动：新增用户把头像台账标记为已绑定并写上业务主键；引用扫描排除逻辑删除的用户（否则旧头像永远回收不掉）。
 - 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**（唯一例外是 `HardeningTest` 里验证「摘要不能当密码登录」的那条，它需要库里已知密码的种子账号 `zhangsan`）。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
 
@@ -370,7 +382,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [ ] 用户名改为不可变标识（避免改名后旧密码失效）
 - [ ] 接口级权限控制（暂缓：权限的配置链路需要前端支持「给角色勾选权限」，而当前前端只有构建产物、改不了，链路无法闭环；完整实现保留在分支 `codex/rbac-permission-model`，前端源码可用后可直接恢复）
 - [ ] CORS 配置（前后端同域或走网关时可跳过）
-- [ ] 上传图片改用私有读 + 签名 URL，并清理孤儿对象
+- [x] 上传对象回收：文件台账 + 业务删除/换图时同步删除 + 定时兜底回收「超期且无人引用」的对象
+- [ ] 上传图片改用私有读 + 签名 URL
 
 ## 已知限制
 
@@ -382,7 +395,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 6. **客户 / 商机的「渠道来源」是选填**：服务端不做必填校验，`customer.channel` 与 `business.channel` 建表即为可空（`DEFAULT NULL`）；线索的 `channel` 仍是必填（原型 2.2 明确必填）。
 7. **两个「池」的口径与活动状态**：线索池只返回 `status = 4 伪线索`（与公海池只返回 `status = 4 回收` 一致）；`/clues`、`/businesses` 默认排除已关闭状态，但显式传 `status` 时按传入值筛选。活动状态（未开始/进行中/已结束）不落库，由 `/activities?activityStatus=` 按时间推算。
 8. **操作日志只记录增删改**：`@LogOperation` 只标注在写接口上，查询接口（GET）不写日志，因此日志列表里不会出现"查询部门/查询用户"这类记录。
-9. **上传**：已校验扩展名、文件头（魔术字节）与大小；对象仍是公共读，尚无孤儿对象清理机制（对象名按内容寻址，重复上传不会新增对象，但删除业务数据不会连带删除对象）。
+9. **上传**：已校验扩展名、文件头（魔术字节）与大小，对象仍是公共读。**已实现上传对象回收**：`upload_file` 台账记录每次上传（内容寻址，同一对象只登记一条）；删除用户 / 换头像时在事务提交后尽力同步删除，定时任务再按「超过宽限期（默认 24h）且当前无任何业务数据引用」兜底回收，覆盖了「上传头像后取消新增」这种根本没有业务写入的脏数据。回收的最终依据是引用扫描而非台账状态，因此绑定失败也不会误删在用图片。**仍有缺口**：绕过 `/upload` 直接往桶里写的对象不在台账内、不会被回收；引用扫描目前只覆盖 `user.image` 一列，新增图片来源列时需同步补 [`UserMapper.listImageUrls`](qk-management/src/main/java/com/qk/mapper/UserMapper.java)；「抢占回收权成功但进程随即崩溃」的极端窗口需要靠对象存储侧对账兜底。
 10. **只增表没有 `update_time`**：`clue_track_record`、`business_track_record`、`operate_log` 是只增表，只有创建时间（`operate_log` 叫 `operate_time`），严格来说不满足手册「表必备三字段」；时间列已补 `DEFAULT CURRENT_TIMESTAMP` 作为数据库侧兜底，业务写入仍以 Service 层为准。
 11. **列表检索使用全模糊**：各列表的手机号、姓名等条件为 `LIKE CONCAT('%', ?, '%')`，手册禁止左模糊与全模糊。改用前缀匹配或搜索引擎会改变检索结果，属于对外行为变更，故保留现状，待数据量上来后再评估。
 12. **0/1 语义字段未按 `is_xxx` 命名**：手册要求表达是与否的字段用 `is_xxx`，但 `job_status` 等字段改名会同时改变对外 JSON 字段名，属于破坏性契约变更，故保留（`status` 系列语义是「状态」而非布尔，不在该条款范围内）。
