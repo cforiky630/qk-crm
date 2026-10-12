@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.po.User;
-import com.qk.entity.dto.UserDto;
+import com.qk.entity.dto.UserQueryDto;
 import com.qk.entity.vo.UserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -25,7 +25,7 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 动态条件分页查询用户列表（含部门名称、角色名称）
      */
-    IPage<UserVO> listUsers(Page<UserVO> page, @Param("userDto") UserDto userDto);
+    IPage<UserVO> listUsers(Page<UserVO> page, @Param("userQueryDto") UserQueryDto userQueryDto);
 
     /**
      * 根据ID查询用户（含部门名称、角色名称）

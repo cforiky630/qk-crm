@@ -1,11 +1,12 @@
 package com.qk.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.entity.vo.PageResult;
 import com.qk.common.Result;
 import com.qk.entity.po.User;
 import com.qk.entity.dto.UserSaveDto;
 import com.qk.aspect.anno.LogOperation;
-import com.qk.entity.dto.UserDto;
+import com.qk.entity.dto.UserQueryDto;
 import com.qk.service.UserService;
 import com.qk.entity.vo.UserVO;
 import lombok.extern.slf4j.Slf4j;
@@ -35,9 +36,9 @@ public class UserController {
      * 条件分页查询用户列表
      */
     @GetMapping
-    public Result<PageResult<UserVO>> getUsers(@Valid UserDto userDto) {
-        log.info("条件分页查询用户: {}", userDto);
-        PageResult<UserVO> pageResult = userService.listUsers(userDto);
+    public Result<PageResult<UserVO>> getUsers(@Valid UserQueryDto userQueryDto) {
+        log.info("条件分页查询用户: {}", userQueryDto);
+        PageResult<UserVO> pageResult = userService.listUsers(userQueryDto);
         return Result.success(pageResult);
     }
 
@@ -75,9 +76,9 @@ public class UserController {
      */
     @LogOperation
     @PostMapping
-    public Result<Void> addUser(@Valid @RequestBody UserSaveDto userDto) {
-        log.info("新增用户: {}", userDto.getUsername());
-        userService.saveUser(toUser(userDto));
+    public Result<Void> addUser(@Valid @RequestBody UserSaveDto userSaveDto) {
+        log.info("新增用户: {}", userSaveDto.getUsername());
+        userService.saveUser(toUser(userSaveDto));
         return Result.success();
     }
 
@@ -95,31 +96,21 @@ public class UserController {
      */
     @LogOperation
     @PutMapping
-    public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userDto) {
-        log.info("修改用户: {}", userDto.getUsername());
-        userService.updateById(toUser(userDto));
+    public Result<Void> updateUser(@Valid @RequestBody UserSaveDto userSaveDto) {
+        log.info("修改用户: {}", userSaveDto.getUsername());
+        userService.updateById(toUser(userSaveDto));
         return Result.success();
     }
 
     /**
      * 协议适配：请求 DTO → 领域实体（password 不在 DTO 中，由 Service 决定）
      * <p>
-     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
-     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     * 字段搬运统一用 {@code BeanUtil.copyProperties}：DTO 与实体同名字段一一对应，
+     * 这条契约由 {@code BeanNameContractTest} 用反射守住（DTO 的字段在实体里改名或不存在，测试立即失败）。
      */
     private User toUser(UserSaveDto dto) {
         User user = new User();
-        user.setId(dto.getId());
-        user.setUsername(dto.getUsername());
-        user.setName(dto.getName());
-        user.setPhone(dto.getPhone());
-        user.setEmail(dto.getEmail());
-        user.setGender(dto.getGender());
-        user.setStatus(dto.getStatus());
-        user.setDeptId(dto.getDeptId());
-        user.setRoleId(dto.getRoleId());
-        user.setImage(dto.getImage());
-        user.setRemark(dto.getRemark());
+        BeanUtil.copyProperties(dto, user);
         return user;
     }
 

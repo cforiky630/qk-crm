@@ -59,6 +59,25 @@ public interface UploadFileMapper extends BaseMapper<UploadFile> {
     }
 
     /**
+     * 按对象键前缀查询（例如「某一天上传的全部对象」）
+     * <p>
+     * 对象键是 {@code images/年/月/日/上传人/内容哈希}，因此按前缀查就是按天查。
+     * 前缀匹配能命中 {@code uk_object_key} 索引，不需要扫全表。
+     *
+     * @param prefix 形如 {@code images/2026/10/12/} 的对象键前缀
+     * @param limit  单轮处理条数，会被限制在分页插件的单页上限内
+     */
+    default List<UploadFile> listByObjectKeyPrefix(String prefix, int limit) {
+        int size = Math.max(1, Math.min(limit, PageQuery.MAX_PAGE_SIZE));
+        Page<UploadFile> page = new Page<>(1, size);
+        return selectPage(page, new LambdaQueryWrapper<UploadFile>()
+                .likeRight(UploadFile::getObjectKey, prefix)
+                .ne(UploadFile::getStatus, UploadStatus.RECYCLED.getCode())
+                .orderByAsc(UploadFile::getCreateTime))
+                .getRecords();
+    }
+
+    /**
      * 绑定：把对象记到某条业务数据名下（已回收的对象不再绑定，避免把已删除的对象记成在用）
      */
     default int markBound(Long id, String refType, Long refId, LocalDateTime bindTime) {

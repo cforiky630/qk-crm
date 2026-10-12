@@ -1,6 +1,7 @@
 package com.qk.service.impl;
 
 import com.qk.config.UploadCleanupProperties;
+import com.qk.common.storage.UploadObjectKey;
 import com.qk.entity.po.UploadFile;
 import com.qk.mapper.UploadFileMapper;
 import com.qk.mapper.UserMapper;
@@ -12,9 +13,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * 上传对象兜底回收实现
@@ -61,25 +65,44 @@ public class UploadCleanupServiceImpl implements UploadCleanupService {
     public int cleanupOrphans() {
         LocalDateTime cutoff = LocalDateTime.now().minusHours(properties.getRetentionHours());
         List<UploadFile> candidates = uploadFileMapper.listRecyclable(cutoff, properties.getBatchSize());
+        // 正常情况（每天跑一次、宽限期 24 小时）这里命中的就是「前一天上传的」那批；
+        // 取「所有已到期的」而不是死盯前一天，是为了某天漏跑时下一次能自动补上。
+        return recycleAll(candidates, "已到期未回收");
+    }
+
+    @Override
+    public int cleanupDay(LocalDate day) {
+        String prefix = UploadObjectKey.dayPrefix(day);
+        List<UploadFile> candidates = uploadFileMapper.listByObjectKeyPrefix(prefix, properties.getBatchSize());
+        return recycleAll(candidates, prefix);
+    }
+
+    /**
+     * 统一处理一批候选：仍被业务数据引用的留着（顺手修正状态），无人引用的回收
+     * <p>
+     * 引用集合整批只查一次；日志按对象所属日期汇总，让「按天清理」这件事在日志里看得见。
+     */
+    private int recycleAll(List<UploadFile> candidates, String scope) {
         if (candidates.isEmpty()) {
+            log.info("上传对象回收（{}）：没有需要处理的候选", scope);
             return 0;
         }
         // 引用集合只查一次，避免对每个候选都扫一遍用户表
         Set<String> referenced = new HashSet<>(userMapper.listImageUrls());
 
         int recycled = 0;
-        int skipped = 0;
+        Map<String, Integer> candidatesByDay = new TreeMap<>();
         for (UploadFile candidate : candidates) {
+            candidatesByDay.merge(UploadObjectKey.dayOf(candidate.getObjectKey()).orElse("非按天布局"), 1, Integer::sum);
             if (referenced.contains(candidate.getUrl())) {
-                skipped++;
                 continue;
             }
             if (uploadService.recycleIfUnreferenced(candidate.getUrl())) {
                 recycled++;
             }
         }
-        log.info("上传对象回收完成：候选 {} 个，仍被引用 {} 个，实际回收 {} 个",
-                candidates.size(), skipped, recycled);
+        log.info("上传对象回收（{}）：候选 {} 个（按日期 {}），实际回收 {} 个",
+                scope, candidates.size(), candidatesByDay, recycled);
         return recycled;
     }
 }

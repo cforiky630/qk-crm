@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-227%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-236%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -251,7 +251,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：29 个测试类 / 227 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：30 个测试类 / 236 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -259,6 +259,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 守分层：扫描全部 `@GetMapping`/`@PostMapping` 等对外方法，断言返回值与参数（含泛型实参）里不出现 `com.qk.entity.po` 的任何类型；另外断言 Web 层（`controller` / `interceptor`）不直接依赖 `com.qk.mapper`。
 - [`AuthServiceTest`](qk-management/src/test/java/com/qk/AuthServiceTest.java) 守认证策略：登录成功/密码错误/账号不存在/账号停用，以及令牌的签名被改、格式非法、为空、**已过期**、账号不存在、账号停用 —— 全部应失效。
 - [`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 守报文：把同一个 PO 分别以实体和 VO 序列化并逐字节比对，VO 漏抄字段即失败。
+- [`BeanNameContractTest`](qk-management/src/test/java/com/qk/BeanNameContractTest.java) 守字段名契约：DTO 的字段必须在实体里同名同类型、实体的对外字段必须在 VO 里出现，并且真跑一遍 `copyProperties` 确认每个字段都搬过去了——这是反射拷贝唯一的防线，不连 Spring、不连数据库。
 - [`DateTimeFormatTest`](qk-management/src/test/java/com/qk/DateTimeFormatTest.java) 守时间契约：默认格式锁死 `yyyy-MM-dd HH:mm:ss`，同时证明字段级 `@JsonFormat` 能覆盖出参与入参。
 - [`GlobalExceptionHandlerTest`](qk-management/src/test/java/com/qk/GlobalExceptionHandlerTest.java) 守系统异常告警：走了一遍真实 MVC 处理链（兜底处理器带 `HttpServletRequest` 参数，直接调用测不出解析是否正常），并断言告警失败不影响 500 响应。
 - [`HardeningTest`](qk-management/src/test/java/com/qk/HardeningTest.java) 守上线级行为：主键注入、摘要不能当密码登录、操作不存在的数据、坏 JSON 返回 400、非法文件上传、操作日志密码脱敏、课程字段校验。
@@ -281,8 +282,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - **po** 只映射表列，不放 join 结果、不放请求参数；**持久化对象不出现在接口契约里**——对外方法的返回值与参数一律是 DTO / VO，由 [`LayeringTest`](qk-management/src/test/java/com/qk/LayeringTest.java) 从类型层面守卫（控制器内部仍可把请求 DTO 映射成实体再交给 Service，这是刻意的约定，不算破线）；
 - **dto** 负责入参（查询条件 `XxxQueryDto`、跨表命令 `ClueTrackDto` / `BusinessTrackDto`、登录 `LoginDto`）；
 - **vo** 负责出参，**每张有查询接口的表都有自己的 VO**（`UserVO`、`ClueVO`、`DeptVO`、`RoleVO`、`CourseVO`、`ActivityVO`…），`deptName` / `roleName` / `assignName` / `courseName`、跟进记录列表等展示字段也都在 VO 上；
-- **PO → VO 写成 VO 的静态工厂 `XxxVO.from(po)`，且逐个字段 setter，不用 `BeanUtil.copyProperties`**：前者漏抄或改名时编译期就报错，后者只会静默写入 null、悄悄改掉对外报文。[`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 逐字节比对 PO 与 VO 的序列化结果，锁死报文不变；
-- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解（长度与 DDL 列宽一致、手机号/邮箱带格式校验）；**控制器负责把 DTO 映射成实体**（逐个字段赋值，不用 `BeanUtil` 反射拷贝：字段改名后会静默停止拷贝，逐个赋值则编译期报错）再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
+- **DTO → PO、PO → VO 的字段搬运统一用 `BeanUtil.copyProperties`**，映射入口一共三类：控制器的 `toXxx(dto)`、VO 的静态工厂 `XxxVO.from(po)`、Service 里「跟进入参 → 实体」（`ClueTrackDto` / `BusinessTrackDto`，只属于跟进记录的 `record` / `trackStatus` / `keyItems` 显式登记为不搬运）。反射拷贝靠字段名约定、名字对不上只会静默写 null，因此这条**字段名契约由 [`BeanNameContractTest`](qk-management/src/test/java/com/qk/BeanNameContractTest.java) 用反射守住**：DTO 的字段必须在实体里同名同类型、实体的对外字段必须在 VO 里出现，并且真跑一遍拷贝确认每个字段都搬过去了——改名或漏抄立即测试失败，不连 Spring、不连数据库。[`OutputModelTest`](qk-management/src/test/java/com/qk/OutputModelTest.java) 另外逐字节比对 PO 与 VO 的序列化结果，锁死报文不变；
+- **写接口入参**用 `XxxSaveDto`（如 `DeptSaveDto`），字段上带 Bean Validation 注解（长度与 DDL 列宽一致、手机号/邮箱带格式校验）；**控制器负责把 DTO 映射成实体**（`BeanUtil.copyProperties`，靠字段名约定，由 `BeanNameContractTest` 守卫）再交给 Service，Service 不接受 Web 层的 DTO（避免业务层耦合传输契约）。校验失败由 `GlobalExceptionHandler` 统一转成 `code = 0` + 字段级提示。
 - **分页参数只有一处定义**：所有查询 DTO 继承 `PageQuery`（`page` / `pageSize` 的默认值与上下限），控制器入参加 `@Valid`。因此 `?page=`（空串）、`page=0`、`pageSize=0`、`pageSize=99999` 都会返回 `code = 0` + 字段提示，而不是 500 或静默返回空列表；上限 `PageQuery.MAX_PAGE_SIZE` 同时被 MyBatis-Plus 分页插件引用，两处口径不会漂移。
 - **超长字段不会变成 500**：DTO 上的 `@Size` 是第一道防线；`GlobalExceptionHandler` 另有 `DataIntegrityViolationException` 兜底（列超长、非空、类型不匹配等），把漏网的完整性错误转成 `code = 0`，不会触发运维告警。
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
@@ -420,13 +421,13 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 6. **客户 / 商机的「渠道来源」是选填**：服务端不做必填校验，`customer.channel` 与 `business.channel` 建表即为可空（`DEFAULT NULL`）；线索的 `channel` 仍是必填（原型 2.2 明确必填）。
 7. **两个「池」的口径与活动状态**：线索池只返回 `status = 4 伪线索`（与公海池只返回 `status = 4 回收` 一致）；`/clues`、`/businesses` 默认排除已关闭状态，但显式传 `status` 时按传入值筛选。活动状态（未开始/进行中/已结束）不落库，由 `/activities?activityStatus=` 按时间推算。
 8. **操作日志只记录增删改**：`@LogOperation` 只标注在写接口上，查询接口（GET）不写日志，因此日志列表里不会出现"查询部门/查询用户"这类记录。
-9. **上传**：已校验扩展名、文件头（魔术字节）与大小，对象仍是公共读。**已实现上传对象回收**：`upload_file` 台账记录每次上传（内容寻址，同一对象只登记一条）；删除用户 / 换头像时在事务提交后尽力同步删除，定时任务再按「超过宽限期（默认 24h）且当前无任何业务数据引用」兜底回收，覆盖了「上传头像后取消新增」这种根本没有业务写入的脏数据。回收的最终依据是引用扫描而非台账状态，因此绑定失败也不会误删在用图片。**仍有缺口**：绕过 `/upload` 直接往桶里写的对象不在台账内、不会被回收；引用扫描目前只覆盖 `user.image` 一列，新增图片来源列时需同步补 [`UserMapper.listImageUrls`](qk-management/src/main/java/com/qk/mapper/UserMapper.java)；「抢占回收权成功但进程随即崩溃」的极端窗口需要靠对象存储侧对账兜底。
+9. **上传**：已校验扩展名、文件头（魔术字节）与大小，对象仍是公共读。对象键按 `images/年/月/日/上传人ID/内容MD5后缀` 组织（布局见 [`UploadObjectKey`](qk-common/src/main/java/com/qk/common/storage/UploadObjectKey.java)）：**按天分目录**，清理任务能按日期前缀精确圈定"某一天上传的"；**同一天内**同一用户重复上传同一张图落到同一个对象（覆盖写，双击/重试幂等）。**已实现上传对象回收**：`upload_file` 台账记录每次上传；删除用户 / 换头像时在事务提交后尽力同步删除，定时任务再按「超过宽限期（默认 24h）且当前无任何业务数据引用」兜底回收，覆盖了「上传头像后取消新增」这种根本没有业务写入的脏数据；回收入口同时提供按天精确清理（[`cleanupDay`](qk-management/src/main/java/com/qk/service/UploadCleanupService.java)），漏跑后可补跑某一天。回收的最终依据是引用扫描而非台账状态，因此绑定失败也不会误删在用图片。**取舍与缺口**：跨天重复上传同一张图会产生第二个对象（旧对象若未被引用，次日即被回收，不会长期堆积）；绕过 `/upload` 直接往桶里写的对象不在台账内、不会被回收；引用扫描目前只覆盖 `user.image` 一列，新增图片来源列时需同步补 [`UserMapper.listImageUrls`](qk-management/src/main/java/com/qk/mapper/UserMapper.java)；「抢占回收权成功但进程随即崩溃」的极端窗口需要靠对象存储侧对账兜底。
 10. **只增表没有 `update_time`**：`clue_track_record`、`business_track_record`、`operate_log` 是只增表，只有创建时间（`operate_log` 叫 `operate_time`），严格来说不满足手册「表必备三字段」；时间列已补 `DEFAULT CURRENT_TIMESTAMP` 作为数据库侧兜底，业务写入仍以 Service 层为准。
 11. **列表检索使用全模糊**：各列表的手机号、姓名等条件为 `LIKE CONCAT('%', ?, '%')`，手册禁止左模糊与全模糊。改用前缀匹配或搜索引擎会改变检索结果，属于对外行为变更，故保留现状，待数据量上来后再评估。
 12. **0/1 语义字段未按 `is_xxx` 命名**：手册要求表达是与否的字段用 `is_xxx`，但 `job_status` 等字段改名会同时改变对外 JSON 字段名，属于破坏性契约变更，故保留（`status` 系列语义是「状态」而非布尔，不在该条款范围内）。
 13. **金额以整型存「元」**：`course.price`、`activity.voucher` 是 `int unsigned`（单位：元），不受手册「小数必须用 decimal」约束，但无法表达角、分。
 14. **操作日志的「操作模块 / 操作类型」尚未落库**：目前仍由 `OperateLogMapper.xml` 的 `CASE` 表达式在查询时从 `class_name` / `method_name` 翻译，`operateModule` / `operateType` 的模糊检索因此无法走索引，`operate_log` 增长后 `/logs` 会退化成全表扫描。彻底做法是在写入时把两个标签落成独立列并建索引（需要一次建表脚本变更），本次未一并处理。
-15. **未接入静态检查**：`BeanUtil` 之类的约定目前只靠注释与测试守卫，尚未接入 Alibaba P3C / SpotBugs 规则集，`Hutool` 也仍是 `hutool-all`（本地依赖仓库只有全量包，替换为 `hutool-core` / `hutool-crypto` / `hutool-jwt` 需要联网拉取）。
+15. **未接入静态检查**：字段名契约目前靠 [`BeanNameContractTest`](qk-management/src/test/java/com/qk/BeanNameContractTest.java) 守卫，尚未接入 Alibaba P3C / SpotBugs 规则集；`Hutool` 仍是 `hutool-all`（本地依赖仓库只有全量包，替换为 `hutool-core` / `hutool-crypto` / `hutool-jwt` 需要联网拉取），因此 `qk-entity` 也直接依赖了 `hutool-all`（VO 的 `from(po)` 需要 `BeanUtil`）。
 16. **权限只做「按角色的粗粒度隔离 + 按归属人的数据隔离」**：管理员独占基础数据/用户的新增改删与线索/商机分配，其余接口对所有登录角色放行；数据上非管理员只看「归给自己的 + 尚未分配的」。这是刻意的粗粒度：前端是已构建产物，服务端无法确知每个角色该看到哪些页面，**宁可少拦也不误拦**。曾实现过完整的权限点模型（权限目录 + `role_permission` 授权表 + 超级管理员角色 + 默认拒绝），因为角色授权的配置必须在角色管理页勾选、前端改不了而整体撤销，实现已从仓库移除；前端源码可用后再上「权限点 + 授权表」才有意义（届时只需把 `ApiPermissions.isAllowed` 改成读表，拦截器与 Controller 不用动）。另外两点已知边界：操作日志（`/logs`）仍对所有登录角色开放；首页概览（`/report/overview`）是全局计数，不按归属人收窄。
 
 ## 说明

@@ -1,5 +1,6 @@
 package com.qk.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -110,27 +111,17 @@ public class ClueServiceImpl implements ClueService {
         Clue existing = lockClue(clueTrackDto.getId());
         ClueLifecycle.ensure(ClueLifecycle.Action.TRACK, existing.getStatus());
         // 1. 更新线索：状态由服务端固定置为跟进中（前端即使传了 status 也不生效）
-        // 跟进时可以顺带更新客户资料，因此与线索同名的字段一并搬运；id 只用于定位
+        // 跟进时可以顺带更新客户资料，因此把与线索同名的字段一并搬运（copyProperties 按字段名匹配，
+        // dto 里的 record 在线索上没有同名字段，只进下面的跟进记录）
         Clue clue = new Clue();
-        clue.setId(clueTrackDto.getId());
-        clue.setPhone(clueTrackDto.getPhone());
-        clue.setChannel(clueTrackDto.getChannel());
-        clue.setActivityId(clueTrackDto.getActivityId());
-        clue.setName(clueTrackDto.getName());
-        clue.setGender(clueTrackDto.getGender());
-        clue.setAge(clueTrackDto.getAge());
-        clue.setWechat(clueTrackDto.getWechat());
-        clue.setQq(clueTrackDto.getQq());
-        clue.setSubject(clueTrackDto.getSubject());
-        clue.setLevel(clueTrackDto.getLevel());
-        clue.setNextTime(clueTrackDto.getNextTime());
+        BeanUtil.copyProperties(clueTrackDto, clue);
         clue.setStatus(ClueStatus.FOLLOWING.getCode());
         clueMapper.updateById(clue);
 
         // 2. 新增一条正常跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
         trackRecord.setClueId(clueTrackDto.getId());
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setSubject(clueTrackDto.getSubject());
         trackRecord.setLevel(clueTrackDto.getLevel());
         trackRecord.setRecord(clueTrackDto.getRecord());
@@ -153,7 +144,7 @@ public class ClueServiceImpl implements ClueService {
         // 2. 新增一条伪线索跟进记录
         ClueTrackRecord trackRecord = new ClueTrackRecord();
         trackRecord.setClueId(id);
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setType(ClueTrackType.FALSE_CLUE.getCode());
         trackRecord.setFalseReason(markFalseClueDto.getReason());
         trackRecord.setRecord(markFalseClueDto.getRemark());

@@ -33,7 +33,7 @@ public final class DataScope {
      * @return {@code null} 表示不限制（看全部）；否则表示「只看归给该用户ID名下的数据」（未分配的仍可见）
      */
     public static Long currentOwnerFilter() {
-        return ownerFilterFor(UserHolder.getCurrentRoleLabel(), UserHolder.getCurrentUser());
+        return ownerFilterFor(UserHolder.getCurrentRoleLabel(), UserHolder.getCurrentUserId());
     }
 
     /**

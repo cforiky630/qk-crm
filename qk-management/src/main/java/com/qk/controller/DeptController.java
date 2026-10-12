@@ -1,5 +1,6 @@
 package com.qk.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.DeptQueryDto;
@@ -88,14 +89,12 @@ public class DeptController {
      * 放在控制器而不是 Service：Service 不应依赖 Web 层的入参对象，
      * 否则接口字段一变，业务层就要跟着改。
      * <p>
-     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
-     * 实体字段改名后会静默停止拷贝，这里漏抄则编译期就报错。
+     * 字段搬运统一用 {@code BeanUtil.copyProperties}：DTO 与实体同名字段一一对应，
+     * 这条契约由 {@code BeanNameContractTest} 用反射守住（DTO 的字段在实体里改名或不存在，测试立即失败）。
      */
     private Dept toDept(DeptSaveDto dto) {
         Dept dept = new Dept();
-        dept.setId(dto.getId());
-        dept.setName(dto.getName());
-        dept.setStatus(dto.getStatus());
+        BeanUtil.copyProperties(dto, dept);
         return dept;
     }
 

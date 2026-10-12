@@ -8,6 +8,7 @@ import com.qk.mapper.UserMapper;
 import com.qk.service.UploadService;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -56,6 +57,34 @@ class UploadCleanupServiceImplTest {
         verify(userMapper, never()).listImageUrls();
     }
 
+    /**
+     * 按天清理：用对象键的日期前缀圈定范围，只处理那一天的上传
+     * <p>
+     * 定时任务据此处理「前一天的无效图片」，运维也可以在漏跑后精确补跑某一天。
+     */
+    @Test
+    void cleanupDayOnlyHandlesThatDaysObjects() {
+        when(uploadFileMapper.listByObjectKeyPrefix("images/2026/10/11/", 200))
+                .thenReturn(List.of(candidate("https://example.test/orphan.png")));
+        when(userMapper.listImageUrls()).thenReturn(List.of());
+        when(uploadService.recycleIfUnreferenced("https://example.test/orphan.png")).thenReturn(true);
+
+        assertEquals(1, cleanupService.cleanupDay(LocalDate.of(2026, 10, 11)));
+        verify(uploadFileMapper).listByObjectKeyPrefix("images/2026/10/11/", 200);
+    }
+
+    /** 某一天没有被引用时不被删掉（仍被业务使用的图片必须留着） */
+    @Test
+    void cleanupDayKeepsStillReferencedObjects() {
+        String url = "https://example.test/used.png";
+        when(uploadFileMapper.listByObjectKeyPrefix("images/2026/10/11/", 200))
+                .thenReturn(List.of(candidate(url)));
+        when(userMapper.listImageUrls()).thenReturn(List.of(url));
+
+        assertEquals(0, cleanupService.cleanupDay(LocalDate.of(2026, 10, 11)));
+        verify(uploadService, never()).recycleIfUnreferenced(url);
+    }
+
     /** 调度入口自己不能把调度线程搞挂，否则回收会永久停止 */
     @Test
     void scheduledCleanupSwallowsFailure() {
@@ -66,11 +95,12 @@ class UploadCleanupServiceImplTest {
         verify(uploadService, never()).recycleIfUnreferenced(anyString());
     }
 
+    /** 候选对象：按天布局的对象键，与真实写入一致 */
     private static UploadFile candidate(String url) {
         UploadFile file = new UploadFile();
         file.setStatus(UploadStatus.TEMP.getCode());
         file.setUrl(url);
-        file.setObjectKey("images/1/x.png");
+        file.setObjectKey("images/2026/10/11/1/x.png");
         file.setCreateTime(LocalDateTime.now().minusDays(2));
         return file;
     }

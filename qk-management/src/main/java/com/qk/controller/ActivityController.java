@@ -1,5 +1,6 @@
 package com.qk.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.entity.po.Activity;
 import com.qk.entity.dto.ActivityQueryDto;
 import com.qk.entity.dto.ActivitySaveDto;
@@ -85,20 +86,12 @@ public class ActivityController {
     /**
      * 协议适配：请求 DTO → 领域实体（Service 不依赖 Web 入参对象）
      * <p>
-     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
-     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     * 字段搬运统一用 {@code BeanUtil.copyProperties}：DTO 与实体同名字段一一对应，
+     * 这条契约由 {@code BeanNameContractTest} 用反射守住（DTO 的字段在实体里改名或不存在，测试立即失败）。
      */
     private Activity toActivity(ActivitySaveDto dto) {
         Activity activity = new Activity();
-        activity.setId(dto.getId());
-        activity.setChannel(dto.getChannel());
-        activity.setName(dto.getName());
-        activity.setStartTime(dto.getStartTime());
-        activity.setEndTime(dto.getEndTime());
-        activity.setDescription(dto.getDescription());
-        activity.setType(dto.getType());
-        activity.setDiscount(dto.getDiscount());
-        activity.setVoucher(dto.getVoucher());
+        BeanUtil.copyProperties(dto, activity);
         return activity;
     }
 

@@ -1,5 +1,6 @@
 package com.qk.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.aspect.anno.LogOperation;
 import com.qk.common.Result;
 import com.qk.entity.dto.CustomerQueryDto;
@@ -73,23 +74,12 @@ public class CustomerController {
     /**
      * 协议适配：请求 DTO → 领域实体（businessId 由 Service 赋值）
      * <p>
-     * 逐个字段赋值而不是 {@code BeanUtil.copyProperties}：反射拷贝靠字段名约定，
-     * 实体字段改名后会静默停止拷贝（行为悄悄变），这里漏抄则编译期就报错。
+     * 字段搬运统一用 {@code BeanUtil.copyProperties}：DTO 与实体同名字段一一对应，
+     * 这条契约由 {@code BeanNameContractTest} 用反射守住（DTO 的字段在实体里改名或不存在，测试立即失败）。
      */
     private Customer toCustomer(CustomerSaveDto dto) {
         Customer customer = new Customer();
-        customer.setId(dto.getId());
-        customer.setPhone(dto.getPhone());
-        customer.setChannel(dto.getChannel());
-        customer.setName(dto.getName());
-        customer.setGender(dto.getGender());
-        customer.setAge(dto.getAge());
-        customer.setWechat(dto.getWechat());
-        customer.setQq(dto.getQq());
-        customer.setDegree(dto.getDegree());
-        customer.setJobStatus(dto.getJobStatus());
-        customer.setSubject(dto.getSubject());
-        customer.setCourseId(dto.getCourseId());
+        BeanUtil.copyProperties(dto, customer);
         return customer;
     }
 }

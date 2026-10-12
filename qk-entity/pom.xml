@@ -41,6 +41,17 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
+        <!--
+          Hutool：VO 的静态工厂 XxxVO.from(po) 用 BeanUtil.copyProperties 做字段搬运，
+          放在模型模块里是为了让 PO → VO 的转换规则跟着模型走，不必把映射散到各 Service。
+          代价是本模块多一个工具依赖；版本与 qk-common / qk-management 同源（父 POM 管理），
+          且 hutool-all 本地仓库已有，不影响离线构建。
+        -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

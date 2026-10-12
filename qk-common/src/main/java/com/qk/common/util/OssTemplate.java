@@ -10,11 +10,13 @@ import com.qk.common.properties.OssProperties;
 import com.qk.common.storage.FileStorage;
 import com.qk.common.storage.ImageFormat;
 import com.qk.common.storage.StoredObject;
+import com.qk.common.storage.UploadObjectKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 
 /**
  * 文件存储出口的阿里云 OSS 实现
@@ -44,10 +46,10 @@ public class OssTemplate implements FileStorage {
             throw new BusinessException(ErrorCode.OSS_FILENAME_NO_EXTENSION);
         }
 
-        // 对象名按「内容哈希」生成，而不是随机 UUID：
-        // 同一用户重复上传同一张图会落到同一个对象上（覆盖写），
-        // 因此双击提交或网络重试都不会在 OSS 里堆积孤儿文件，上传天然幂等。
-        String objectName = buildObjectName(ownerId, suffix, content);
+        // 对象键按「年/月/日 + 上传人 + 内容哈希」生成（布局见 UploadObjectKey）：
+        // 按天分目录便于清理任务按前缀圈定某一天的图片；同一天内重复上传同一张图会覆盖同一个对象，
+        // 双击提交或网络重试不会堆积孤儿文件。
+        String objectName = UploadObjectKey.of(ownerId, suffix, content, LocalDate.now());
         String contentType = contentTypeOf(suffix);
 
         PutObjectRequest request = PutObjectRequest.newBuilder()
@@ -78,16 +80,6 @@ public class OssTemplate implements FileStorage {
                 .key(objectKey)
                 .build();
         ossClient.deleteObject(request);
-    }
-
-    /**
-     * 内容寻址的对象名：{@code images/{userId}/{内容MD5}{扩展名}}
-     * <p>
-     * 相同的上传人 + 相同的图片内容 → 同一个对象名，这正是上传幂等的实现方式。
-     */
-    static String buildObjectName(Long userId, String suffix, byte[] content) {
-        String userPath = userId == null ? "anonymous" : String.valueOf(userId);
-        return "images/" + userPath + "/" + DigestUtil.md5Hex(content) + suffix;
     }
 
     /** Content-Type 与白名单同源（{@link ImageFormat}）；未登记的扩展名按二进制流处理 */

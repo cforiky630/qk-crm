@@ -63,7 +63,7 @@ public class UploadServiceImpl implements UploadService {
             throw new BusinessException(ErrorCode.UPLOAD_IMAGE_CONTENT_INVALID);
         }
 
-        Long uploaderId = UserHolder.getCurrentUser();
+        Long uploaderId = UserHolder.getCurrentUserId();
         log.info("文件上传开始：{}，上传人：{}，大小：{} 字节", originalFilename, uploaderId, bytes.length);
         StoredObject stored = fileStorage.store(uploaderId, originalFilename, bytes);
         recordUpload(stored, uploaderId);

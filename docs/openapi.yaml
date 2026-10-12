@@ -1330,7 +1330,10 @@ paths:
       tags: [文件上传]
       summary: 上传图片到阿里云 OSS
       description: |
-        对象按 `images/{上传人ID}/{内容MD5}{后缀}` 命名（内容寻址：同一用户重复上传同一张图落到同一个对象，天然幂等），返回可公开访问的 URL。
+        对象键按 `images/年/月/日/{上传人ID}/{内容MD5}{后缀}` 组织：按天分目录，便于清理任务按日期前缀圈定某一天的图片；
+        同一天内同一用户重复上传同一张图会落到同一个对象（覆盖写，双击提交或重试都是幂等的）。
+        跨天上传同一张图会生成新对象，旧对象只要没被业务引用，第二天就会被清理任务回收。
+        接口返回可公开访问的 URL。
         只接受 jpg、jpeg、png、gif、bmp、webp 六种后缀；其他后缀返回 `code = 0`，
         `msg` 为「只支持 jpg、jpeg、png、gif、bmp、webp 格式的图片」。
         服务端还会校验文件头（魔术字节）必须与扩展名一致：把脚本改名成 `.png` 上传会返回 `code = 0`，
@@ -1340,7 +1343,7 @@ paths:
 
         上传成功后服务端会登记一条上传台账（`upload_file`），用于对象回收：删除用户或更换头像时，
         服务端会在业务事务提交后尽力同步删除不再被引用的对象；另有定时任务按「超过宽限期（默认 24h）
-        且当前无任何业务数据引用」兜底回收，覆盖「上传头像后取消新增」留下的对象。
+        且当前无任何业务数据引用」兜底回收，正常情况命中的就是前一天上传的那批，覆盖「上传头像后取消新增」留下的对象。
         因此调用方无需（也无法）在取消操作时显式删除已上传的图片，留待回收即可。
         本接口的请求与响应契约不变，仍然只返回一个可公开访问的 URL 字符串。
       operationId: uploadImage
@@ -2659,4 +2662,4 @@ components:
             data:
               type: string
               description: 图片访问 URL
-              example: https://qk-bucket-oss.oss-cn-beijing.aliyuncs.com/images/2025/06/01/a1b2c3d4e5f6.png
+              example: https://qk-bucket-oss.oss-cn-beijing.aliyuncs.com/images/2025/06/01/12/a1b2c3d4e5f6.png

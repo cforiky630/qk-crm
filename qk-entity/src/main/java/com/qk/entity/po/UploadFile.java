@@ -24,7 +24,7 @@ public class UploadFile {
     @TableId
     private Long id;
 
-    /** 对象存储里的键，如 images/12/<md5>.png */
+    /** 对象存储里的键，如 images/2026/10/12/12/<md5>.png（年/月/日/上传人/内容哈希） */
     private String objectKey;
 
     /** 对外访问地址（写进业务表的那个值） */

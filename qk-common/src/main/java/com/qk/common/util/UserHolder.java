@@ -34,13 +34,10 @@ public class UserHolder {
 
     /**
      * 当前登录用户ID
-     * <p>
-     * 方法名沿用历史叫法（实际返回的是ID），改名为 {@code getCurrentUserId} 会牵动所有业务调用点，
-     * 收益只是措辞，因此保留。
      *
      * @return 用户ID；未登录时返回 {@code null}
      */
-    public static Long getCurrentUser() {
+    public static Long getCurrentUserId() {
         CurrentUser currentUser = CURRENT_USER.get();
         return currentUser == null ? null : currentUser.id();
     }

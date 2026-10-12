@@ -1,5 +1,6 @@
 package com.qk.entity.vo;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.qk.entity.po.Role;
 import lombok.Data;
 
@@ -11,8 +12,8 @@ import java.time.LocalDateTime;
  * 只暴露可展示字段：与 {@link Role} 相比不含内部列 {@code deleted}，因此持久化对象
  * 不必再依赖 {@code @JsonIgnore} 才能不出现在报文里（注解只是额外保险，不再是唯一防线）。
  * <p>
- * 转换刻意用逐个 setter 而不是 {@code BeanUtil.copyProperties}：后者在字段改名或漏抄时
- * 只会静默写入 null，等于悄悄改掉对外报文；逐个 setter 会让编译期直接报错。
+ * 字段搬运统一用 {@code BeanUtil.copyProperties}：PO 与 VO 的字段名必须一致，这条契约由
+ * {@code BeanNameContractTest} 用反射守住——PO 的对外字段一旦在 VO 里改名或缺失，测试立即失败。
  */
 @Data
 public class RoleVO {
@@ -46,12 +47,7 @@ public class RoleVO {
             return null;
         }
         RoleVO vo = new RoleVO();
-        vo.setId(po.getId());
-        vo.setName(po.getName());
-        vo.setLabel(po.getLabel());
-        vo.setRemark(po.getRemark());
-        vo.setCreateTime(po.getCreateTime());
-        vo.setUpdateTime(po.getUpdateTime());
+        BeanUtil.copyProperties(po, vo);
         return vo;
     }
 }

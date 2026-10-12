@@ -149,7 +149,7 @@ class UploadFileLedgerTest {
         UploadFile file = new UploadFile();
         String suffix = ".png";
         String md5 = DigestUtil.md5Hex("ledger-" + SEQ.incrementAndGet());
-        file.setObjectKey("images/1/" + md5 + suffix);
+        file.setObjectKey("images/2026/10/12/1/" + md5 + suffix);
         file.setUrl("https://example.test/" + md5 + suffix);
         file.setUploaderId(1L);
         file.setContentMd5(md5);

@@ -23,17 +23,17 @@
         <include refid="viewSelect"/>
         <where>
             u.is_deleted = 0
-            <if test="userDto.name != null and userDto.name != ''">
-                AND u.name LIKE CONCAT('%', #{userDto.name}, '%')
+            <if test="userQueryDto.name != null and userQueryDto.name != ''">
+                AND u.name LIKE CONCAT('%', #{userQueryDto.name}, '%')
             </if>
-            <if test="userDto.status != null">
-                AND u.status = #{userDto.status}
+            <if test="userQueryDto.status != null">
+                AND u.status = #{userQueryDto.status}
             </if>
-            <if test="userDto.phone != null and userDto.phone != ''">
-                AND u.phone LIKE CONCAT('%', #{userDto.phone}, '%')
+            <if test="userQueryDto.phone != null and userQueryDto.phone != ''">
+                AND u.phone LIKE CONCAT('%', #{userQueryDto.phone}, '%')
             </if>
-            <if test="userDto.deptId != null">
-                AND u.dept_id = #{userDto.deptId}
+            <if test="userQueryDto.deptId != null">
+                AND u.dept_id = #{userQueryDto.deptId}
             </if>
         </where>
         <!-- 与页面原型一致：按最后修改时间倒序（刚改过的用户排在最前），末尾补 id 保证翻页稳定 -->

@@ -2,7 +2,7 @@ package com.qk.service;
 
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.po.User;
-import com.qk.entity.dto.UserDto;
+import com.qk.entity.dto.UserQueryDto;
 import com.qk.entity.vo.UserVO;
 
 import java.util.List;
@@ -15,10 +15,10 @@ public interface UserService {
     /**
      * 条件分页查询用户列表（含部门名称、角色名称）
      *
-     * @param userDto 查询参数
+     * @param userQueryDto 查询参数
      * @return 查询结果
      */
-    PageResult<UserVO> listUsers(UserDto userDto);
+    PageResult<UserVO> listUsers(UserQueryDto userQueryDto);
 
     /**
      * 新增用户，未指定密码时使用默认密码（用户名 + 123 的 MD5 摘要）

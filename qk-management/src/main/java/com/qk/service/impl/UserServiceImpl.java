@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qk.entity.vo.PageResult;
 import com.qk.entity.po.User;
-import com.qk.entity.dto.UserDto;
+import com.qk.entity.dto.UserQueryDto;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
@@ -69,16 +69,16 @@ public class UserServiceImpl implements UserService {
     /**
      * 条件分页查询用户列表
      *
-     * @param userDto 查询参数
+     * @param userQueryDto 查询参数
      * @return 分页查询结果
      */
     @Override
-    public PageResult<UserVO> listUsers(UserDto userDto) {
+    public PageResult<UserVO> listUsers(UserQueryDto userQueryDto) {
         // 1.设置分页条件
-        Page<UserVO> p = new Page<>(userDto.getPage(), userDto.getPageSize());
+        Page<UserVO> p = new Page<>(userQueryDto.getPage(), userQueryDto.getPageSize());
 
         // 2. 执行分页查询
-        IPage<UserVO> userPage = userMapper.listUsers(p, userDto);
+        IPage<UserVO> userPage = userMapper.listUsers(p, userQueryDto);
 
         // 3. 封装返回结果
         return new PageResult<>(userPage.getTotal(), userPage.getRecords());
@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService {
 
         // 守卫：不允许把当前登录用户自己停用。
         // 登录会拒绝 status=0 的账号，一旦把自己停用，就再也进不来了（与「不能删除自己」同类）。
-        Long currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUserId();
         if (currentUserId != null && currentUserId.equals(user.getId())
                 && EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
             throw new BusinessException(ErrorCode.USER_CANNOT_DISABLE_SELF);
@@ -164,7 +164,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // 守卫 1：不允许删除当前登录用户自己，避免把自己锁在系统外
-        Long currentUserId = UserHolder.getCurrentUser();
+        Long currentUserId = UserHolder.getCurrentUserId();
         if (currentUserId != null && targetIds.contains(currentUserId)) {
             throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
         }

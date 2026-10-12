@@ -1,5 +1,6 @@
 package com.qk.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -156,29 +157,17 @@ public class BusinessServiceImpl implements BusinessService {
         Business existing = lockBusiness(businessTrackDto.getId());
         BusinessLifecycle.ensure(BusinessLifecycle.Action.TRACK, existing.getStatus());
         // 1. 更新商机：状态由服务端固定置为跟进中
-        // 跟进时可以顺带更新客户资料，因此与商机同名的字段一并搬运；id 只用于定位
+        // 跟进时可以顺带更新客户资料，因此把与商机同名的字段一并搬运（copyProperties 按字段名匹配，
+        // dto 里的 trackStatus / keyItems / record 在商机上没有同名字段，只进下面的跟进记录）
         Business business = new Business();
-        business.setId(businessTrackDto.getId());
-        business.setName(businessTrackDto.getName());
-        business.setPhone(businessTrackDto.getPhone());
-        business.setGender(businessTrackDto.getGender());
-        business.setAge(businessTrackDto.getAge());
-        business.setWechat(businessTrackDto.getWechat());
-        business.setQq(businessTrackDto.getQq());
-        business.setSubject(businessTrackDto.getSubject());
-        business.setCourseId(businessTrackDto.getCourseId());
-        business.setDegree(businessTrackDto.getDegree());
-        business.setJobStatus(businessTrackDto.getJobStatus());
-        business.setChannel(businessTrackDto.getChannel());
-        business.setRemark(businessTrackDto.getRemark());
-        business.setNextTime(businessTrackDto.getNextTime());
+        BeanUtil.copyProperties(businessTrackDto, business);
         business.setStatus(BusinessStatus.FOLLOWING.getCode());
         businessMapper.updateById(business);
 
         // 2. 新增一条商机跟进记录
         BusinessTrackRecord trackRecord = new BusinessTrackRecord();
         trackRecord.setBusinessId(businessTrackDto.getId());
-        trackRecord.setUserId(UserHolder.getCurrentUser());
+        trackRecord.setUserId(UserHolder.getCurrentUserId());
         trackRecord.setTrackStatus(businessTrackDto.getTrackStatus());
         trackRecord.setKeyItems(toKeyItems(businessTrackDto.getKeyItems()));
         trackRecord.setNextTime(businessTrackDto.getNextTime());
