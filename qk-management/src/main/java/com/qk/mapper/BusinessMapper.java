@@ -29,18 +29,23 @@ public interface BusinessMapper extends BaseMapper<Business> {
      * 显式传 status 时按传入值筛选，对应前端状态下拉里的全部选项。
      */
     IPage<BusinessVO> listBusinesses(Page<BusinessVO> page, @Param("businessQueryDto") BusinessQueryDto businessQueryDto,
-                                     @Param("closedCodes") List<Integer> closedCodes);
+                                     @Param("closedCodes") List<Integer> closedCodes,
+                                     @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 根据ID查询商机基本信息（不含跟进记录）
+     *
+     * @param visibleOwnerId 数据可见范围：非空时只返回「归给该用户」或「尚未分配」的商机，
+     *                       别人的数据查不到（表现为不存在），由 {@link com.qk.domain.DataScope} 计算
      */
-    BusinessVO getBusinessById(@Param("id") Long id);
+    BusinessVO getBusinessById(@Param("id") Long id, @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 公海池列表（回收的商机）
      */
     IPage<BusinessVO> getPoolBusinesses(Page<BusinessVO> page, @Param("businessPoolDto") BusinessPoolDto businessPoolDto,
-                                        @Param("poolStatus") Integer poolStatus);
+                                        @Param("poolStatus") Integer poolStatus,
+                                        @Param("visibleOwnerId") Long visibleOwnerId);
 
     /** 按主键加行锁读取商机（{@code SELECT ... FOR UPDATE}），必须在事务内调用，理由见 ClueMapper#lockById */
     Business lockById(@Param("id") Long id);

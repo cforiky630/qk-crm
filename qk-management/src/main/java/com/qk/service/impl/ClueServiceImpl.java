@@ -17,6 +17,7 @@ import com.qk.entity.po.User;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
 import com.qk.domain.ClueLifecycle;
+import com.qk.domain.DataScope;
 import com.qk.mapper.ActivityMapper;
 import com.qk.mapper.ClueMapper;
 import com.qk.mapper.ClueTrackRecordMapper;
@@ -58,7 +59,8 @@ public class ClueServiceImpl implements ClueService {
     @Override
     public PageResult<ClueVO> listClues(ClueQueryDto clueQueryDto) {
         Page<ClueVO> page = new Page<>(clueQueryDto.getPage(), clueQueryDto.getPageSize());
-        IPage<ClueVO> cluePage = clueMapper.listClues(page, clueQueryDto, ClueLifecycle.closedCodes());
+        IPage<ClueVO> cluePage = clueMapper.listClues(page, clueQueryDto, ClueLifecycle.closedCodes(),
+                DataScope.currentOwnerFilter());
         return new PageResult<>(cluePage.getTotal(), cluePage.getRecords());
     }
 
@@ -93,7 +95,7 @@ public class ClueServiceImpl implements ClueService {
 
     @Override
     public ClueVO getClueById(Long id) {
-        ClueVO clue = clueMapper.getClueById(id);
+        ClueVO clue = clueMapper.getClueById(id, DataScope.currentOwnerFilter());
         if (clue == null) {
             throw new BusinessException(ErrorCode.CLUE_NOT_FOUND);
         }
@@ -174,7 +176,8 @@ public class ClueServiceImpl implements ClueService {
     @Override
     public PageResult<ClueVO> listPoolClues(CluePoolDto cluePoolDto) {
         Page<ClueVO> page = new Page<>(cluePoolDto.getPage(), cluePoolDto.getPageSize());
-        IPage<ClueVO> cluePage = clueMapper.getPoolClues(page, cluePoolDto, ClueLifecycle.poolStatus());
+        IPage<ClueVO> cluePage = clueMapper.getPoolClues(page, cluePoolDto, ClueLifecycle.poolStatus(),
+                DataScope.currentOwnerFilter());
         return new PageResult<>(cluePage.getTotal(), cluePage.getRecords());
     }
 

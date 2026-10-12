@@ -28,18 +28,23 @@ public interface ClueMapper extends BaseMapper<Clue> {
      * 显式传 status 时按传入值筛选，对应前端状态下拉里的全部选项。
      */
     IPage<ClueVO> listClues(Page<ClueVO> page, @Param("clueQueryDto") ClueQueryDto clueQueryDto,
-                            @Param("closedCodes") List<Integer> closedCodes);
+                            @Param("closedCodes") List<Integer> closedCodes,
+                            @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 根据ID查询线索基本信息（不含跟进记录）
+     *
+     * @param visibleOwnerId 数据可见范围：非空时只返回「归给该用户」或「尚未分配」的线索，
+     *                       别人的数据查不到（表现为不存在），由 {@link com.qk.domain.DataScope} 计算
      */
-    ClueVO getClueById(@Param("id") Long id);
+    ClueVO getClueById(@Param("id") Long id, @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 线索池列表（含活动名称），只返回伪线索（status = 4），供重新分配
      */
     IPage<ClueVO> getPoolClues(Page<ClueVO> page, @Param("cluePoolDto") CluePoolDto cluePoolDto,
-                               @Param("poolStatus") Integer poolStatus);
+                               @Param("poolStatus") Integer poolStatus,
+                               @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 按主键加行锁读取线索（{@code SELECT ... FOR UPDATE}），供状态流转使用

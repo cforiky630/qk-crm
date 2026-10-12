@@ -1,5 +1,6 @@
 package com.qk.interceptor;
 
+import com.qk.common.util.CurrentUser;
 import com.qk.common.util.UserHolder;
 import com.qk.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,9 +15,12 @@ import java.util.Optional;
 /**
  * 登录校验拦截器
  * <p>
- * 只做协议适配：取请求头 → 交给 {@link AuthService} 校验 → 把用户ID放进 ThreadLocal。
- * 「令牌怎么校验、账号还能不能用」属于认证规则，不在 Web 层实现，
+ * 只做协议适配：取请求头 → 交给 {@link AuthService} 校验 → 把身份（用户ID + 角色标识）放进 ThreadLocal。
+ * 「令牌怎么校验、账号还能不能用、角色是什么」属于认证规则，不在 Web 层实现，
  * 因此这里既不依赖 JWT 工具，也不依赖任何 Mapper。
+ * <p>
+ * 放进 ThreadLocal 的角色供后面的 {@link PermissionInterceptor} 判断权限；
+ * 本类只管「你是谁」，不管「你能不能调这个接口」。
  */
 @Slf4j
 @Component
@@ -38,15 +42,15 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 签名、有效期、账号是否存在与启用，全部由认证服务判断
-        Optional<Long> userId = authService.authenticate(token);
-        if (userId.isEmpty()) {
+        // 签名、有效期、账号是否存在与启用、角色查询，全部由认证服务判断
+        Optional<CurrentUser> currentUser = authService.authenticate(token);
+        if (currentUser.isEmpty()) {
             log.info("令牌无效或账号不可用，拒绝访问: {} {}", request.getMethod(), request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
-        UserHolder.setCurrentUser(userId.get());
+        UserHolder.setCurrentUser(currentUser.get());
         return true;
     }
 

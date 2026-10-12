@@ -3,6 +3,7 @@ package com.qk;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.jwt.JWT;
 import com.qk.common.properties.JwtProperties;
+import com.qk.common.util.CurrentUser;
 import com.qk.common.util.JwtUtil;
 import com.qk.entity.po.User;
 import com.qk.entity.vo.LoginResultVO;
@@ -83,7 +84,12 @@ class AuthServiceTest {
 
     @Test
     void authenticateAcceptsTokenOfActiveAccount() {
-        assertEquals(Optional.of(activeUser.getId()), authService.authenticate(tokenFor(activeUser)));
+        Optional<CurrentUser> currentUser = authService.authenticate(tokenFor(activeUser));
+
+        assertTrue(currentUser.isPresent(), "正常账号的令牌必须通过校验");
+        assertEquals(activeUser.getId(), currentUser.get().id());
+        // 角色按主键现查（测试账号 role_id = 1，即种子数据里的 admin），令牌里不带角色
+        assertEquals("admin", currentUser.get().roleLabel());
     }
 
     @Test

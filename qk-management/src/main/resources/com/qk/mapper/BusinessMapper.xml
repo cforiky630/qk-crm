@@ -39,6 +39,10 @@
             <if test="businessQueryDto.assignName != null and businessQueryDto.assignName != ''">
                 AND u.name LIKE CONCAT('%', #{businessQueryDto.assignName}, '%')
             </if>
+            <!-- 数据可见范围：非空时（内置专员）只返回归给自己的商机，外加尚未分配的 -->
+            <if test="visibleOwnerId != null">
+                AND (b.user_id IS NULL OR b.user_id = #{visibleOwnerId})
+            </if>
         </where>
         ORDER BY b.update_time DESC, b.id DESC
     </select>
@@ -53,6 +57,9 @@
         LEFT JOIN `user` u ON b.user_id = u.id AND u.is_deleted = 0
         LEFT JOIN course c ON b.course_id = c.id AND c.is_deleted = 0
         WHERE b.id = #{id}
+        <if test="visibleOwnerId != null">
+            AND (b.user_id IS NULL OR b.user_id = #{visibleOwnerId})
+        </if>
     </select>
 
     <!-- 公海池：只查回收状态（4）的商机 -->
@@ -71,6 +78,9 @@
             </if>
             <if test="businessPoolDto.subject != null">
                 AND b.subject = #{businessPoolDto.subject}
+            </if>
+            <if test="visibleOwnerId != null">
+                AND (b.user_id IS NULL OR b.user_id = #{visibleOwnerId})
             </if>
         </where>
         ORDER BY b.update_time DESC, b.id DESC

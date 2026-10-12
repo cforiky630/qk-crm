@@ -1,5 +1,6 @@
 package com.qk.service;
 
+import com.qk.common.util.CurrentUser;
 import com.qk.entity.vo.LoginResultVO;
 
 import java.util.Optional;
@@ -24,13 +25,16 @@ public interface AuthService {
     LoginResultVO login(String username, String password);
 
     /**
-     * 校验令牌并返回可用账号的ID
+     * 校验令牌并返回可用账号的身份
      * <p>
-     * 同时覆盖三件事：签名与有效期、账号是否存在、账号是否启用。
+     * 同时覆盖四件事：签名与有效期、账号是否存在、账号是否启用、账号当前的角色。
      * 任一不满足都返回空，调用方一律按 401 处理。
+     * <p>
+     * 角色在这里按主键现查，而不是塞进令牌：改了角色下一次请求就生效，
+     * 代价是每请求多一次主键查询（与「账号停用立即失效」用的是同一种取舍）。
      *
      * @param token 请求头 {@code token} 的值
-     * @return 账号ID；令牌不合法或账号不可用时返回空
+     * @return 账号身份（用户ID + 角色标识，角色取不到时为 null）；令牌不合法或账号不可用时返回空
      */
-    Optional<Long> authenticate(String token);
+    Optional<CurrentUser> authenticate(String token);
 }

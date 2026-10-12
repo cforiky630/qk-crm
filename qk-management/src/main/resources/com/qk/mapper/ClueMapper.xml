@@ -47,6 +47,14 @@
             <if test="clueQueryDto.assignName != null and clueQueryDto.assignName != ''">
                 AND u.name LIKE CONCAT('%', #{clueQueryDto.assignName}, '%')
             </if>
+            <!--
+              数据可见范围：visibleOwnerId 非空时（内置专员）只返回归给自己的线索，
+              外加尚未分配的（user_id IS NULL）——「隐藏别人的」而不是「只看自己的」，
+              避免刚新增、还没分配的线索自己就看不见了。null 表示不限制（管理员 / 定时任务）。
+            -->
+            <if test="visibleOwnerId != null">
+                AND (c.user_id IS NULL OR c.user_id = #{visibleOwnerId})
+            </if>
         </where>
         ORDER BY c.update_time DESC, c.id DESC
     </select>
@@ -55,6 +63,9 @@
     <select id="getClueById" resultType="com.qk.entity.vo.ClueVO">
         <include refid="listSelect"/>
         WHERE c.id = #{id}
+        <if test="visibleOwnerId != null">
+            AND (c.user_id IS NULL OR c.user_id = #{visibleOwnerId})
+        </if>
     </select>
 
     <!--
@@ -74,6 +85,9 @@
             </if>
             <if test="cluePoolDto.channel != null">
                 AND c.channel = #{cluePoolDto.channel}
+            </if>
+            <if test="visibleOwnerId != null">
+                AND (c.user_id IS NULL OR c.user_id = #{visibleOwnerId})
             </if>
         </where>
         ORDER BY c.update_time DESC, c.id DESC

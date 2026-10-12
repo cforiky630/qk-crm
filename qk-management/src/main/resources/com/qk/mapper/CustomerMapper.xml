@@ -2,11 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.qk.mapper.CustomerMapper">
 
-    <!-- 客户视图：附带意向课程名称 -->
+    <!--
+      客户视图：附带意向课程名称，并连接来源商机以便做数据隔离。
+      客户表本身没有归属人字段，归属人是通过「由哪个商机转化而来」体现的（business.user_id）；
+      手工新增的客户没有来源商机，也就没有归属人，对所有人可见（与「未分配的可见」保持一致）。
+    -->
     <sql id="viewSelect">
         SELECT cu.*, c.name AS course_name
         FROM customer cu
         LEFT JOIN course c ON cu.course_id = c.id AND c.is_deleted = 0
+        LEFT JOIN business b ON cu.business_id = b.id
     </sql>
 
     <select id="listCustomers" resultType="com.qk.entity.vo.CustomerVO">
@@ -24,6 +29,10 @@
             <if test="customerQueryDto.subject != null">
                 AND cu.subject = #{customerQueryDto.subject}
             </if>
+            <!-- 数据可见范围：非空时（内置专员）隐藏「归属人不是我」的客户；无来源商机的客户没有归属人，保持可见 -->
+            <if test="visibleOwnerId != null">
+                AND (cu.business_id IS NULL OR b.user_id IS NULL OR b.user_id = #{visibleOwnerId})
+            </if>
         </where>
         ORDER BY cu.create_time DESC, cu.id DESC
     </select>
@@ -31,6 +40,9 @@
     <select id="getCustomerById" resultType="com.qk.entity.vo.CustomerVO">
         <include refid="viewSelect"/>
         WHERE cu.id = #{id}
+        <if test="visibleOwnerId != null">
+            AND (cu.business_id IS NULL OR b.user_id IS NULL OR b.user_id = #{visibleOwnerId})
+        </if>
     </select>
 
 </mapper>

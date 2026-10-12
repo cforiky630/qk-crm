@@ -16,6 +16,7 @@ import com.qk.entity.enums.EnableStatus;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
 import com.qk.domain.BusinessLifecycle;
+import com.qk.domain.DataScope;
 import com.qk.mapper.BusinessMapper;
 import com.qk.mapper.BusinessTrackRecordMapper;
 import com.qk.mapper.CourseMapper;
@@ -63,7 +64,7 @@ public class BusinessServiceImpl implements BusinessService {
     public PageResult<BusinessVO> listBusinesses(BusinessQueryDto businessQueryDto) {
         Page<BusinessVO> page = new Page<>(businessQueryDto.getPage(), businessQueryDto.getPageSize());
         IPage<BusinessVO> businessPage = businessMapper.listBusinesses(page, businessQueryDto,
-                BusinessLifecycle.closedCodes());
+                BusinessLifecycle.closedCodes(), DataScope.currentOwnerFilter());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
 
@@ -140,7 +141,7 @@ public class BusinessServiceImpl implements BusinessService {
 
     @Override
     public BusinessVO getBusinessById(Long id) {
-        BusinessVO business = businessMapper.getBusinessById(id);
+        BusinessVO business = businessMapper.getBusinessById(id, DataScope.currentOwnerFilter());
         if (business == null) {
             throw new BusinessException(ErrorCode.BUSINESS_NOT_FOUND);
         }
@@ -189,7 +190,7 @@ public class BusinessServiceImpl implements BusinessService {
     public PageResult<BusinessVO> listPoolBusinesses(BusinessPoolDto businessPoolDto) {
         Page<BusinessVO> page = new Page<>(businessPoolDto.getPage(), businessPoolDto.getPageSize());
         IPage<BusinessVO> businessPage = businessMapper.getPoolBusinesses(page, businessPoolDto,
-                BusinessLifecycle.poolStatus());
+                BusinessLifecycle.poolStatus(), DataScope.currentOwnerFilter());
         return new PageResult<>(businessPage.getTotal(), businessPage.getRecords());
     }
 

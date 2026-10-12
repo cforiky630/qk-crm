@@ -20,13 +20,20 @@ public interface CustomerMapper extends BaseMapper<Customer> {
 
     /**
      * 客户列表（含意向课程名称）
+     *
+     * @param visibleOwnerId 数据可见范围：非空时只返回「归属人是我」或「还没有归属人」的客户。
+     *                       客户的归属人来自它的来源商机（{@code business.user_id}），
+     *                       由 {@link com.qk.domain.DataScope} 计算
      */
-    IPage<CustomerVO> listCustomers(Page<CustomerVO> page, @Param("customerQueryDto") CustomerQueryDto customerQueryDto);
+    IPage<CustomerVO> listCustomers(Page<CustomerVO> page, @Param("customerQueryDto") CustomerQueryDto customerQueryDto,
+                                    @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 根据ID查询客户（含意向课程名称）
+     * <p>
+     * 别人名下的客户查不到，表现为「客户不存在」，不泄露该数据是否存在。
      */
-    CustomerVO getCustomerById(@Param("id") Long id);
+    CustomerVO getCustomerById(@Param("id") Long id, @Param("visibleOwnerId") Long visibleOwnerId);
 
     /**
      * 统计引用某课程的客户数（用于删除课程前的引用校验）

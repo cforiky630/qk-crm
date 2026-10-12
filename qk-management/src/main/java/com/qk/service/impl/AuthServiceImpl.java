@@ -2,6 +2,7 @@ package com.qk.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
+import com.qk.common.util.CurrentUser;
 import com.qk.common.util.JwtUtil;
 import com.qk.entity.enums.EnableStatus;
 import com.qk.entity.po.Role;
@@ -79,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public Optional<Long> authenticate(String token) {
+    public Optional<CurrentUser> authenticate(String token) {
         // 签名与有效期由 JwtUtil 一并校验（内部把格式错误、签名不匹配、已过期都归为校验失败）
         if (!StringUtils.hasLength(token) || !jwtUtil.verify(token)) {
             log.debug("令牌为空、被篡改或已过期");
@@ -87,21 +88,20 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 令牌通过签名校验不代表账号仍然可用：停用或删除账号后，已签发的令牌在有效期内
-        // 依然能通过签名与过期校验，因此这里按主键查一次账号状态（走主键索引，代价很小）。
+        // 依然能通过签名与过期校验，因此这里按主键查一次账号（走主键索引，代价很小）。
         Long userId = jwtUtil.getUserId(token);
-        if (!isActiveAccount(userId)) {
+        User user = userId == null ? null : userMapper.selectById(userId);
+        if (user == null || EnableStatus.DISABLED.getCode().equals(user.getStatus())) {
             log.debug("令牌对应的账号不存在或已停用: userId={}", userId);
             return Optional.empty();
         }
-        return Optional.of(userId);
-    }
 
-    /** 账号必须存在且处于正常状态（status = 1）；逻辑删除的账号由 @TableLogic 自动排除 */
-    private boolean isActiveAccount(Long userId) {
-        if (userId == null) {
-            return false;
+        // 角色同样现查：不放进令牌，保证角色调整后立刻生效。
+        // 查不到角色（用户没配角色、角色被删）时角色为 null，权限判断会按「身份不明」放行。
+        Role role = user.getRoleId() == null ? null : roleMapper.selectById(user.getRoleId());
+        if (role == null) {
+            log.debug("账号未配置可用角色，按身份不明处理: userId={}", userId);
         }
-        User user = userMapper.selectById(userId);
-        return user != null && !EnableStatus.DISABLED.getCode().equals(user.getStatus());
+        return Optional.of(new CurrentUser(user.getId(), role == null ? null : role.getLabel()));
     }
 }

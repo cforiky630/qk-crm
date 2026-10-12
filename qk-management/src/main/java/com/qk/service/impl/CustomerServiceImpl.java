@@ -9,6 +9,7 @@ import com.qk.entity.vo.PageResult;
 import com.qk.entity.dto.CustomerQueryDto;
 import com.qk.common.exception.BusinessException;
 import com.qk.common.exception.ErrorCode;
+import com.qk.domain.DataScope;
 import com.qk.mapper.CourseMapper;
 import com.qk.mapper.CustomerMapper;
 import com.qk.service.CustomerService;
@@ -35,7 +36,8 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public PageResult<CustomerVO> listCustomers(CustomerQueryDto customerQueryDto) {
         Page<CustomerVO> page = new Page<>(customerQueryDto.getPage(), customerQueryDto.getPageSize());
-        IPage<CustomerVO> customerPage = customerMapper.listCustomers(page, customerQueryDto);
+        IPage<CustomerVO> customerPage = customerMapper.listCustomers(page, customerQueryDto,
+                DataScope.currentOwnerFilter());
         return new PageResult<>(customerPage.getTotal(), customerPage.getRecords());
     }
 
@@ -75,7 +77,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerVO getCustomerById(Long id) {
-        CustomerVO customer = customerMapper.getCustomerById(id);
+        CustomerVO customer = customerMapper.getCustomerById(id, DataScope.currentOwnerFilter());
         if (customer == null) {
             throw new BusinessException(ErrorCode.CUSTOMER_NOT_FOUND);
         }

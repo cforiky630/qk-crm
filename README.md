@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Spring%20Boot-4.0.8-brightgreen" alt="Spring Boot">
   <img src="https://img.shields.io/badge/MyBatis--Plus-3.5.17-blue" alt="MyBatis-Plus">
   <img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1" alt="MySQL">
-  <img src="https://img.shields.io/badge/tests-208%20passed-success" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-227%20passed-success" alt="Tests">
 </p>
 
 </div>
@@ -54,7 +54,7 @@
 | 基础数据 | 部门、角色、课程的增删改查与下拉列表 |
 | 活动管理 | 活动的增删改查、按渠道/类型/活动状态（未开始、进行中、已结束）筛选 |
 | 统计分析 | 首页概览（线索与商机各阶段数量） |
-| 系统能力 | JWT 登录鉴权、图片上传到阿里云 OSS（上传台账 + 删除同步回收 + 定时兜底）、AOP 操作日志、统一响应与全局异常处理 |
+| 系统能力 | JWT 登录鉴权、按角色的接口权限与数据隔离（拿不准一律放行）、图片上传到阿里云 OSS（上传台账 + 删除同步回收 + 定时兜底）、AOP 操作日志、统一响应与全局异常处理 |
 
 ## 技术栈
 
@@ -214,6 +214,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 **通用约定**
 
 - 统一响应 `Result`：`code` 为 `1` 成功、`0` 失败（业务失败同样返回 HTTP 200，按 `code` 判断）；分页统一 `{ total, rows }`，`pageSize` 单页上限 200。
+- 权限不足同样按业务失败返回：HTTP 200 + `code = 0` + `msg`「权限不足，无法执行此操作」，与其它业务失败的表现一致。
 - 状态码语义：`200` 成功或业务失败 · `400` 请求体/参数处理失败 · `401` 未登录或令牌对应的账号不可用（响应体为空）· `404` 路径不存在 · `405` 请求方法不支持 · `415` 请求的 Content-Type 不支持 · `500` 服务端异常。
 - 框架层错误不再降级成 500：`GlobalExceptionHandler` 显式接住 404 / 405 / 415 / 400，只有真正的代码或依赖缺陷才返回 `500 + 「系统繁忙,请稍后重试」` 并触发运维告警。
 - 除 `POST /login` 外都要带请求头 `token`（JWT，默认 24 小时有效）。
@@ -250,7 +251,7 @@ SQL 日志走 SLF4J，生产把 `logging.level.com.qk` 调成 `info` 即可关�
 ## 测试
 
 ```bash
-mvn test                              # 全量：25 个测试类 / 208 个用例（2 个 OSS 手动用例默认跳过）
+mvn test                              # 全量：29 个测试类 / 227 个用例（2 个 OSS 手动用例默认跳过）
 mvn -Dtest=ClueControllerTest test    # 单个测试类
 ```
 
@@ -266,6 +267,10 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [`UploadServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadServiceImplTest.java) 守上传策略与台账：不连数据库、不连 OSS（用内存实现替掉 `FileStorage`、Mapper 用 Mockito），验证扩展名白名单、文件头校验、空内容、读取失败保留根因，以及登记台账、重复上传只刷新、绑定、回收（仍被引用不删 / 删除失败回退 / 事务内推迟到提交后）。
 - [`UploadCleanupServiceImplTest`](qk-management/src/test/java/com/qk/service/impl/UploadCleanupServiceImplTest.java) 守兜底回收：候选筛选、跳过仍被引用的对象、调度入口吞掉异常不拖垮调度线程。
 - [`UploadFileLedgerTest`](qk-management/src/test/java/com/qk/UploadFileLedgerTest.java) 守台账联动：新增用户把头像台账标记为已绑定并写上业务主键；引用扫描排除逻辑删除的用户（否则旧头像永远回收不掉）。
+- [`ApiPermissionsTest`](qk-management/src/test/java/com/qk/ApiPermissionsTest.java) 守接口权限规则：管理员放行、内置专员的受限接口被拦、未登记接口与方法不匹配放行、身份不明/自建角色一律放行。
+- [`PermissionIsolationTest`](qk-management/src/test/java/com/qk/PermissionIsolationTest.java) 守权限的接口级行为（走真实 MVC + 拦截器）：非管理员做管理类操作被拒；**业务动作不被误拦**（上次「商机专员新增线索被拦」的回归守卫）；自建角色与没配角色的账号不被拦。
+- [`DataScopeTest`](qk-management/src/test/java/com/qk/DataScopeTest.java) 守数据可见范围规则：管理员与身份不明不限制，内置专员只看自己的。
+- [`DataIsolationTest`](qk-management/src/test/java/com/qk/DataIsolationTest.java) 守数据隔离的真实 SQL：商机专员A看不见分配给B的线索与「由B的商机转化来的客户」（详情表现为不存在）；尚未分配的数据仍可见。
 - 所有测试 `@Transactional` 回滚、不污染数据库；**断言只依赖测试自建的 fixture**（唯一例外是 `HardeningTest` 里验证「摘要不能当密码登录」的那条，它需要库里已知密码的种子账号 `zhangsan`）。
 - `OssUploadManualTest` 会真实上传对象到 OSS，默认 `@Disabled`，需要时去掉注解再执行。
 
@@ -283,6 +288,25 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - `XxxSaveDto` 只暴露可写字段：主键、`createTime`/`updateTime`、以及由服务端赋值的字段（如线索的 `status`/`userId`、客户的 `businessId`、用户的 `password`）都不在 DTO 里，从契约上杜绝参数覆盖。
 - **Service 方法名按《阿里巴巴 Java 开发手册》的命名规约**：取单个对象用 `get`（`getById`、`getClueById`）、取多个用 `list`（`listUsers`、`listPoolClues`、`listByRoleLabel`）、插入用 `save`（`saveDept`、`saveUser`）、删除用 `delete`（`deleteById`、`deleteUsers`）、修改用 `update`（`updateById`）。状态流转这类业务动作不在规约覆盖范围内，保留动词命名（`assignClue`、`trackClue`、`convertToBusiness`、`backToPool`）。
 - **Service 接口不继承 MyBatis-Plus 的 `IService`，实现类也不继承 `ServiceImpl`**，直接注入 Mapper。继承会把 `save` / `removeById` / `removeByMap` / `update` / `list(Wrapper)` / `getBaseMapper()` 这套通用方法挂到接口上：项目没有物理外键、删除与写入的守卫全在 Service 层，多出来的入口等于给「绕过守卫」开了后门，且漏覆盖某个重载时编译期毫无提示（MP 升级新增重载时守卫会静默失效）。`getBaseMapper()` 在接口上是 `public abstract`，调用方拿到 Service 就能直取 Mapper 绕开全部校验。另一处代价是查询 DSL 会随 `list(Wrapper)` 一起泄给调用方，与「wrapper 只写在 Mapper 的 default 方法里」冲突。
+
+**权限与数据隔离**
+
+前端是已构建产物、改不了，因此权限不能依赖前端配置，只能由服务端按角色判定；同时**拿不准的一律放行**——
+规则表只登记「明确只属于管理员」的接口，其余全部放行，避免误拦正常操作。
+
+| 能力 | `admin` | `clue_operator` | `business_operator` | 自建角色 / 身份不明 |
+| --- | --- | --- | --- | --- |
+| 部门 / 角色 / 课程 / 活动的新增、修改、删除 | ✅ | — | — | ✅（放行） |
+| 用户的新增、修改、删除 | ✅ | — | — | ✅（放行） |
+| 线索分配、商机分配 | ✅ | — | — | ✅（放行） |
+| 其它（查询、下拉、概览、操作日志、上传、线索/商机/客户的业务动作） | ✅ | ✅ | ✅ | ✅ |
+
+- 规则只有一处定义：[`ApiPermissions`](qk-management/src/main/java/com/qk/domain/ApiPermissions.java) 里的一张表，拦截器 [`PermissionInterceptor`](qk-management/src/main/java/com/qk/interceptor/PermissionInterceptor.java) 只做「读身份 + 命中就拒绝」，Controller 里没有一行权限检查。收紧某个动作（例如「跟进线索只允许线索专员」）只需在这张表里加一行。
+- 身份靠 ThreadLocal 传递：登录拦截器校验令牌后，把 [`CurrentUser`](qk-common/src/main/java/com/qk/common/util/CurrentUser.java)（用户ID + 角色标识，不可变 record）放进 [`UserHolder`](qk-common/src/main/java/com/qk/common/util/UserHolder.java)，请求结束清理。用户ID与角色放在同一个值对象里，避免「ID 换了、角色还是上个请求的」。
+- 角色**不放进令牌**，每次请求按主键现查（与「账号停用立即失效」同一个取舍）：改了角色下一次请求就生效，代价是每请求多一次主键查询。
+- **数据隔离按归属人**：非管理员只能看见「归给自己的」和「还没有归属人的」数据，看不见别人名下的；也就是「隐藏别人的」，而不是「只显示自己的」——否则刚新增、还没分配的东西自己就看不见了。规则同样只有一处：[`DataScope`](qk-management/src/main/java/com/qk/domain/DataScope.java)，过滤条件由 Mapper XML 拼进 SQL（`user_id IS NULL OR user_id = ?`），因此隐藏数据的详情接口与「不存在」表现一致，不泄露别人数据是否存在。
+- 客户的归属人来自它的来源商机（`customer` 表没有归属人字段，只有 `business_id`）：由分配给 B 的商机转化来的客户，A 看不到。**手工新增的客户没有来源商机，也就没有归属人，对所有人可见**；要彻底隔离需要给 `customer` 加归属人字段（一次建表脚本变更）。
+- 「拿不准」的三种情况都不限制：没有身份（定时任务、批处理）、取不到角色标识、用户自建的角色。
 
 **统一响应（Result / ResultCode）**
 
@@ -380,7 +404,8 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 - [x] 按《阿里巴巴 Java 开发手册》整改：主键/外键升 `bigint unsigned`、索引规约 `uk_`/`idx_`、实体迁入 `com.qk.entity.po`、`PageResult` 迁入 `qk-entity`、声明未声明的 Jackson 依赖
 - [ ] 密码哈希由 MD5 升级为 BCrypt（登录时平滑升级，需先确认前端提交的密码形态）
 - [ ] 用户名改为不可变标识（避免改名后旧密码失效）
-- [ ] 接口级权限控制（暂缓：权限的配置链路需要前端支持「给角色勾选权限」，而当前前端只有构建产物、改不了，链路无法闭环；完整实现保留在分支 `codex/rbac-permission-model`，前端源码可用后可直接恢复）
+- [x] 按角色的接口权限与数据隔离（规则集中在代码里、拿不准一律放行，不依赖前端配置）
+- [ ] 细粒度权限点 + 角色授权表（暂缓：权限的配置链路需要前端支持「给角色勾选权限」，而当前前端只有构建产物、改不了，链路无法闭环）
 - [ ] CORS 配置（前后端同域或走网关时可跳过）
 - [x] 上传对象回收：文件台账 + 业务删除/换图时同步删除 + 定时兜底回收「超期且无人引用」的对象
 - [ ] 上传图片改用私有读 + 签名 URL
@@ -402,7 +427,7 @@ mvn -Dtest=ClueControllerTest test    # 单个测试类
 13. **金额以整型存「元」**：`course.price`、`activity.voucher` 是 `int unsigned`（单位：元），不受手册「小数必须用 decimal」约束，但无法表达角、分。
 14. **操作日志的「操作模块 / 操作类型」尚未落库**：目前仍由 `OperateLogMapper.xml` 的 `CASE` 表达式在查询时从 `class_name` / `method_name` 翻译，`operateModule` / `operateType` 的模糊检索因此无法走索引，`operate_log` 增长后 `/logs` 会退化成全表扫描。彻底做法是在写入时把两个标签落成独立列并建索引（需要一次建表脚本变更），本次未一并处理。
 15. **未接入静态检查**：`BeanUtil` 之类的约定目前只靠注释与测试守卫，尚未接入 Alibaba P3C / SpotBugs 规则集，`Hutool` 也仍是 `hutool-all`（本地依赖仓库只有全量包，替换为 `hutool-core` / `hutool-crypto` / `hutool-jwt` 需要联网拉取）。
-16. **接口只校验登录、不做授权**：任何登录用户都可以调用全部接口（包括批量删用户、改课程、看操作日志）。曾经实现过完整的权限点模型（权限目录 + `role_permission` 授权表 + 超级管理员角色 + 默认拒绝），但**角色授权的配置需要在角色管理页勾选权限**，而当前前端是已构建产物、无法改动，链路无法闭环，因此按"要么全链路、要么不做"的口径整体撤销；实现完整保留在分支 `codex/rbac-permission-model`（含测试与文档），前端源码可用后可直接恢复。角色表仍按原样作为主数据使用（登录返回的 `roleLabel` 只影响前端菜单与按钮显隐）。
+16. **权限只做「按角色的粗粒度隔离 + 按归属人的数据隔离」**：管理员独占基础数据/用户的新增改删与线索/商机分配，其余接口对所有登录角色放行；数据上非管理员只看「归给自己的 + 尚未分配的」。这是刻意的粗粒度：前端是已构建产物，服务端无法确知每个角色该看到哪些页面，**宁可少拦也不误拦**。曾实现过完整的权限点模型（权限目录 + `role_permission` 授权表 + 超级管理员角色 + 默认拒绝），因为角色授权的配置必须在角色管理页勾选、前端改不了而整体撤销，实现已从仓库移除；前端源码可用后再上「权限点 + 授权表」才有意义（届时只需把 `ApiPermissions.isAllowed` 改成读表，拦截器与 Controller 不用动）。另外两点已知边界：操作日志（`/logs`）仍对所有登录角色开放；首页概览（`/report/overview`）是全局计数，不按归属人收窄。
 
 ## 说明
 
