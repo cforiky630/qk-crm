@@ -1,8 +1,8 @@
 package com.qk.aspect;
 
+import com.qk.common.util.UserHolder;
 import com.qk.entity.po.OperateLog;
 import com.qk.service.OperateLogService;
-import com.qk.common.util.UserHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -24,9 +24,13 @@ import java.util.regex.Pattern;
 @Component
 public class LogAspect {
 
-    /** method_params 列长度上限 */
+    /**
+     * method_params 列长度上限
+     */
     private static final int MAX_PARAMS_LENGTH = 1000;
-    /** return_value 列长度上限 */
+    /**
+     * return_value 列长度上限
+     */
     private static final int MAX_RETURN_LENGTH = 2000;
 
     /**
@@ -53,9 +57,12 @@ public class LogAspect {
         try {
             result = joinPoint.proceed();
         } catch (Throwable e) {
-            // 方法执行失败时只记录应用日志：此时业务事务通常已标记回滚，写库没有意义
+            // 方法执行失败时只记录应用日志：此时业务事务通常已标记@transactional回滚，写库没有意义
             log.warn("操作失败: {}.{}，参数: {}",
                     joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName(), methodParams, e);
+            // 传递异常, 防止未定义@order时内层切面吞掉异常, 导致@transactional无法回滚
+            // 未定义@order时默认值为2^31 - 1, 多切面顺序处于 undefined 或 arbitrary 状态
+            // order值越小, 优先级越高, 越外层
             throw e;
         }
 
